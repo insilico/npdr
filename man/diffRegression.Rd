@@ -17,7 +17,7 @@ diffRegression(pheno.diffs, predictor.diffs, regression.type = "lm")
 vector or regression stats to put into list for reSTIR and combine into matrix
 }
 \description{
-Utility to run regression for a phenotype diff vector and one attribute diff vector. 
+Wrapper for lm and glm to run regression for a phenotype diff vector and one attribute diff vector. 
 Organize regression statistics into a vector.
 }
 \examples{

@@ -1,7 +1,7 @@
 #=========================================================================#
 #' diffRegression
 #'
-#' Utility to run regression for a phenotype diff vector and one attribute diff vector. 
+#' Wrapper for lm and glm to run regression for a phenotype diff vector and one attribute diff vector. 
 #' Organize regression statistics into a vector.
 #'
 #' @param pheno.diffs outcome variable as vector of diffs 
@@ -76,8 +76,9 @@ diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="lm") {
 #' restir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
 #' restir.positives <- row.names(restir.results.df[restir.results.df[,1]<.05,]) # reSTIR p.adj<.05
 #' @export
-glmSTIR <- function(outcome, data.set, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", k=0, sd.frac=0.5, fdr.method="bonferroni"){
-
+glmSTIR <- function(outcome, data.set, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", 
+                    attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
+                    k=0, sd.frac=0.5, fdr.method="bonferroni"){
   ##### parse the commandline 
   #if (is.character(outcome)){
   if (length(outcome)==1){
@@ -100,7 +101,8 @@ glmSTIR <- function(outcome, data.set, regression.type="lm", nbd.method="multisu
   ##### get Neighbors (no phenotype used)
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
   # sd.frac used by surf/multisurf relieff for theoretical k
-  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nbd.method=nbd.method, nbd.metric = nbd.metric, sd.vec = NULL, sd.frac = sd.frac, k=k)
+  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nbd.method=nbd.method, nbd.metric = nbd.metric, 
+                                         sd.vec = NULL, sd.frac = sd.frac, k=k)
   
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp)
@@ -147,7 +149,8 @@ glmSTIR <- function(outcome, data.set, regression.type="lm", nbd.method="multisu
   # prepend adjused attribute p-values to first column
   glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
   if (regression.type=="lm"){# different stats colnames for lm and glm
-    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "R.sqr", "F.stat", "Fstat.pval", "beta.0", "pval.0")
+    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "R.sqr", 
+                                                  "F.stat", "Fstat.pval", "beta.0", "pval.0")
   } else{ # "glm"
     colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
   }

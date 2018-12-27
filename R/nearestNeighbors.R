@@ -1,27 +1,4 @@
 #=========================================================================#
-#' check.packages
-#'
-#' Utility to check for package installation
-#'
-#' @param pkg character vector of package names to install if not already.
-#' @return null There is nothing returned.  
-#' @examples
-#' packages <- c("ggplot2", "CORElearn", "reshape2", "dplyr", "pROC", "plotROC")
-#' check.packages(packages)  
-#' @export
-check.packages <- function(pkg){
-  # check.packages function: install and load multiple R packages.
-  # Check to see if packages are installed. Install them if they are not, 
-  # then load them into the R session.
-  # https://gist.github.com/smithdanielle/9913897
-  
-  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  if (length(new.pkg)) 
-    install.packages(new.pkg, repos = "http://cran.us.r-project.org", dependencies = TRUE)
-  sapply(pkg, require, character.only = TRUE)
-}
-
-#=========================================================================#
 #' stirDiff
 #'
 #' A diff is a function that computes the diffrence of values for an attribute between two instances.
