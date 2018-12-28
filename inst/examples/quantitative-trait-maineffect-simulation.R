@@ -43,16 +43,16 @@ univariate.results[1:10,]
 univariate.results[univariate.results[,"p.adj"]<.05,]
 
 ##### Run glmSTIR
-glm.stir.results.df <- glmSTIR("qtrait", qtrait.data, regression.type="lm", 
+glm.stir.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="lm", 
                             nbd.method="multisurf", nbd.metric = "manhattan", 
                             attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
                             sd.frac=.5, fdr.method="bonferroni")
-glm.stir.results.df[glm.stir.results.df[,1]<.05,]
+glm.stir.qtrait.results[glm.stir.qtrait.results[,1]<.05,]
 
 # functional attribute detection stats
-glm.stir.positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
-glm.stir.detect.stats <- detectionStats(functional.qtrait, glm.stir.positives)
-cat(glm.stir.detect.stats$report)
+glm.stir.qtrait.positives <- row.names(glm.stir.qtrait.results[glm.stir.qtrait.results[,1]<.05,]) # p.adj<.05
+glm.stir.qtrait.detect.stats <- detectionStats(functional.qtrait, glm.stir.qtrait.positives)
+cat(glm.stir.qtrait.detect.stats$report)
 
 ##### original (pseudo t-test) STIR
 # original STIR not relevant for regression

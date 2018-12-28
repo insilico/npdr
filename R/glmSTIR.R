@@ -21,7 +21,7 @@ diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="lm") {
     fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
     fit$r.squared,         # R^2 of fit, R.sqr
     fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
-    1 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3]), # Fstat.pval
+    format(1 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3]), digits = 5, scientific = T), # Fstat.pval
     fit$coefficients[1,3], # beta_hat_0, intercept, B0
     fit$coefficients[1,4] # p-value for intercept, B0.pval
   ) 

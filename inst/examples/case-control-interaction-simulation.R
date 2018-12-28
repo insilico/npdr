@@ -43,16 +43,16 @@ univariate.results[1:10,]
 #univariate.results[univariate.results[,"p.adj"]<.05,]
 
 ##### Run glmSTIR
-glm.stir.results.df <- glmSTIR("class", case.control.data, regression.type="glm", 
+glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", 
                             nbd.method="multisurf", nbd.metric = "manhattan", 
                             attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
                             sd.frac=.5, fdr.method="bonferroni")
-glm.stir.results.df[glm.stir.results.df[,1]<.05,]
+glm.stir.cc.results[glm.stir.cc.results[,1]<.05,]
 
 # functional attribute detection stats
-glm.stir.positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
-glm.stir.detect.stats <- detectionStats(functional.case.control, glm.stir.positives)
-cat(glm.stir.detect.stats$report)
+glm.stir.cc.positives <- row.names(glm.stir.cc.results[glm.stir.cc.results[,1]<.05,]) # p.adj<.05
+glm.stir.cc.detect.stats <- detectionStats(functional.case.control, glm.stir.cc.positives)
+cat(glm.stir.cc.detect.stats$report)
 
 ##### original (pseudo t-test) STIR
 #install_github("insilico/stir")
