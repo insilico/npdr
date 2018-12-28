@@ -37,10 +37,31 @@ functional.qtrait <- qtrait.3sets$signal.names # functional attributes
 # linear regression on all predictors, fdr adjust, check functional hits
 # standardized beta and p-value
 # glmSTIR utulity function
-lr.results <- univariateLogisticRegression(outcome="qtrait", dataset=qtrait.data)
-lr.results[1:10,]
+univariate.results <- univariateRegression(outcome="qtrait", dataset=qtrait.data, regression.type="lm")
+univariate.results[1:10,]
 # none will be less than .05 for interaction simulations
-#lr.results[lr.results[,"p.adj"]<.05,]
+univariate.results[univariate.results[,"p.adj"]<.05,]
+
+
+junk <- function(outcome, dataset, regression.type="lm"){
+  if (regression.type=="lm"){
+    model.func <- function(x) {as.numeric(tidy(lm(dataset[,outcome] ~ dataset[,x]))[2,4:5])}
+  } else { # "glm"
+    model.func <- function(x) {tidy(glm(dataset[,outcome] ~ dataset[,x], family=binomial))[2,4:5]}
+  }
+  class.col <- which(colnames(dataset)==outcome)
+  predictor.cols <- which(colnames(dataset)!=outcome)
+  beta_pvals <- t(sapply(predictor.cols, model.func)) # stats for all predictors
+  univariate.padj <- p.adjust(beta_pvals[,2]) # fdr
+  univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
+  betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
+  pvals <- as.numeric(format(beta_pvals[,2], scientific = T, digits=5))
+  beta_pvals <- cbind(betas,pvals,univariate.padj) # adjusted p-val column
+  row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
+  beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,2]), decreasing = F),] # sort by pval
+  colnames(beta_pvals_sorted) <- c("beta", "pval", "p.adj")
+  return(beta_pvals_sorted)
+}
 
 ##### Run glmSTIR
 glm.stir.results.df <- glmSTIR("class", qtrait.data, regression.type="glm", 

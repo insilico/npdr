@@ -37,10 +37,10 @@ functional.case.control <- case.control.3sets$signal.names # functional attribut
 # linear regression on all predictors, fdr adjust, check functional hits
 # standardized beta and p-value
 # glmSTIR utulity function
-lr.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
-lr.results[1:10,]
+univariate.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
+univariate.results[1:10,]
 # none will be less than .05 for interaction simulations
-#lr.results[lr.results[,"p.adj"]<.05,]
+#univariate.results[univariate.results[,"p.adj"]<.05,]
 
 ##### Run glmSTIR
 glm.stir.results.df <- glmSTIR("class", case.control.data, regression.type="glm", 
