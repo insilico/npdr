@@ -22,22 +22,26 @@ checkPackages <- function(pkg){
 }
 
 #=========================================================================#
-#' univariateLogisticRegression
+#' univariateRegression
 #'
-#' Univariate logistic regression for a data set.
+#' Univariate logistic or linear regression for a dataset.
 #'
 #' @param outcome string with name of class column.
 #' @param dataset data matrix with predictor columns and outcome column.
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.  
 #' @examples
-#' lr.results <- univariateLogisticRegression(outcome="class", dataset=case.control.data)
+#' lr.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
 #  lr.results[lr.results[,"p.adj"]<.05] 
 #' @export
-univariateLogisticRegression <- function(outcome, dataset){
-  glm.func2 <- function(x) {tidy(glm(dataset[,outcome] ~ dataset[,x], family=binomial))[2,4:5]}
+univariateRegression <- function(outcome, dataset, regression.type="lm"){
+  if (regression.type=="lm"){
+    model.func <- function(x) {tidy(lm(dataset[,outcome] ~ dataset[,x]))[2,4:5]}
+  } else { # "glm"
+    model.func <- function(x) {tidy(glm(dataset[,outcome] ~ dataset[,x], family=binomial))[2,4:5]}
+  }
   class.col <- which(colnames(dataset)==outcome)
   predictor.cols <- which(colnames(dataset)!=outcome)
-  beta_pvals <- t(sapply(predictor.cols, glm.func2)) # stats for all predictors
+  beta_pvals <- t(sapply(predictor.cols, model.func)) # stats for all predictors
   row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
   univariate.padj <- p.adjust(beta_pvals[,2]) # fdr
   beta_pvals <- cbind(beta_pvals,univariate.padj) # adjusted p-val column
@@ -74,8 +78,8 @@ detectionStats <- function(functional, positives){
   report <- paste(
     "Given ", length(functional)," functional (true) attributes.\n",
     "Given ", length(positives)," selected (positive) attributes.\n",
-    "True Positives: ", TP," true out of ", length(positives)," positives. TP rate = ,", TPR, ".\n",
-    "False Positives: ", FP," false out of ", length(positives)," positives. FP rate = ,", FPR, ".\n",
+    "True Positives: ", TP," true out of ", length(positives)," positives. TP rate = ", TPR, ".\n",
+    "False Positives: ", FP," false out of ", length(positives)," positives. FP rate = ", FPR, ".\n",
     "Precision: ", precision,".\n",
     "Recall: ", recall,".\n",
     sep="")

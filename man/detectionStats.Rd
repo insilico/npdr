@@ -16,7 +16,7 @@ list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (
 }
 \description{
 Given a vector functional (true) attribute names and a vector of positive
-association attribute names, function returns detection statistics like recall and precision.
+association attribute names, returns detection statistics like recall and precision.
 }
 \examples{
 functional <- case.control.3sets$signal.names  
