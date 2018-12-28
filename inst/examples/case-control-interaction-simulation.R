@@ -53,7 +53,7 @@ glm.stir.results.df[glm.stir.results.df[,1]<.05,]
 # functional attribute detection stats
 glm.stir.positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
 glm.stir.detect.stats <- detectionStats(functional.case.control, glm.stir.positives)
-cat(glm.stir.detect.stats$summary.msg)
+cat(glm.stir.detect.stats$report)
 
 ##### original STIR (pseudo t-test)
 # t-test STIR
@@ -72,8 +72,8 @@ colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir
 
 # functional attribute detection stats
 tstat_stir.detect.stats <- detectionStats(functional.case.control, 
-                                          names(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,]))
-cat(tstat_stir.detect.stats$summary.msg)
+                                          row.names(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,]))
+cat(tstat_stir.detect.stats$report)
 
 ##### CORElearn ReliefF with surf fixed k
 
@@ -91,5 +91,28 @@ t(t(core.learn.case.control[core.learn.case.control.order[1:20]]))
 
 # functional attribute detection stats
 core.learn.detect.stats <- detectionStats(functional.case.control, 
-                                          names(core.learn.case.control)[core.order[1:20]])
-cat(core.learn.detect.stats$summary.msg)
+                                          names(core.learn.case.control)[core.learn.case.control.order[1:20]])
+cat(core.learn.detect.stats$report)
+
+
+##### Consensus Nested Cross Validation with ReliefF with surf fixed k
+# selects features and learns classification model.
+
+cncv.case.control <- consensus_nestedCV(train.ds = case.control.data, 
+                                  validation.ds =  case.control.3sets$validation, 
+                                  label = "class",
+                                  method.model = "classification",
+                                  is.simulated = TRUE,
+                                  ncv_folds = c(10, 10),
+                                  param.tune = FALSE,
+                                  learning_method = "rf", 
+                                  importance.algorithm = "ReliefFequalK",
+                                  relief.k.method = "k_half_sigma",     # surf k
+                                  num_tree = 500,
+                                  verbose = F)
+
+cat("\n Train Accuracy [",cncv.case.control$cv.acc,"]\n")
+cat("\n Validation Accuracy [",cncv.case.control$Validation,"]\n")
+cat("\n Selected Features \n [",cncv.case.control$Features,"]\n")
+cat("\n Elapsed Time [",cncv.case.control$Elapsed,"]\n")
+cat(detectionStats(functional.case.control, cncv.case.control$Features)$report)

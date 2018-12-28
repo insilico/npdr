@@ -97,7 +97,7 @@ stirDistances <- function(attr.mat, metric="manhattan"){
 #'
 #' @export
 nearestNeighbors <- function(attr.mat, nbd.method="multisurf", nbd.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k=0){
-  # create a matrix with num.samp rows, two columns
+  # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   
   dist.mat <- stirDistances(attr.mat, metric = nbd.metric)

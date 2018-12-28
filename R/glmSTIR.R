@@ -40,15 +40,18 @@ diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="lm") {
 #=========================================================================#
 #' glmSTIR
 #'
-#' regression-based STIR statistics for quantitative or case-control phenotypes
-#' 
+#' generalized linear model (GLM) based STatistical Inference Relief (STIR)
+#' Computes Relief-based attribute statistical signficance for case/control or quantitative outcomes.
+#' Allows for categorical (SNP) or numeric (expession) predictor data types. 
+#' Allows for covariate correction.   
 #'
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression 
 #' @param data.set m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
+#' @param covar vector of names or indices of covariates in data.set for covariate correction. Or separate data matrix of covariates. 
 #' @param regression.type (\code{"lm"} or \code{"glm"})
 #' @param nbd.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
-#' @param neighbor.pairs.idx nearest hit/miss matrices, output from \code{find.neighbors}
+#' @param neighbor.pairs.idx nearest hit/miss matrix (2 columns), output from \code{find.neighbors}
 #' @param attr.diff.type diff type for attributes (\code{"manhattan"} or \code{"euclidean"} for numeric). Phenotype diff same as attr.diff.type when lm regression. For glm, phenotype diff is match/mismatch. 
 #' @param covar.diff.type diff type for covariates (\code{"manhattan"} or \code{"euclidean"} for numeric). 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
@@ -59,24 +62,21 @@ diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="lm") {
 #' @return glmSTIR.stats.df: glmSTIR regression coefficients and p-values for each attribute
 #'
 #' @examples
-#' # Specifies name ("qtrait") of outcome and data.set, which is a data frame including the outcome
-#  # ReliefF fixed-k nbd, choose a k (k=10). Or choose sd.frac
-#' restir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
-
-#' # Specifies index (101) of outcome and data.set, which is a data frame including the outcome
-#' # ReliefF fixed-k neighborhood, surf theoretical default (sd.frac=.5) by not specifying k or let k=0
-#' restir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
-
-#' # 101 is column index of outcome variable
-#' restir.results.df <- glmSTIR(101, train.data, regression.type="lm", neighbor.pairs.idx, attr.diff.type="manhattan", covar.diff.type="manhattan", fdr.method="bonferroni")
-#' row.names(restir.results.df[restir.results.df[,1]<.05,]) # reSTIR p.adj<.05
+#' # Data interface options.
+#' # Specify name ("qtrait") of outcome and data.set, which is a data frame including the outcome column.
+#' # ReliefF fixed-k neighborhood, uses surf theoretical default (with sd.frac=.5) if you do not specify k or let k=0
+#' restir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
 #'
-#' # separate outcome vector and attribute matrix
+#' # Specify column index (101) of outcome and data.set, which is a data frame including the outcome column.
+#  # ReliefF fixed-k nbd, choose a k (k=10). Or choose sd.frac
+#' restir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
+#'
+#' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
 #' restir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
 #' restir.positives <- row.names(restir.results.df[restir.results.df[,1]<.05,]) # reSTIR p.adj<.05
 #' @export
-glmSTIR <- function(outcome, data.set, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", 
+glmSTIR <- function(outcome, data.set, covars="none", regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", 
                     attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
                     k=0, sd.frac=0.5, fdr.method="bonferroni"){
   ##### parse the commandline 
