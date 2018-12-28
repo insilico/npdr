@@ -71,10 +71,10 @@ detectionStats <- function(functional, positives){
   TPR <- TP/num.positives #rate
   FPR <- FP/num.positives #rate
   summary.msg <- paste(
-    "True Positives: ", glm.stir.detect.stats$TP," out of ", length(functional.case.control)," functional.\n",
-    "False Positives: ", glm.stir.detect.stats$FP," out of ", length(functional.case.control)," functional.\n",
-    "Precision: ", glm.stir.detect.stats$precision,".\n",
-    "Recall: ", glm.stir.detect.stats$recall,".\n",
+    "True Positives: ", TP," out of ", length(positives)," positives.\n",
+    "False Positives: ", FP," out of ", length(positives)," positives.\n",
+    "Precision: ", precision,".\n",
+    "Recall: ", recall,".\n",
     sep="")
   return(list(TP=TP, FP=FP, FN=FN, TPR=TPR, FPR=FPR, 
               precision=precision, recall=recall, summary.msg=summary.msg))
