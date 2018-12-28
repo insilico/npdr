@@ -50,7 +50,7 @@ univariateLogisticRegression <- function(outcome, dataset){
 #' detectionStats
 #'
 #' Given a vector functional (true) attribute names and a vector of positive
-#' association attribute names, function returns detection statistics like recall and precision.
+#' association attribute names, returns detection statistics like recall and precision.
 #'
 #' @param functional character vector of functional/true attribute names.
 #' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
@@ -70,12 +70,14 @@ detectionStats <- function(functional, positives){
   num.positives <- length(positives)
   TPR <- TP/num.positives #rate
   FPR <- FP/num.positives #rate
-  summary.msg <- paste(
+  # summary message
+  report <- paste(
+    "Given ", length(functional)," functional (true) attributes.\n",
     "True Positives: ", TP," out of ", length(positives)," positives.\n",
     "False Positives: ", FP," out of ", length(positives)," positives.\n",
     "Precision: ", precision,".\n",
     "Recall: ", recall,".\n",
     sep="")
   return(list(TP=TP, FP=FP, FN=FN, TPR=TPR, FPR=FPR, 
-              precision=precision, recall=recall, summary.msg=summary.msg))
+              precision=precision, recall=recall, report=report))
 }
