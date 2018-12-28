@@ -19,11 +19,11 @@ diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="lm") {
   stats.vec <- c(
     fit$coefficients[2,4], # p-value for attribute beta, pval.a
     fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-    fit$r.squared,         # R^2 of fit, R.sqr
-    fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
-    (1.0 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3])), # Fstat.pval
+    #fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
+    #(1.0 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3])), # Fstat.pval
     fit$coefficients[1,3], # beta_hat_0, intercept, B0
-    fit$coefficients[1,4] # p-value for intercept, B0.pval
+    fit$coefficients[1,4], # p-value for intercept, B0.pval
+    fit$r.squared         # R^2 of fit, R.sqr
   ) 
   } else{ #regression.type=="glm"
     fit <- summary(glm(pheno.diffs ~ predictor.diffs, family=binomial(link=logit)))
@@ -149,8 +149,8 @@ glmSTIR <- function(outcome, data.set, covars="none", regression.type="lm", nbd.
   # prepend adjused attribute p-values to first column
   glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
   if (regression.type=="lm"){# different stats colnames for lm and glm
-    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "R.sqr", 
-                                                  "F.stat", "Fstat.pval", "beta.0", "pval.0")
+    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr",  
+                                                  "beta.0", "pval.0", "R.sqr")
   } else{ # "glm"
     colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
   }
