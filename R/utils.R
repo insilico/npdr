@@ -73,7 +73,7 @@ detectionStats <- function(functional, positives){
   # summary message
   report <- paste(
     "Given ", length(functional)," functional (true) attributes.\n",
-    "Given ", length(postives)," selected (positive) attributes.\n",
+    "Given ", length(positives)," selected (positive) attributes.\n",
     "True Positives: ", TP," true out of ", length(positives)," positives. TP rate = ,", TPR, ".\n",
     "False Positives: ", FP," false out of ", length(positives)," positives. FP rate = ,", FPR, ".\n",
     "Precision: ", precision,".\n",
