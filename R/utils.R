@@ -1,5 +1,5 @@
 #=========================================================================#
-#' check.packages
+#' checkPackages
 #'
 #' Utility to check for package installation
 #'
@@ -7,9 +7,9 @@
 #' @return null There is nothing returned.  
 #' @examples
 #' packages <- c("ggplot2", "CORElearn", "reshape2", "dplyr", "pROC", "plotROC")
-#' check.packages(packages)  
+#' checkPackages(packages)  
 #' @export
-check.packages <- function(pkg){
+checkPackages <- function(pkg){
   # check.packages function: install and load multiple R packages.
   # Check to see if packages are installed. Install them if they are not, 
   # then load them into the R session.
@@ -44,4 +44,38 @@ univariateLogisticRegression <- function(outcome, dataset){
   beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,2]), decreasing = F),] # sort by pval
   colnames(beta_pvals_sorted) <- c("beta", "pval", "p.adj")
   return(as.matrix(beta_pvals_sorted))
+}
+
+#=========================================================================#
+#' detectionStats
+#'
+#' Given a vector functional (true) attribute names and a vector of positive
+#' association attribute names, function returns detection statistics like recall and precision.
+#'
+#' @param functional character vector of functional/true attribute names.
+#' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
+#' @return list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (string).  
+#' @examples
+#' functional <- case.control.3sets$signal.names  
+#' positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
+#' glm.stir.detect.stats <- detectionStats(functional.case.control, glm.stir.positives)
+#' cat(glm.stir.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
+#' @export
+detectionStats <- function(functional, positives){
+  TP <- sum(positives %in% functional)
+  FP <- sum((positives %in% functional)==F)
+  FN <- length(functional) - TP
+  precision <- TP/(TP+FP)
+  recall <- TP/(TP+FN)
+  num.positives <- length(positives)
+  TPR <- TP/num.positives #rate
+  FPR <- FP/num.positives #rate
+  summary.msg <- paste(
+    "True Positives: ", glm.stir.detect.stats$TP," out of ", length(functional.case.control)," functional.\n",
+    "False Positives: ", glm.stir.detect.stats$FP," out of ", length(functional.case.control)," functional.\n",
+    "Precision: ", glm.stir.detect.stats$precision,".\n",
+    "Recall: ", glm.stir.detect.stats$recall,".\n",
+    sep="")
+  return(list(TP=TP, FP=FP, FN=FN, TPR=TPR, FPR=FPR, 
+              precision=precision, recall=recall, summary.msg=summary.msg))
 }
