@@ -59,11 +59,11 @@ cat(glm.stir.cc.detect.stats$report)
 library(stir)
 # stir interface requires splitting phenotype and predictor matrix, 
 # and requires finding the neighborhood separately.
-predictors.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
+predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
 case.control.data[, "class"] <- as.factor(case.control.data[, "class"]) 
 pheno.case.control <- case.control.data[, "class"]
-neighbor.idx.observed <- find.neighbors(predictors.mat, pheno.case.control, k = 0, method = "multisurf")
-results.list <- stir(predictors.mat, neighbor.idx.observed, k = k, metric = "manhattan", method = "multisurf")
+neighbor.idx.observed <- find.neighbors(predictors.cc.mat, pheno.case.control, k = 0, method = "multisurf")
+results.list <- stir(predictors.cc.mat, neighbor.idx.observed, k = 0, metric = "manhattan", method = "multisurf")
 t_sorted_multisurf <- results.list$STIR_T[, -3]  # remove cohen-d
 colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir", sep=".")
 (t_sorted_multisurf[t_sorted_multisurf[,3]<.05,])
@@ -114,3 +114,39 @@ cat("\n Validation Accuracy [",cncv.case.control$Validation,"]\n")
 cat("\n Selected Features \n [",cncv.case.control$Features,"]\n")
 cat("\n Elapsed Time [",cncv.case.control$Elapsed,"]\n")
 cat(detectionStats(functional.case.control, cncv.case.control$Features)$report)
+
+##### Regular Nested Cross Validation with ReliefF with surf fixed k
+# selects features and learns classification model.
+
+rncv.case.control <- regular_nestedCV(train.ds = case.control.data, 
+                                        validation.ds =  case.control.3sets$validation, 
+                                        label = "class",
+                                        method.model = "classification",
+                                        is.simulated = TRUE,
+                                        ncv_folds = c(10, 10),
+                                        param.tune = FALSE,
+                                        learning_method = "rf", 
+                                        importance.algorithm = "ReliefFequalK",
+                                        relief.k.method = "k_half_sigma",     # surf k
+                                        num_tree = 500,
+                                        verbose = F)
+
+cat("\n Train Accuracy [",rncv.case.control$cv.acc,"]\n")
+cat("\n Validation Accuracy [",rncv.case.control$Validation,"]\n")
+cat("\n Selected Features \n [",rncv.case.control$Features,"]\n")
+cat("\n Elapsed Time [",rncv.case.control$Elapsed,"]\n")
+cat(detectionStats(functional.case.control, rncv.case.control$Features)$report)
+
+##### GLMnet comparison. Don't expect good performance for interaction models. 
+
+library(glmnet)
+# cc short for case-control
+predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
+pheno.case.control <- case.control.data[, "class"]
+
+glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alpha=.1, family="binomial", type.measure="class")
+glmnet.cc.coeffs<-predict(glmnet.cc.model,type="coefficients")
+#glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
+model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
+nonzero.glmnet.cc.coeffs <- model.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] # skip intercept if there, 0-based counting
+nonzero.glmnet.cc.coeffs
