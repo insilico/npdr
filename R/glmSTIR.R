@@ -128,7 +128,7 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
       design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
     }
     ### diff vector for each covariate
-    if (covars!="none"){ # if there are optional covariates to model
+    if (covars[1]!="none"){ # if there are optional covariates to model
       covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
       # covar.diff.type can be a vector of strings because each column of covars may be a different data type
       #covar.diff.list <- vector("list",length(covar.diff.type)) # initialize
