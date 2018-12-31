@@ -12,23 +12,21 @@
 #' @export
 #diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="glm") {
 diffRegression <- function(design.matrix.df, regression.type="glm") {
-  # 
-  # if covar.diffs == "none"
-  # diff.design.mat.df <- data.frame(pheno.diffs=pheno.diffs, predictor.diffs=predictor.diff, covars from list)
-  # make a data.frame out of everything pheno.diffs ~ . , data=glmSTIR.diffs.df
+  # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
+  # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   if (regression.type=="lm"){
-  fit <- summary(lm(pheno.diff.vec ~ attr.diff.vec, data=design.matrix.df))
-  stats.vec <- c(
-    fit$coefficients[2,4], # p-value for attribute beta, pval.a
-    fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-    #fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
-    #(1.0 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3])), # Fstat.pval
-    fit$coefficients[1,3], # beta_hat_0, intercept, B0
-    fit$coefficients[1,4], # p-value for intercept, B0.pval
-    fit$r.squared         # R^2 of fit, R.sqr
+    fit <- summary(lm(pheno.diff.vec ~ ., data=design.matrix.df))
+    stats.vec <- c(
+      fit$coefficients[2,4], # p-value for attribute beta, pval.a
+      fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
+      #fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
+      #(1.0 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3])), # Fstat.pval
+      fit$coefficients[1,3], # beta_hat_0, intercept, B0
+      fit$coefficients[1,4], # p-value for intercept, B0.pval
+      fit$r.squared         # R^2 of fit, R.sqr
   ) 
   } else{ #regression.type=="glm"
-    fit <- summary(glm(pheno.diff.vec ~ attr.diff.vec, family=binomial(link=logit), data=design.matrix.df))
+    fit <- summary(glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df))
     stats.vec <- c(
       fit$coefficients[2,4], # p-value for attribute beta, pval.a
       fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba

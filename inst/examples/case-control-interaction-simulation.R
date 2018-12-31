@@ -43,10 +43,9 @@ univariate.results[1:10,]
 #univariate.results[univariate.results[,"p.adj"]<.05,]
 
 ##### Run glmSTIR
-glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", 
-                            nbd.method="multisurf", nbd.metric = "manhattan", 
-                            attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
-                            sd.frac=.5, fdr.method="bonferroni")
+glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", attr.diff.type="numeric-abs",
+                            nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5, 
+                            fdr.method="bonferroni")
 glm.stir.cc.results[glm.stir.cc.results[,1]<.05,]
 
 # functional attribute detection stats
@@ -55,6 +54,7 @@ glm.stir.cc.detect.stats <- detectionStats(functional.case.control, glm.stir.cc.
 cat(glm.stir.cc.detect.stats$report)
 
 ##### original (pseudo t-test) STIR
+# impression is that glmSTIR gives same resutls as original t-STIR
 #install_github("insilico/stir")
 library(stir)
 # stir interface requires splitting phenotype and predictor matrix, 

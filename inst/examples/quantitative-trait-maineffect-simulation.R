@@ -45,10 +45,9 @@ univariate.05.fdr
 cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 
 ##### Run glmSTIR
-glm.stir.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="lm", 
-                            nbd.method="multisurf", nbd.metric = "manhattan", 
-                            attr.diff.type="numeric-abs", covar.diff.type="numeric-abs", 
-                            sd.frac=.5, fdr.method="bonferroni")
+glm.stir.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
+                            nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5,
+                            fdr.method="bonferroni")
 glm.stir.qtrait.results[glm.stir.qtrait.results[,1]<.05,]
 
 # functional attribute detection stats
@@ -60,7 +59,7 @@ cat(glm.stir.qtrait.detect.stats$report)
 # original STIR not relevant for regression
 
 ##### CORElearn ReliefF with surf fixed k
-
+# impression is that glmSTIR ranks the attributes better than RReleifF.
 # fixed k with theoretical surf value
 erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
 k.surf.fn <- function(m,f) {floor((m-1)*(1-erf(f/sqrt(2)))/2)}
@@ -128,7 +127,6 @@ cat(detectionStats(functional.qtrait, rncv.qtrait$Features)$report)
 # Impression for main effects is that TP is similar glmSTIR, but glmSTIR has higher FP
 
 library(glmnet)
-# cc short for case-control
 predictors.qtrait.mat <- qtrait.data[, - which(colnames(qtrait.data) == "qtrait")]
 pheno.qtrait <- qtrait.data[, "qtrait"]
 
@@ -136,6 +134,6 @@ glmnet.qtrait.model<-cv.glmnet(as.matrix(predictors.qtrait.mat), pheno.qtrait, a
 glmnet.qtrait.coeffs<-predict(glmnet.qtrait.model,type="coefficients")
 #glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
 model.qtrait.terms <- colnames(predictors.qtrait.mat)  # glmnet includes an intercept but we are going to ignore
-nonzero.glmnet.qtrait.coeffs <- model.terms[glmnet.qtrait.coeffs@i[which(glmnet.qtrait.coeffs@i!=0)]] # skip intercept if there, 0-based counting
+nonzero.glmnet.qtrait.coeffs <- model.qtrait.terms[glmnet.qtrait.coeffs@i[which(glmnet.qtrait.coeffs@i!=0)]] # skip intercept if there, 0-based counting
 nonzero.glmnet.qtrait.coeffs
 cat(detectionStats(functional.qtrait, nonzero.glmnet.qtrait.coeffs)$report)
