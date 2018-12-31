@@ -128,9 +128,8 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
       design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
     }
     ### diff vector for each covariate
-    if (covars=="none"){ # no cavariates
-      covar.diff.mat <- "none"
-    } else{              # add optional covariates to model
+    if (covars!="none"){ # if there are optional covariates to model
+      covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
       # covar.diff.type can be a vector of strings because each column of covars may be a different data type
       #covar.diff.list <- vector("list",length(covar.diff.type)) # initialize
       for (covar.col in (1:length(covar.diff.type))){
@@ -141,7 +140,13 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
         #covar.diff.list[[covar.col]] <- covar.diff.vec
         # add covar diff vector to data.frame
         # these covars will be included in each attribute's model
-        design.matrix.df$colnames(covars)[covar.col] <- covar.diff.vec
+        if (is.null(colnames(covars)[covar.col])){  # if covar vector has no column name, give it one
+          covar.name <- paste("cov",covar.col,sep="") # cov1, etc.
+        } else{
+          covar.name <- colnames(covars)[covar.col] # else get the name from covars
+        }
+        design.matrix.df$temp <- covar.diff.vec  # add the diff covar to the design matrix data frame
+        colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
       }
       #covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix
     }
