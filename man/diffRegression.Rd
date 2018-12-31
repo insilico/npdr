@@ -4,21 +4,18 @@
 \alias{diffRegression}
 \title{diffRegression}
 \usage{
-diffRegression(pheno.diffs, predictor.diffs, regression.type = "lm")
+diffRegression(design.matrix.df, regression.type = "glm")
 }
 \arguments{
-\item{pheno.diffs}{outcome variable as vector of diffs}
+\item{design.matrix.df}{Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.}
 
-\item{predictor.diffs}{one predictor varialbe as vector of diffs}
-
-\item{regression.type}{(\code{"lm"}) todo: \code{"glm"} and covariates}
+\item{regression.type}{(\code{"lm"}, \code{"glm"})}
 }
 \value{
-vector or regression stats to put into list for reSTIR and combine into matrix
+vector of regression stats to put into list for glmSTIR and combine into matrix
 }
 \description{
-Wrapper for lm and glm to run regression for a phenotype diff vector and one attribute diff vector. 
-Organize regression statistics into a vector.
+Wrapper for lm and glm to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in glmSTIR.
 }
 \examples{
 

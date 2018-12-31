@@ -124,7 +124,8 @@ cat("\n Selected Features \n [",rncv.qtrait$Features,"]\n")
 cat("\n Elapsed Time [",rncv.qtrait$Elapsed,"]\n")
 cat(detectionStats(functional.qtrait, rncv.qtrait$Features)$report)
 
-##### GLMnet comparison
+##### GLMnet (penalized regression) comparison. 
+# Impression for main effects is that TP is similar glmSTIR, but glmSTIR has higher FP
 
 library(glmnet)
 # cc short for case-control

@@ -18,8 +18,9 @@ stirDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
     val <- abs(a - b)^2/norm.fac
   } else if (diff.type=="allele-sharing"){ # snps
     val <- abs(a-b)/2
-  } else if (diff.type=="match-mismatch"){ # snps
-    val <- as.character(a==b) # convert this to factor in reSTIR
+  } else if (diff.type=="match-mismatch"){ 
+    # used automatically for case-control pheno, optional genotype mismatch diff for snps
+    val <- as.character(a==b) # convert this to factor in glmSTIR
   } else{ # numeric abs difference
     val <- abs(a - b)/norm.fac
   }

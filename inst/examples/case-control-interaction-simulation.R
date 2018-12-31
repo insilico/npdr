@@ -137,7 +137,7 @@ cat("\n Selected Features \n [",rncv.case.control$Features,"]\n")
 cat("\n Elapsed Time [",rncv.case.control$Elapsed,"]\n")
 cat(detectionStats(functional.case.control, rncv.case.control$Features)$report)
 
-##### GLMnet comparison. Don't expect good performance for interaction models. 
+##### GLMnet (penalized regression) comparison. Don't expect good performance for interaction models. 
 
 library(glmnet)
 # cc short for case-control
