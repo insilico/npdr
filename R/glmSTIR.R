@@ -103,7 +103,10 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
   # sd.frac used by surf/multisurf relieff for theoretical k
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nbd.method=nbd.method, nbd.metric = nbd.metric, 
                                          sd.vec = NULL, sd.frac = sd.frac, k=k)
-  if (verbose){cat("Neighborhood computed.\n")}
+  num.neighbor.pairs <- nrow(neighbor.pairs.idx)
+  if (verbose){
+    cat(num.neighbor.pairs, " neighbor pairs. ", num.neighbor.pairs/num.samp, " average neighbors per instance\n")
+    }
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp) # initialize
   for (attr.idx in seq(1, num.attr)){
@@ -157,8 +160,8 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
     #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     glmSTIR.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
   }
-  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not include intercept): ")
-               cat(nrow(design.matrix.df)," by ", ncol(design.matrix.df),".\n", sep="")
+  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not count intercept): ")
+               cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," variables.\n", sep="")
   }
   # combine lists into matrix
   glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
