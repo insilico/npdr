@@ -58,7 +58,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical). 
 #' @param fdr.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
-#' @return glmSTIR.stats.df: glmSTIR regression coefficients and p-values for each attribute
+#' @return glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
 #' @examples
 #' # Data interface options.
@@ -73,12 +73,13 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
 #' glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
-#' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df[,1]<.05,]) # glmSTIR p.adj<.05
+#' # attributes with glmSTIR adjusted p-value less than .05 
+#' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 #' @export
 glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", k=0, sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch", 
-                    fdr.method="bonferroni"){
+                    fdr.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and data.set is data.frame including outcome variable
@@ -102,7 +103,7 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
   # sd.frac used by surf/multisurf relieff for theoretical k
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nbd.method=nbd.method, nbd.metric = nbd.metric, 
                                          sd.vec = NULL, sd.frac = sd.frac, k=k)
-  
+  if (verbose){cat("Neighborhood computed.\n")}
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp) # initialize
   for (attr.idx in seq(1, num.attr)){
@@ -128,7 +129,9 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
       design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
     }
     ### diff vector for each covariate
-    if (covars[1]!="none"){ # if there are optional covariates to model
+    # optional covariates to model
+    if (length(covars)>1){ # if covars is a vector or matrix 
+      # default value is covar="none" (no covariates) which has length 1
       covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
       # covar.diff.type can be a vector of strings because each column of covars may be a different data type
       #covar.diff.list <- vector("list",length(covar.diff.type)) # initialize
@@ -151,9 +154,11 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
       #covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix
     }
     # utility function: RUN regression
+    #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     glmSTIR.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
-    #glmSTIR.stats.list[[attr.idx]] <- diffRegression(pheno.diff.vec, attr.diff.vec, regression.type=regression.type, 
-    #                                                 covar.diff.mat) 
+  }
+  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not include intercept):")
+    cat(dim(design.matrix.df),".\n", sep="")
   }
   # combine lists into matrix
   glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
@@ -177,10 +182,10 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
   glmSTIR.stats.pval_ordered.mat <- glmSTIR.stats.attr_ordered.mat[attr.pvals.order.idx, ]
   # prepend adjused attribute p-values to first column
   glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
-  if (regression.type=="lm"){# different stats colnames for lm and glm
+  if (regression.type=="lm"){# stats colnames for lm
     colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr",  
                                                   "beta.0", "pval.0", "R.sqr")
-  } else{ # "glm"
+  } else{ # stats columns for glm
     colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
   }
   # dataframe it

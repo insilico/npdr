@@ -22,6 +22,22 @@ checkPackages <- function(pkg){
 }
 
 #=========================================================================#
+#' knnSURF
+#'
+#' Theoretical value for the number of expected neighbors for SURF or multiSURF
+#'
+#' @param m.samples number of samples in data.
+#' @param sd.frac fraction of the standard deviation from the mean of all pairwise distances, dead-band. The default value used by the SURF and multiSURF algorithms is 1/2.  
+#' @return knn Number of neighbors.  
+#' @examples
+#' k.surf <- knnSURF(200,.5)
+#' @export
+knnSURF <- function(m.samples,sd.frac=.5){
+  erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
+  knn <- floor((m.samples-1)*(1-erf(sd.frac/sqrt(2)))/2)
+  }
+
+#=========================================================================#
 #' univariateRegression
 #'
 #' Univariate logistic or linear regression for a dataset.

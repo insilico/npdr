@@ -7,7 +7,8 @@
 glmSTIR(outcome, data.set, regression.type = "glm",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
   nbd.metric = "manhattan", k = 0, sd.frac = 0.5, covars = "none",
-  covar.diff.type = "match-mismatch", fdr.method = "bonferroni")
+  covar.diff.type = "match-mismatch", fdr.method = "bonferroni",
+  verbose = FALSE)
 }
 \arguments{
 \item{outcome}{character name or length-m numeric outcome vector for linear regression, factor for logistic regression}
@@ -35,7 +36,7 @@ The multiSURF default is sd.frac=0.5: mean - sd/2. Used by nearestNeighbors().}
 \item{fdr.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
 }
 \value{
-glmSTIR.stats.df: glmSTIR regression coefficients and p-values for each attribute
+glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
 }
 \description{
 generalized linear model (GLM) based STatistical Inference Relief (STIR)
@@ -55,5 +56,6 @@ glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method=
 # if outcome vector (pheno.vec) is separate from attribute matrix
 # multisurf
 glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
-glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df[,1]<.05,]) # glmSTIR p.adj<.05
+# attributes with glmSTIR adjusted p-value less than .05 
+glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 }

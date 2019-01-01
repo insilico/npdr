@@ -48,10 +48,13 @@ cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 glm.stir.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5,
                             fdr.method="bonferroni")
-glm.stir.qtrait.results[glm.stir.qtrait.results[,1]<.05,]
+# attributes with glmSTIR adjusted p-value less than .05 
+glm.stir.qtrait.results[glm.stir.qtrait.results$pval.adj<.05,] # pval.adj, first column
+# attributes with glmSTIR raw/nominal p-value less than .05
+#rownames(glm.stir.qtrait.results)[glm.stir.qtrait.results$pval.attr<.05] # pval.attr, second column
 
 # functional attribute detection stats
-glm.stir.qtrait.positives <- row.names(glm.stir.qtrait.results[glm.stir.qtrait.results[,1]<.05,]) # p.adj<.05
+glm.stir.qtrait.positives <- row.names(glm.stir.qtrait.results[glm.stir.qtrait.results$pval.adj<.05,]) # p.adj<.05
 glm.stir.qtrait.detect.stats <- detectionStats(functional.qtrait, glm.stir.qtrait.positives)
 cat(glm.stir.qtrait.detect.stats$report)
 
@@ -61,14 +64,12 @@ cat(glm.stir.qtrait.detect.stats$report)
 ##### CORElearn ReliefF with surf fixed k
 # impression is that glmSTIR ranks the attributes better than RReleifF.
 # fixed k with theoretical surf value
-erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
-k.surf.fn <- function(m,f) {floor((m-1)*(1-erf(f/sqrt(2)))/2)}
 library(CORElearn)
 core.learn.qtrait <- CORElearn::attrEval("qtrait", data = qtrait.data,
                                       estimator = "RReliefFequalK",
                                       costMatrix = NULL,
                                       outputNumericSplits=FALSE,
-                                      kNearestEqual = k.surf.fn(n.samples.qtrait,.5))
+                                      kNearestEqual = knnSURF(n.samples.qtrait,.5))
 core.learn.qtrait.order <- order(core.learn.qtrait, decreasing = T)
 t(t(core.learn.qtrait[core.learn.qtrait.order[1:20]]))
 

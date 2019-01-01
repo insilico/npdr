@@ -46,7 +46,10 @@ univariate.results[1:10,]
 glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5, 
                             fdr.method="bonferroni")
-glm.stir.cc.results[glm.stir.cc.results[,1]<.05,]
+# attributes with glmSTIR adjusted p-value less than .05 
+glm.stir.cc.results[glm.stir.cc.results$pval.adj<.05,] # pval.adj, first column
+# attributes with glmSTIR raw/nominal p-value less than .05
+#rownames(glm.stir.cc.results)[glm.stir.cc.results$pval.attr<.05] # pval.attr, second column
 
 # functional attribute detection stats
 glm.stir.cc.positives <- row.names(glm.stir.cc.results[glm.stir.cc.results[,1]<.05,]) # p.adj<.05
@@ -74,16 +77,13 @@ tstat_stir.detect.stats <- detectionStats(functional.case.control,
 cat(tstat_stir.detect.stats$report)
 
 ##### CORElearn ReliefF with surf fixed k
-
 # fixed k with theoretical surf value
-erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
-k.surf.fn <- function(m,f) {floor((m-1)*(1-erf(f/sqrt(2)))/2)}
 library(CORElearn)
 core.learn.case.control <- CORElearn::attrEval("class", data = case.control.data,
                                       estimator = "ReliefFequalK",
                                       costMatrix = NULL,
                                       outputNumericSplits=FALSE,
-                                      kNearestEqual = k.surf.fn(n.samples.case.control,.5))
+                                      kNearestEqual = knnSURF(n.samples.case.control,.5))
 core.learn.case.control.order <- order(core.learn.case.control, decreasing = T)
 t(t(core.learn.case.control[core.learn.case.control.order[1:20]]))
 
