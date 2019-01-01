@@ -105,7 +105,7 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
                                          sd.vec = NULL, sd.frac = sd.frac, k=k)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
-    cat(num.neighbor.pairs, " neighbor pairs. ", num.neighbor.pairs/num.samp, " average neighbors per instance\n")
+    cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     }
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp) # initialize

@@ -33,8 +33,11 @@ checkPackages <- function(pkg){
 #' k.surf <- knnSURF(200,.5)
 #' @export
 knnSURF <- function(m.samples,sd.frac=.5){
+  # error function
   erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
+  # theoretical SURF knn formulat
   knn <- floor((m.samples-1)*(1-erf(sd.frac/sqrt(2)))/2)
+  return(knn)
   }
 
 #=========================================================================#
