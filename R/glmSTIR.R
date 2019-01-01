@@ -157,8 +157,8 @@ glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="nu
     #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     glmSTIR.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
   }
-  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not include intercept):")
-    cat(dim(design.matrix.df),".\n", sep="")
+  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not include intercept): ")
+               cat(nrow(design.matrix.df)," by ", ncol(design.matrix.df),".\n", sep="")
   }
   # combine lists into matrix
   glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
