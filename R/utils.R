@@ -75,13 +75,15 @@ univariateRegression <- function(outcome, dataset, regression.type="lm", covars=
     } 
     } else { # "glm"
     if (length(covars>1)){
+      cat("1\n")
+      cat(length(covars))
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
       model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial)[2,4:5]}
     } else { # covar=="none"
+      cat(length(covars))
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
       model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x], family=binomial)[2,4:5]}
-    }
-  } # end else glm
+    } } # end else glm
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
