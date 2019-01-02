@@ -4,7 +4,8 @@
 \alias{univariateRegression}
 \title{univariateRegression}
 \usage{
-univariateRegression(outcome, dataset, regression.type = "lm")
+univariateRegression(outcome, dataset, regression.type = "lm",
+  covars = "none")
 }
 \arguments{
 \item{outcome}{string with name of class column.}
