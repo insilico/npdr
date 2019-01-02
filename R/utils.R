@@ -68,19 +68,16 @@ univariateRegression <- function(outcome, dataset, regression.type="lm", covars=
   }
   ## set up model
   if (regression.type=="lm"){
-    if (length(covars>1)){
+    if (length(covars)>1){
       model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x] + covars))[2,4:5])}
     } else { # covar=="none"
       model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x]))[2,4:5])}  
     } 
     } else { # "glm"
-    if (length(covars>1)){
-      cat("1\n")
-      cat(length(covars))
+    if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
       model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial)[2,4:5]}
     } else { # covar=="none"
-      cat(length(covars))
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
       model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x], family=binomial)[2,4:5]}
     } } # end else glm
