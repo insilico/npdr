@@ -53,14 +53,26 @@ knnSURF <- function(m.samples,sd.frac=.5){
 #  lr.results[lr.results[,"p.adj"]<.05] 
 #' @export
 univariateRegression <- function(outcome, dataset, regression.type="lm"){
-  if (regression.type=="lm"){
-    model.func <- function(x) {as.numeric(tidy(lm(dataset[,outcome] ~ dataset[,x]))[2,4:5])}
-  } else { # "glm"
-    model.func <- function(x) {tidy(glm(dataset[,outcome] ~ dataset[,x], family=binomial))[2,4:5]}
+  if (length(outcome)==1){
+    # e.g., outcome="qtrait" or outcome=101 (pheno col index) and data.set is data.frame including outcome variable
+    pheno.vec <- dataset[,outcome] # get phenotype
+    if (is.character(outcome)){ # example column name: outcome="qtrait"
+      attr.mat <- dataset[ , !(names(dataset) %in% outcome)]  # drop the outcome/phenotype
+    } else { # example column index: outcome=101
+      attr.mat <- dataset[ , -outcome]  # drop the outcome/phenotype  
+    }
+  } else { # user specifies a separate phenotype vector
+    pheno.vec <- outcome # assume users provides a separate outcome data vector
+    attr.mat <- dataset # assumes data.set only contains attributes/predictors
   }
-  class.col <- which(colnames(dataset)==outcome)
-  predictor.cols <- which(colnames(dataset)!=outcome)
-  beta_pvals <- t(sapply(predictor.cols, model.func)) # stats for all predictors
+  if (regression.type=="lm"){
+    model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x]))[2,4:5])}
+  } else { # "glm"
+    model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
+  }
+  #class.col <- which(colnames(dataset)==outcome)
+  #predictor.cols <- which(colnames(dataset)!=outcome)
+  beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
   univariate.padj <- p.adjust(beta_pvals[,2]) # fdr
   univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
