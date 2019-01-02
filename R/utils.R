@@ -52,7 +52,8 @@ knnSURF <- function(m.samples,sd.frac=.5){
 #' lr.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
 #  lr.results[lr.results[,"p.adj"]<.05] 
 #' @export
-univariateRegression <- function(outcome, dataset, regression.type="lm"){
+univariateRegression <- function(outcome, dataset, regression.type="lm", covars="none"){
+  ## parse input
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and data.set is data.frame including outcome variable
     pheno.vec <- dataset[,outcome] # get phenotype
@@ -61,15 +62,24 @@ univariateRegression <- function(outcome, dataset, regression.type="lm"){
     } else { # example column index: outcome=101
       attr.mat <- dataset[ , -outcome]  # drop the outcome/phenotype  
     }
-  } else { # user specifies a separate phenotype vector
+   } else { # user specifies a separate phenotype vector
     pheno.vec <- outcome # assume users provides a separate outcome data vector
     attr.mat <- dataset # assumes data.set only contains attributes/predictors
   }
+  ## set up model
   if (regression.type=="lm"){
-    model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x]))[2,4:5])}
-  } else { # "glm"
-    model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
-  }
+    if (length(covars>1)){
+      model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x] + covars))[2,4:5])}
+    } else { # covar=="none"
+      model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x]))[2,4:5])}  
+    } 
+    } else { # "glm"
+    if (length(covars>1)){
+      model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
+    } else { # covar=="none"
+      model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
+    }
+  } # end else glm
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
