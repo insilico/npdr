@@ -78,7 +78,8 @@ univariateRegression <- function(outcome, dataset, regression.type="lm"){
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
   pvals <- as.numeric(format(beta_pvals[,2], scientific = T, digits=5))
   beta_pvals <- cbind(betas,pvals,univariate.padj) # adjusted p-val column
-  row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
+  row.names(beta_pvals)<- colnames(attr.mat) # add predictor names
+  #row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
   beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,2]), decreasing = F),] # sort by pval
   colnames(beta_pvals_sorted) <- c("beta", "pval", "p.adj")
   return(beta_pvals_sorted)
