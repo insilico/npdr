@@ -69,17 +69,18 @@ univariateRegression <- function(outcome, dataset, regression.type="lm", covars=
   ## set up model
   if (regression.type=="lm"){
     if (length(covars)>1){
-      model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x] + covars))[2,4:5])}
+      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x] + covars))$coeff[2,c(1,4)])}
     } else { # covar=="none"
-      model.func <- function(x) {as.numeric(tidy(lm(pheno.vec ~ attr.mat[,x]))[2,4:5])}  
+      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,c(1,4)])}  
     } 
     } else { # "glm"
     if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
-      model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial)[2,4:5]}
+      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,c(1,4)]}
     } else { # covar=="none"
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
-      model.func <- function(x) {glm(pheno.vec ~ attr.mat[,x], family=binomial)[2,4:5]}
+      summary(tmp)$coeff[2,c(1,4)]
+      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,c(1,4)]}
     } } # end else glm
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
