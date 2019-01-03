@@ -46,7 +46,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' Allows for covariate correction.   
 #'
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression 
-#' @param data.set m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
+#' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
 #' @param regression.type (\code{"lm"} or \code{"glm"})
 #' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm, phenotype diff is \code{"match-mismatch"}. 
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
@@ -62,11 +62,11 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #'
 #' @examples
 #' # Data interface options.
-#' # Specify name ("qtrait") of outcome and data.set, which is a data frame including the outcome column.
+#' # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
 #' # ReliefF fixed-k neighborhood, uses surf theoretical default (with sd.frac=.5) if you do not specify k or let k=0
 #' glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
 #'
-#' # Specify column index (101) of outcome and data.set, which is a data frame including the outcome column.
+#' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
 #  # ReliefF fixed-k nbd, choose a k (k=10). Or choose sd.frac
 #' glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
 #'
@@ -76,24 +76,24 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' # attributes with glmSTIR adjusted p-value less than .05 
 #' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 #' @export
-glmSTIR <- function(outcome, data.set, regression.type="glm", attr.diff.type="numeric-abs",
+glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", k=0, sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch", 
                     fdr.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
-    # e.g., outcome="qtrait" or outcome=101 (pheno col index) and data.set is data.frame including outcome variable
-    pheno.vec <- data.set[,outcome] # get phenotype
+    # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
+    pheno.vec <- dataset[,outcome] # get phenotype
     if (is.character(outcome)){ # example column name: outcome="qtrait"
-      attr.mat <- data.set[ , !(names(data.set) %in% outcome)]  # drop the outcome/phenotype
+      attr.mat <- dataset[ , !(names(dataset) %in% outcome)]  # drop the outcome/phenotype
     } else { # example column index: outcome=101
-      attr.mat <- data.set[ , -outcome]  # drop the outcome/phenotype  
+      attr.mat <- dataset[ , -outcome]  # drop the outcome/phenotype  
     }
   } else { # user specifies a separate phenotype vector
     pheno.vec <- outcome # assume users provides a separate outcome data vector
-    attr.mat <- data.set # assumes data.set only contains attributes/predictors
+    attr.mat <- dataset # assumes dataset only contains attributes/predictors
   }
-  rm(data.set)  # cleanup memory
+  rm(dataset)  # cleanup memory
   
   num.attr <- ncol(attr.mat)
   num.samp <- nrow(attr.mat)

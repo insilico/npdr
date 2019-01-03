@@ -81,10 +81,11 @@ stirDistances <- function(attr.mat, metric="manhattan"){
 #' @param attr.mat m x p matrix of m instances and p attributes 
 #' @param nbd.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
-#' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius.
-#' The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
+#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. 
+#' 
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
 #' @examples
@@ -97,10 +98,16 @@ stirDistances <- function(attr.mat, metric="manhattan"){
 #' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nbd.method="relieff", nbd.metric = "manhattan", k=10)
 #'
 #' @export
-nearestNeighbors <- function(attr.mat, nbd.method="multisurf", nbd.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k=0){
+nearestNeighbors <- function(attr.mat, nbd.method="multisurf", nbd.metric = "manhattan", 
+                             sd.vec = NULL, sd.frac = 0.5, k=0,
+                             rm.attr.from.dist=c()){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   
+  if (length(rm.attr.from.dist)>1){ # remove attributes (possible confounders) from distance matrix calculation 
+    attr.mat <- attr.mat[,-rm.attr.from.dist]
+  }
+
   dist.mat <- stirDistances(attr.mat, metric = nbd.metric)
   num.samp <- nrow(attr.mat)
   
