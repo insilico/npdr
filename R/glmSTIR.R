@@ -57,6 +57,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' The multiSURF default is sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical). 
+#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. 
 #' @param fdr.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @return glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
@@ -78,7 +79,8 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @export
 glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", k=0, sd.frac=0.5, 
-                    covars="none", covar.diff.type="match-mismatch", 
+                    covars="none", covar.diff.type="match-mismatch",
+                    rm.attr.from.dist=rm.attr.from.dist, 
                     fdr.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
@@ -102,7 +104,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
   # sd.frac used by surf/multisurf relieff for theoretical k
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nbd.method=nbd.method, nbd.metric = nbd.metric, 
-                                         sd.vec = NULL, sd.frac = sd.frac, k=k)
+                                         sd.vec = NULL, sd.frac = sd.frac, k=k,
+                                         rm.attr.from.dist=rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
     cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
