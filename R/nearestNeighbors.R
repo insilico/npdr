@@ -105,7 +105,7 @@ nearestNeighbors <- function(attr.mat, nbd.method="multisurf", nbd.metric = "man
   # first column is sample Ri, second is Ri's nearest neighbors
   
   if (length(rm.attr.from.dist)>1){ # remove attributes (possible confounders) from distance matrix calculation 
-    attr.mat <- attr.mat[,-rm.attr.from.dist]
+    attr.mat <- attr.mat[,-which(colnames(attr.mat) %in% rm.attr.from.dist)]
   }
 
   dist.mat <- stirDistances(attr.mat, metric = nbd.metric)
