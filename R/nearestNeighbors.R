@@ -106,7 +106,7 @@ nearestNeighbors <- function(attr.mat,
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   
-  if (length(rm.attr.from.dist)>1){ # remove attributes (possible confounders) from distance matrix calculation 
+  if (length(attr_removal_vec_from_dist_calc)>1){ # remove attributes (possible confounders) from distance matrix calculation 
     attr.mat <- attr.mat[,-which(colnames(attr.mat) %in% attr_removal_vec_from_dist_calc)]
   }
 
