@@ -57,7 +57,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical). 
-#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. 
+#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param fdr.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @return glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
@@ -80,7 +80,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", k=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
-                    rm.attr.from.dist=rm.attr.from.dist, 
+                    rm.attr.from.dist=c(), 
                     fdr.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
