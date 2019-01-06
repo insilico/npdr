@@ -105,8 +105,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   # sd.frac used by surf/multisurf relieff for theoretical k
                    
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, 
-                                         nbd.method=get("nbd.method", envir=environment(nearestNeighbors)), 
-                                         nbd.metric=get("nbd.metric", envir=environment(nearestNeighbors)), 
+                                         nbd.method="multisurf", 
+                                         nbd.metric="manhattan", 
                                          sd.vec = NULL, sd.frac = sd.frac, k=k,
                                          rm.attr.from.dist=rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
