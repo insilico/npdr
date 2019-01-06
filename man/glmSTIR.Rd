@@ -6,8 +6,8 @@
 \usage{
 glmSTIR(outcome, dataset, regression.type = "glm",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
-  nbd.metric = "manhattan", k = 0, sd.frac = 0.5, covars = "none",
-  covar.diff.type = "match-mismatch",
+  nbd.metric = "manhattan", k = 0, msurf.sd.frac = 0.5,
+  covars = "none", covar.diff.type = "match-mismatch",
   rm.attr.from.dist = rm.attr.from.dist, fdr.method = "bonferroni",
   verbose = FALSE)
 }
@@ -24,11 +24,8 @@ glmSTIR(outcome, dataset, regression.type = "glm",
 
 \item{nbd.metric}{used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().}
 
-\item{k}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
-The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default)}
-
-\item{sd.frac}{multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
-The multiSURF default is sd.frac=0.5: mean - sd/2. Used by nearestNeighbors().}
+\item{msurf.sd.frac}{multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
+The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors().}
 
 \item{covars}{optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.}
 
@@ -37,6 +34,9 @@ The multiSURF default is sd.frac=0.5: mean - sd/2. Used by nearestNeighbors().}
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors.}
 
 \item{fdr.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
+
+\item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
+The default k=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
 }
 \value{
 glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
@@ -50,15 +50,15 @@ Allows for covariate correction.
 \examples{
 # Data interface options.
 # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
-# ReliefF fixed-k neighborhood, uses surf theoretical default (with sd.frac=.5) if you do not specify k or let k=0
-glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
+# ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
+glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 
 # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
 glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
 
 # if outcome vector (pheno.vec) is separate from attribute matrix
 # multisurf
-glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
+glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 # attributes with glmSTIR adjusted p-value less than .05 
 glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 }

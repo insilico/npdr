@@ -51,10 +51,10 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm, phenotype diff is \code{"match-mismatch"}. 
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
 #' @param nbd.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
-#' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
-#' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) 
-#' @param sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
-#' The multiSURF default is sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
+#' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
+#' The default k=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default) 
+#' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
+#' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical). 
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. 
@@ -64,21 +64,21 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @examples
 #' # Data interface options.
 #' # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
-#' # ReliefF fixed-k neighborhood, uses surf theoretical default (with sd.frac=.5) if you do not specify k or let k=0
-#' glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
+#' # ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
+#' glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 #'
 #' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
-#  # ReliefF fixed-k nbd, choose a k (k=10). Or choose sd.frac
+#  # ReliefF fixed-k nbd, choose a k (k=10). Or choose msurf.sd.frac
 #' glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
-#' glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", sd.frac=0.5, fdr.method="bonferroni")
+#' glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 #' # attributes with glmSTIR adjusted p-value less than .05 
 #' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 #' @export
 glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
-                    nbd.method="multisurf", nbd.metric = "manhattan", k=0, sd.frac=0.5, 
+                    nbd.method="multisurf", nbd.metric = "manhattan", k=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
                     rm.attr.from.dist=rm.attr.from.dist, 
                     fdr.method="bonferroni", verbose=FALSE){
@@ -102,14 +102,11 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   
   ##### get Neighbors (no phenotype used)
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
-  # sd.frac used by surf/multisurf relieff for theoretical k
+  # msurf.sd.frac used by surf/multisurf relieff for theoretical k
                    
-  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method) 
-                                         #nb.method=nbd.method, 
-                                         #nb.metric=nbd.metric, 
-                                         #sd.vec = NULL, 
-                                         #sd.frac = sd.frac, k=k,
-                                         #rm.attr.from.dist=rm.attr.from.dist)
+  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method, nb.metric=nbd.metric, 
+                                         sd.frac = msurf.sd.frac, k=knn,
+                                         attr_removal_vec_from_dist_calc=rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
     cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
