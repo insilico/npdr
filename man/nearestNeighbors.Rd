@@ -4,21 +4,23 @@
 \alias{nearestNeighbors}
 \title{nearestNeighbors}
 \usage{
-nearestNeighbors(attr.mat, nbd.method = "multisurf",
-  nbd.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0)
+nearestNeighbors(attr.mat, nb.method = "multisurf",
+  nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0,
+  rm.attr.from.dist = c())
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
 
-\item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
+\item{nb.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
 
-\item{nbd.metric}{used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
+\item{nb.metric}{used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
 
-\item{sd.frac}{multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius.
-The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
+\item{sd.frac}{multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
 
 \item{k}{number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.}
+
+\item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation.}
 }
 \value{
 Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
@@ -30,11 +32,11 @@ Also used in reSTIR for case/control, but hit/miss is used in reSTIR function.
 }
 \examples{
 # multisurf neighborhood with sigma/2 (sd.frac=0.5) "dead-band" boundary
-neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nbd.method="multisurf", nbd.metric = "manhattan", sd.frac = 0.5)
+neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method="multisurf", nb.metric = "manhattan", sd.frac = 0.5)
 # reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
 # One can change the theoretical value by changing sd.frac (default 0.5)
-neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nbd.method="relieff", nbd.metric = "manhattan")
+neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method="relieff", nb.metric = "manhattan")
 # reliefF (fixed-k) neighborhood with a user-specified k
-neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nbd.method="relieff", nbd.metric = "manhattan", k=10)
+neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method="relieff", nb.metric = "manhattan", k=10)
 
 }

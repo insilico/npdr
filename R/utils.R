@@ -79,7 +79,6 @@ univariateRegression <- function(outcome, dataset, regression.type="lm", covars=
       model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,c(1,4)]}
     } else { # covar=="none"
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
-      summary(tmp)$coeff[2,c(1,4)]
       model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,c(1,4)]}
     } } # end else glm
   #class.col <- which(colnames(dataset)==outcome)
