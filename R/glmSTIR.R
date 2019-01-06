@@ -104,11 +104,12 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
   # sd.frac used by surf/multisurf relieff for theoretical k
                    
-  neighbor.pairs.idx <- nearestNeighbors(attr.mat, 
+  neighbor.pairs.idx <- nearestNeighbors(attr.mat) 
                                          #nb.method=nbd.method, 
                                          #nb.metric=nbd.metric, 
-                                         sd.vec = NULL, sd.frac = sd.frac, k=k,
-                                         rm.attr.from.dist=rm.attr.from.dist)
+                                         #sd.vec = NULL, 
+                                         #sd.frac = sd.frac, k=k,
+                                         #rm.attr.from.dist=rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
     cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
