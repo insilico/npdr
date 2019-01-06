@@ -98,8 +98,6 @@ stirDistances <- function(attr.mat, metric="manhattan"){
 #' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method="relieff", nb.metric = "manhattan", k=10)
 #'
 #' @export
-#' 
-#' testparams = get("testparams", envir=environment(foo)
 nearestNeighbors <- function(attr.mat, 
                              nb.method="multisurf", 
                              nb.metric = "manhattan", 

@@ -42,6 +42,9 @@ univariate.cc.results[1:10,]
 # none will be less than .05 for interaction simulations
 #univariate.results[univariate.results[,"p.adj"]<.05,]
 
+tmp <- nearestNeighbors(predictors.cc.mat)
+tmp[,1]
+
 ##### Run glmSTIR
 glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5, 
