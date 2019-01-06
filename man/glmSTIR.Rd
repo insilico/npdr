@@ -8,7 +8,7 @@ glmSTIR(outcome, dataset, regression.type = "glm",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
   nbd.metric = "manhattan", k = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
-  rm.attr.from.dist = rm.attr.from.dist, fdr.method = "bonferroni",
+  rm.attr.from.dist = c(), fdr.method = "bonferroni",
   verbose = FALSE)
 }
 \arguments{
@@ -31,7 +31,7 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{covar.diff.type}{string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).}
 
-\item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors.}
+\item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
 
 \item{fdr.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
 

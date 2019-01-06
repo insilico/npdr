@@ -47,7 +47,7 @@ tmp[,1]
 
 ##### Run glmSTIR
 glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", attr.diff.type="numeric-abs",
-                            nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5, 
+                            nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                             fdr.method="bonferroni", verbose=T)
 # attributes with glmSTIR adjusted p-value less than .05 
 glm.stir.cc.results[glm.stir.cc.results$pval.adj<.05,] # pval.adj, first column

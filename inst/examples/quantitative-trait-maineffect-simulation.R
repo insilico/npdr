@@ -46,7 +46,7 @@ cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 
 ##### Run glmSTIR
 glm.stir.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
-                            nbd.method="multisurf", nbd.metric = "manhattan", sd.frac=.5,
+                            nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
                             fdr.method="bonferroni")
 # attributes with glmSTIR adjusted p-value less than .05 
 glm.stir.qtrait.results[glm.stir.qtrait.results$pval.adj<.05,] # pval.adj, first column
