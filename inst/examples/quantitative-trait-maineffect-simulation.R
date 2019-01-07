@@ -105,7 +105,7 @@ cat(detectionStats(functional.qtrait, cncv.qtrait$Features)$report)
 ##### Regular Nested Cross Validation with ReliefF with surf fixed k
 # selects features and learns regression model.
 
-rncv.qtrait <- consensus_nestedCV(train.ds = qtrait.data, 
+rncv.qtrait <- regular_nestedCV(train.ds = qtrait.data, 
                                   validation.ds =  qtrait.3sets$validation, 
                                   label = "qtrait",
                                   method.model = "classification",
