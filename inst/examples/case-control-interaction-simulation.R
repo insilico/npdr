@@ -150,3 +150,18 @@ glmnet.cc.coeffs<-predict(glmnet.cc.model,type="coefficients")
 model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
 nonzero.glmnet.cc.coeffs <- model.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] # skip intercept if there, 0-based counting
 nonzero.glmnet.cc.coeffs
+
+
+##### Run glmSTIR
+glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
+                               nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                               fdr.method="bonferroni", verbose=T)
+# attributes with glmSTIR adjusted p-value less than .05 
+glmnetSTIR.cc.results[glmnetSTIR.cc.results$pval.adj<.05,] # pval.adj, first column
+# attributes with glmSTIR raw/nominal p-value less than .05
+#rownames(glm.stir.cc.results)[glm.stir.cc.results$pval.attr<.05] # pval.attr, second column
+
+# functional attribute detection stats
+glmnetSTIR.cc.positives <- row.names(glmnetSTIR.cc.results[glmnetSTIR.cc.results[,1]<.05,]) # p.adj<.05
+glmnetSTIR.cc.detect.stats <- detectionStats(functional.case.control, glmnetSTIR.cc.positives)
+cat(glmnetSTIR.cc.detect.stats$report)

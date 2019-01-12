@@ -163,39 +163,62 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     # utility function: RUN regression
     #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     glmSTIR.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
-  }
+  } # end of for loop, regression done for each attribute
   if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not count intercept): ")
                cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," variables.\n", sep="")
   }
-  # combine lists into matrix
-  glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
-  
-  # rownames
-  if (!is.null(colnames(attr.mat))){
-    # add attribute names to stats/results matrix if the data matrix contains them
-    rownames(glmSTIR.stats.attr_ordered.mat) <- colnames(attr.mat)
-  } else {
-    message("If you have attribute names, add them to colnames of input data.")
+  if (regression.type!="glmnet"){ # sort and format output if you did regular glmSTIR
+    # combine non-glmnet result lists into a matrix
+    glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
+    # rownames
+    if (!is.null(colnames(attr.mat))){
+      # add attribute names to stats/results matrix if the data matrix contains them
+      rownames(glmSTIR.stats.attr_ordered.mat) <- colnames(attr.mat)
+    } else {
+      message("If you have attribute names, add them to colnames of input data.")
+    }
+    
+    # attribute p-values
+    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 1]
+    # order-index for sorted attribute-beta p-values
+    attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
+    # adjust p-values using Benjamini-Hochberg (default)
+    attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=fdr.method)
+    
+    # order by attribute p-value
+    glmSTIR.stats.pval_ordered.mat <- glmSTIR.stats.attr_ordered.mat[attr.pvals.order.idx, ]
+    # prepend adjused attribute p-values to first column
+    glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
+    if (regression.type=="lm"){# stats colnames for lm
+      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr",  
+                                                    "beta.0", "pval.0", "R.sqr")
+    } else{ # stats columns for glm
+      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
+    }
+    # dataframe it
+    glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)
+  } else{ # Here we add as glmnetSTIR regression.type="glmnet"
+          # Need to create a data matrix with each column a vector of diffs for each attribute.
+          # Need matrix because glmnetSTIR operates on all attributes at once.
+    attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=8)
+    for (attr.idx in seq(1, num.attr)){
+      attr.vals <- attr.mat[, attr.idx]
+      Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+      NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+      attr.diff.vec <- stirDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      attr.diff.mat[,attr.idx] <- attr.diff.vec
+    }
+    #
+    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
+    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
+    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+    pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
+    #
+    glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=.1,family="binomial",type.measure="class")
+    glmnet.STIR.coeffs<-predict(glmnet.STIR.model,type="coefficients")
+    as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1)
+    glmnet.sorted<-as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1)
+    glmSTIR.stats.df<-data.frame(scores=glmnet.sorted)
   }
-  
-  # attribute p-values
-  attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 1]
-  # order-index for sorted attribute-beta p-values
-  attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
-  # adjust p-values using Benjamini-Hochberg (default)
-  attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=fdr.method)
-  
-  # order by attribute p-value
-  glmSTIR.stats.pval_ordered.mat <- glmSTIR.stats.attr_ordered.mat[attr.pvals.order.idx, ]
-  # prepend adjused attribute p-values to first column
-  glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
-  if (regression.type=="lm"){# stats colnames for lm
-    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr",  
-                                                  "beta.0", "pval.0", "R.sqr")
-  } else{ # stats columns for glm
-    colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
-  }
-  # dataframe it
-  glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)
   return(glmSTIR.stats.df)
 }
