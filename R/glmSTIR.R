@@ -216,7 +216,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     # Run glmnet on the diff attribute columns
     glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=.1,family="binomial",type.measure="class")
     glmnet.STIR.coeffs<-as.matrix(predict(glmnet.STIR.model,type="coefficients"))
-    row.names(glmnet.STIR.coeffs) <- colnames(attr.mat)  # add variable names to results
+    row.names(glmnet.STIR.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
     glmnet.sorted<-as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1) # sort
     glmSTIR.stats.df<-data.frame(scores=glmnet.sorted)
   }
