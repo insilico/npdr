@@ -148,11 +148,11 @@ glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alp
 glmnet.cc.coeffs<-predict(glmnet.cc.model,type="coefficients")
 #glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
 model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
-nonzero.glmnet.cc.coeffs <- model.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] # skip intercept if there, 0-based counting
+nonzero.glmnet.cc.coeffs <- model.cc.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] # skip intercept if there, 0-based counting
 nonzero.glmnet.cc.coeffs
 
 
-##### Run glmSTIR
+##### Run glmnetSTIR, penalized glmSTIR
 glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
                                nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                                fdr.method="bonferroni", verbose=T)

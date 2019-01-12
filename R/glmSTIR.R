@@ -195,12 +195,12 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     } else{ # stats columns for glm
       colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
     }
-    # dataframe it
+    # dataframe final output for regular glmSTIR
     glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)
   } else{ # Here we add as glmnetSTIR regression.type="glmnet"
           # Need to create a data matrix with each column a vector of diffs for each attribute.
           # Need matrix because glmnetSTIR operates on all attributes at once.
-    attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=8)
+    attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
     for (attr.idx in seq(1, num.attr)){
       attr.vals <- attr.mat[, attr.idx]
       Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
