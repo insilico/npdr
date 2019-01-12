@@ -148,20 +148,24 @@ glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alp
 glmnet.cc.coeffs<-predict(glmnet.cc.model,type="coefficients")
 #glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
 model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
-nonzero.glmnet.cc.coeffs <- model.cc.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] # skip intercept if there, 0-based counting
+# skip intercept if there, 0-based counting
+nonzero.glmnet.cc.coeffs <- model.cc.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] 
+# finds some interactions maybe because of the co-expression in the simulation
 nonzero.glmnet.cc.coeffs
-
 
 ##### Run glmnetSTIR, penalized glmSTIR
 glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
                                nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                                fdr.method="bonferroni", verbose=T)
 # attributes with glmSTIR adjusted p-value less than .05 
-glmnetSTIR.cc.results[glmnetSTIR.cc.results$pval.adj<.05,] # pval.adj, first column
-# attributes with glmSTIR raw/nominal p-value less than .05
-#rownames(glm.stir.cc.results)[glm.stir.cc.results$pval.attr<.05] # pval.attr, second column
+glmnetSTIR.cc.results.mat <- as.matrix(glmnetSTIR.cc.results)
+# .05 regression coefficient threshold is arbitrary
+# not sure why glment did not force zeros
+# Finds more interactions than regular glmnet, but not nearly as good as regular glmSTIR
+nonzero.glmnetSTIR.mask <- abs(glmnetSTIR.cc.results.mat[,1])>.05  
+as.matrix(glmnetSTIR.cc.results.mat[nonzero.glmnetSTIR.mask,],ncol=1)
 
 # functional attribute detection stats
-glmnetSTIR.cc.positives <- row.names(glmnetSTIR.cc.results[glmnetSTIR.cc.results[,1]<.05,]) # p.adj<.05
+glmnetSTIR.cc.positives <- names(glmnetSTIR.cc.results.mat[nonzero.glmnetSTIR.mask,]) # p.adj<.05
 glmnetSTIR.cc.detect.stats <- detectionStats(functional.case.control, glmnetSTIR.cc.positives)
 cat(glmnetSTIR.cc.detect.stats$report)
