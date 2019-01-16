@@ -8,6 +8,7 @@ glmSTIR(outcome, dataset, regression.type = "glm",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
   nbd.metric = "manhattan", k = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
+  glmnet.alpha = 1, glmnet.family = "binomial",
   rm.attr.from.dist = c(), fdr.method = "bonferroni",
   verbose = FALSE)
 }
@@ -31,12 +32,16 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{covar.diff.type}{string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).}
 
+\item{glmnet.alpha}{penalty mixture for glmnetSTIR: alpha=1 (lasso default, L1) alpha=0 (ridge, L2)}
+
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
 
 \item{fdr.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
 
 \item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 The default k=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
+
+\item{glment.family}{"binomial" for logistic regression, "gaussian" for regression}
 }
 \value{
 glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])

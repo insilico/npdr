@@ -56,7 +56,9 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
 #' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
-#' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical). 
+#' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).
+#' @param glmnet.alpha penalty mixture for glmnetSTIR: alpha=1 (lasso default, L1) alpha=0 (ridge, L2) 
+#' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param fdr.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @return glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
@@ -80,7 +82,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", k=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
-                    rm.attr.from.dist=c(), 
+                    glmnet.alpha=1, glmnet.family="binomial", rm.attr.from.dist=c(), 
                     fdr.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
@@ -110,7 +112,21 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
     cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
-    }
+  }
+  ### pheno diff vector for glm or lm to use in each attribute's diff regression in for loop.
+  # Not needed in loop.
+  # create pheno diff vector for linear regression (numeric)  
+  if (regression.type=="lm"){
+    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
+    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
+    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+  } else { #regression.type=="glm"
+    # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
+    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
+    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
+    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+    pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
+  }
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp) # initialize
   for (attr.idx in seq(1, num.attr)){
@@ -118,26 +134,14 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
     attr.diff.vec <- stirDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
-    ### pheno diff vector
-    # create pheno diff vector for linear regression (numeric)  
-    if (regression.type=="lm"){
-    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
-    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
-    # model data.frame to go into lm
+    # model data.frame to go into lm or glm
     design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
-    } else { #regression.type=="glm"
-      # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
-      Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
-      NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-      pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-      pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
-      # model data.frame to go into glm
-      design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
-    }
     ### diff vector for each covariate
-    # optional covariates to model
-    if (length(covars)>1){ # if covars is a vector or matrix 
+    # optional covariates to add to design.matrix.df model
+    if (length(covars)>1){ # if covars is a vector or matrix
+      if (regression.type=="glment"){
+        message("glmnetSTIR does not currently support covariates.")
+      }
       # default value is covar="none" (no covariates) which has length 1
       covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
       # covar.diff.type can be a vector of strings because each column of covars may be a different data type
@@ -197,8 +201,9 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     }
     # dataframe final output for regular glmSTIR
     glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)
-  } else{ # Here we add as glmnetSTIR regression.type="glmnet"
-          # Need to create a data matrix with each column a vector of diffs for each attribute.
+    
+  } else{ # Here we add an option glmnetSTIR regression.type="glmnet"
+          # Need to create a data matrix with each column as a vector of diffs for each attribute.
           # Need matrix because glmnetSTIR operates on all attributes at once.
     attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
     for (attr.idx in seq(1, num.attr)){
@@ -211,14 +216,21 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-    pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
-    # Run glmnet on the diff attribute columns
-    glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=.1,family="binomial",type.measure="class")
+    if (glmnet.family=="binomial"){
+      pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+      pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
+      # Run glmnet on the diff attribute columns
+      glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
+    } else{ # "gaussian"
+      pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+      # Run glmnet on the diff attribute columns
+      glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",type.measure="mse")
+    }
     glmnet.STIR.coeffs<-as.matrix(predict(glmnet.STIR.model,type="coefficients"))
     row.names(glmnet.STIR.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
     glmnet.sorted<-as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1) # sort
     glmSTIR.stats.df<-data.frame(scores=glmnet.sorted)
-  }
+  } # end glmnetSTIR option
+  
   return(glmSTIR.stats.df)
 }
