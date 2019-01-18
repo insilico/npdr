@@ -29,7 +29,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
     mod <- glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df)
     fit <- summary(mod)
     beta_a <- coef(fit)[2, 3]
-    pval_beta_a <- pt(beta_a, mod$df, lower = FALSE)  # one-sided p-val, H1: beta>0
+    pval_beta_a <- pt(beta_a, mod$df.residual, lower = FALSE)  # one-sided p-val, H1: beta>0
     stats.vec <- c(
       #fit$coefficients[2,4], # p-value for attribute beta, pval.a
       #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
