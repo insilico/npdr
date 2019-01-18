@@ -72,8 +72,6 @@ t_sorted_multisurf <- results.list$STIR_T[, -3]  # remove cohen-d
 colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir", sep=".")
 (t_sorted_multisurf[t_sorted_multisurf[,3]<.05,])
 
-results.list$STIR_F[results.list$STIR_F$F.pval.adj<.05,]
-
 # functional attribute detection stats
 tstat_stir.detect.stats <- detectionStats(functional.case.control, 
                                           row.names(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,]))
@@ -158,11 +156,14 @@ glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alp
 #nonzero.glmnet.cc.mask <- abs(glmnet.cc.coeffs[,1])>.05  
 #as.matrix(glmnet.cc.coeffs[nonzero.glmnet.cc.mask],ncol=1)
 
+# do not expect correct associations for interaction simulations. 
 glmnet.cc.coeffs<-as.matrix(predict(glmnet.cc.model,type="coefficients"))
 row.names(glmnet.cc.coeffs) <- c("intercept", colnames(predictors.cc.mat))  # add variable names to results
 glmnet.cc.sorted<-as.matrix(glmnet.cc.coeffs[order(abs(glmnet.cc.coeffs),decreasing = T),],ncol=1) # sort
 glmnet.cc.sorted[abs(glmnet.cc.sorted)>0,]
 
+#####
+## EXPERIMENTAL Needs penalty for ordinal regression (not part of glmnet)
 ##### Run glmnetSTIR, penalized glmSTIR
 glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
                                nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
@@ -172,9 +173,14 @@ glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="gl
 glmnetSTIR.cc.results.mat <- as.matrix(glmnetSTIR.cc.results)
 # .05 regression coefficient threshold is arbitrary
 # not sure why glment did not force zeros
-# Finds more interactions than regular glmnet, but not nearly as good as regular glmSTIR
-nonzero.glmnetSTIR.mask <- abs(glmnetSTIR.cc.results.mat[,1])>.05  
+# Negative coefficients mean irrelevant attributes for Relief scores.
+# However, glmnet does not include ordinal models. 
+nonzero.glmnetSTIR.mask <- abs(glmnetSTIR.cc.results.mat[,1])>0.05  
 as.matrix(glmnetSTIR.cc.results.mat[nonzero.glmnetSTIR.mask,],ncol=1)
+
+# Naively remove negative coefficients, but would be better to modify shrinkage model.
+pos.glmnetSTIR.mask <- glmnetSTIR.cc.results.mat[,1]>0.05  
+as.matrix(glmnetSTIR.cc.results.mat[pos.glmnetSTIR.mask,],ncol=1)
 
 # functional attribute detection stats
 glmnetSTIR.cc.positives <- names(glmnetSTIR.cc.results.mat[nonzero.glmnetSTIR.mask,]) # p.adj<.05
