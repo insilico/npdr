@@ -31,7 +31,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
     beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
     beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
     ## use one-side p-value to test H1: beta>0 for case-control glmSTIR scores
-    pval_beta_a <- pt(beta_a, mod$df.residual, lower = FALSE)  # one-sided p-val
+    pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
     stats.vec <- c(
       #fit$coefficients[2,4], # p-value for attribute beta, pval.a
       #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
