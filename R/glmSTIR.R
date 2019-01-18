@@ -10,7 +10,7 @@
 #' @examples
 #'
 #' @export
-#diffRegression <- function(pheno.diffs, predictor.diffs, regression.type="glm") {
+# regression of the neighbor diff vector for one attribute
 diffRegression <- function(design.matrix.df, regression.type="glm") {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
@@ -26,12 +26,17 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
       fit$r.squared         # R^2 of fit, R.sqr
   ) 
   } else{ #regression.type=="glm"
-    fit <- summary(glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df))
+    mod <- glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df)
+    fit <- summary(mod)
+    beta_a <- coef(fit)[2, 3]
+    pval_beta_a <- pt(beta_a, mod$df, lower = FALSE)  # one-sided p-val, H1: beta>0
     stats.vec <- c(
-      fit$coefficients[2,4], # p-value for attribute beta, pval.a
-      fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-      fit$coefficients[1,3], # beta_hat_0, intercept, B0
-      fit$coefficients[1,4]  # p-value for intercept, B0.pval
+      #fit$coefficients[2,4], # p-value for attribute beta, pval.a
+      #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
+      pval_beta_a,            # one-sided p-value for attribute beta
+      beta_a,                 # beta_hat_a, standardize beta for attribute, Ba
+      fit$coefficients[1,3],  # beta_hat_0, intercept, B0
+      fit$coefficients[1,4]   # p-value for intercept, B0.pval
     )
   }
   return(stats.vec)
