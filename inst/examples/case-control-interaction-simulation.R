@@ -11,6 +11,7 @@ n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
 type <- "interactionErdos" # or mainEffect
+#type <-"mainEffect"
 bias <- 0.4          # moderate effect size
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
@@ -38,9 +39,9 @@ functional.case.control <- case.control.3sets$signal.names # functional attribut
 # standardized beta and p-value
 # glmSTIR utulity function
 univariate.cc.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
-univariate.cc.results[1:10,]
-# none will be less than .05 for interaction simulations
-#univariate.results[univariate.results[,"p.adj"]<.05,]
+#univariate.cc.results[1:10,]
+# don't expect any less than .05 for interaction simulations
+univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 ##### Run glmSTIR
 glm.stir.cc.results <- glmSTIR("class", case.control.data, regression.type="glm", attr.diff.type="numeric-abs",
@@ -70,6 +71,8 @@ results.list <- stir(predictors.cc.mat, neighbor.idx.observed, k = 0, metric = "
 t_sorted_multisurf <- results.list$STIR_T[, -3]  # remove cohen-d
 colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir", sep=".")
 (t_sorted_multisurf[t_sorted_multisurf[,3]<.05,])
+
+results.list$STIR_F[results.list$STIR_F$F.pval.adj<.05,]
 
 # functional attribute detection stats
 tstat_stir.detect.stats <- detectionStats(functional.case.control, 
@@ -144,18 +147,26 @@ library(glmnet)
 predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
 pheno.case.control <- case.control.data[, "class"]
 
-glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alpha=.1, family="binomial", type.measure="class")
-glmnet.cc.coeffs<-predict(glmnet.cc.model,type="coefficients")
+glmnet.cc.model<-cv.glmnet(as.matrix(predictors.cc.mat), pheno.case.control, alpha=1, family="binomial", type.measure="class")
+#glmnet.cc.coeffs<-as.matrix(predict(glmnet.cc.model,type="coefficients"))
 #glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
-model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
+#model.cc.terms <- colnames(predictors.cc.mat)  # glmnet includes an intercept but we are going to ignore
 # skip intercept if there, 0-based counting
-nonzero.glmnet.cc.coeffs <- model.cc.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] 
+#nonzero.glmnet.cc.coeffs <- model.cc.terms[glmnet.cc.coeffs@i[which(glmnet.cc.coeffs@i!=0)]] 
 # finds some interactions maybe because of the co-expression in the simulation
-nonzero.glmnet.cc.coeffs
+#nonzero.glmnet.cc.coeffs
+#nonzero.glmnet.cc.mask <- abs(glmnet.cc.coeffs[,1])>.05  
+#as.matrix(glmnet.cc.coeffs[nonzero.glmnet.cc.mask],ncol=1)
+
+glmnet.cc.coeffs<-as.matrix(predict(glmnet.cc.model,type="coefficients"))
+row.names(glmnet.cc.coeffs) <- c("intercept", colnames(predictors.cc.mat))  # add variable names to results
+glmnet.cc.sorted<-as.matrix(glmnet.cc.coeffs[order(abs(glmnet.cc.coeffs),decreasing = T),],ncol=1) # sort
+glmnet.cc.sorted[abs(glmnet.cc.sorted)>0,]
 
 ##### Run glmnetSTIR, penalized glmSTIR
 glmnetSTIR.cc.results <- glmSTIR("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
-                               nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                               nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                               glmnet.alpha=1, glmnet.family="binomial",
                                fdr.method="bonferroni", verbose=T)
 # attributes with glmSTIR adjusted p-value less than .05 
 glmnetSTIR.cc.results.mat <- as.matrix(glmnetSTIR.cc.results)

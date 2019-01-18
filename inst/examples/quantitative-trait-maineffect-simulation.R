@@ -131,10 +131,28 @@ library(glmnet)
 predictors.qtrait.mat <- qtrait.data[, - which(colnames(qtrait.data) == "qtrait")]
 pheno.qtrait <- qtrait.data[, "qtrait"]
 
-glmnet.qtrait.model<-cv.glmnet(as.matrix(predictors.qtrait.mat), pheno.qtrait, alpha=.1, type.measure="deviance")
+glmnet.qtrait.model<-cv.glmnet(as.matrix(predictors.qtrait.mat), pheno.qtrait, alpha=.1, type.measure="mse")
 glmnet.qtrait.coeffs<-predict(glmnet.qtrait.model,type="coefficients")
 #glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
 model.qtrait.terms <- colnames(predictors.qtrait.mat)  # glmnet includes an intercept but we are going to ignore
 nonzero.glmnet.qtrait.coeffs <- model.qtrait.terms[glmnet.qtrait.coeffs@i[which(glmnet.qtrait.coeffs@i!=0)]] # skip intercept if there, 0-based counting
 nonzero.glmnet.qtrait.coeffs
 cat(detectionStats(functional.qtrait, nonzero.glmnet.qtrait.coeffs)$report)
+
+##### Run glmnetSTIR, penalized glmSTIR
+glmnetSTIR.qtrait.results <- glmSTIR("qtrait", qtrait.data, regression.type="glmnet", attr.diff.type="numeric-abs",
+                                 nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                                 glmnet.alpha=1, glmnet.family="gaussian",
+                                 fdr.method="bonferroni", verbose=T)
+# attributes with glmSTIR adjusted p-value less than .05 
+glmnetSTIR.qtrait.results.mat <- as.matrix(glmnetSTIR.qtrait.results)
+# .05 regression coefficient threshold is arbitrary
+# not sure why glment did not force zeros
+# Finds more interactions than regular glmnet, but not nearly as good as regular glmSTIR
+nonzero.glmnetSTIR.qtrait.mask <- abs(glmnetSTIR.qtrait.results.mat[,1])>0  
+as.matrix(glmnetSTIR.qtrait.results.mat[nonzero.glmnetSTIR.qtrait.mask,],ncol=1)
+
+# functional attribute detection stats
+glmnetSTIR.cc.positives <- names(glmnetSTIR.cc.results.mat[nonzero.glmnetSTIR.mask,]) # p.adj<.05
+glmnetSTIR.cc.detect.stats <- detectionStats(functional.case.control, glmnetSTIR.cc.positives)
+cat(glmnetSTIR.cc.detect.stats$report)

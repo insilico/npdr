@@ -125,7 +125,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-    pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
+    # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
+    pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
   ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
   glmSTIR.stats.list <- vector("list",num.samp) # initialize
@@ -218,7 +219,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     if (glmnet.family=="binomial"){
       pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-      pheno.diff.vec <- as.factor(ifelse(pheno.diff.vec=="TRUE",1,0))
+      pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
       glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
     } else{ # "gaussian"
