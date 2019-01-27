@@ -4,8 +4,11 @@
 NPDR is a nearest-neighbor feature selection algorithm that fits a generalized linear model for projected distances of a given attribute over all pairs of instances in a neighborhood. In the NPDR model, the predictor is the attribute distance between neighbors projected onto the attribute dimension, and the outcome is the projected phenotype distance (for quantitative traits) or hit/miss (for case/control) between all pairs of nearest neighbor instances. NPDR can fit any combination of predictor data types (catgorical or numeric) and outcome data types (case-control or quantitative) as well as adjust for covariates that may be confounding. As with STIR (STatistical Inference Relief), NDPR allows for the calculation of statistical significance of importance scores and adjustment for multiple testing.   
 
 #### Websites
+
 [https://insilico.github.io/glmSTIR/](NPDR Github Page)
+
 [http://insilico.utulsa.edu/software/STIR](http://insilico.utulsa.edu/software/STIR)
+
 [https://github.com/insilico](https://github.com/insilico)
 
 Related References. 
