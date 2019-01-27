@@ -5,17 +5,17 @@ NPDR is a nearest-neighbor feature selection algorithm that fits a generalized l
 
 #### Websites
 
-[NPDR Github Page] (https://insilico.github.io/glmSTIR/)
+[NPDR Github Page](https://insilico.github.io/glmSTIR/)
 
-[STIR Project] (http://insilico.utulsa.edu/software/STIR)
+[STIR Project](http://insilico.utulsa.edu/software/STIR)
 
-[insilico Github Orgnalization] (https://github.com/insilico)
+[insilico Github Orgnalization](https://github.com/insilico)
 
 Related References. 
 
-[STIR] (https://doi.org/10.1093/bioinformatics/bty788)
+[STIR](https://doi.org/10.1093/bioinformatics/bty788)
 
-[Gene-wise adaptive-neighbors Relief] (https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081527)
+[Gene-wise adaptive-neighbors Relief](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081527)
 
 ### To install:
 
