@@ -59,7 +59,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
 #' @param nbd.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
-#' The default k=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default) 
+#' The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default) 
 #' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
 #' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
@@ -77,8 +77,8 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 #'
 #' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
-#  # ReliefF fixed-k nbd, choose a k (k=10). Or choose msurf.sd.frac
-#' glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
+#  # ReliefF fixed-k nbd, choose a k (knn=10). Or choose msurf.sd.frac
+#' glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", knn=10, fdr.method="bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
@@ -87,7 +87,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
 #' @export
 glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
-                    nbd.method="multisurf", nbd.metric = "manhattan", k=0, msurf.sd.frac=0.5, 
+                    nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.family="binomial", rm.attr.from.dist=c(), 
                     fdr.method="bonferroni", verbose=FALSE){

@@ -6,7 +6,7 @@
 \usage{
 glmSTIR(outcome, dataset, regression.type = "glm",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
-  nbd.metric = "manhattan", k = 0, msurf.sd.frac = 0.5,
+  nbd.metric = "manhattan", knn = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
   glmnet.alpha = 1, glmnet.family = "binomial",
   rm.attr.from.dist = c(), fdr.method = "bonferroni",
@@ -25,6 +25,9 @@ glmSTIR(outcome, dataset, regression.type = "glm",
 
 \item{nbd.metric}{used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().}
 
+\item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
+The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
+
 \item{msurf.sd.frac}{multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
 The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors().}
 
@@ -37,9 +40,6 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
 
 \item{fdr.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
-
-\item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
-The default k=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
 
 \item{glment.family}{"binomial" for logistic regression, "gaussian" for regression}
 }
@@ -59,7 +59,7 @@ Allows for covariate correction.
 glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
 
 # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
-glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", k=10, fdr.method="bonferroni")
+glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", knn=10, fdr.method="bonferroni")
 
 # if outcome vector (pheno.vec) is separate from attribute matrix
 # multisurf
