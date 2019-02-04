@@ -15,16 +15,22 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   if (regression.type=="lm"){
-    fit <- summary(lm(pheno.diff.vec ~ ., data=design.matrix.df))
+    mod <- lm(pheno.diff.vec ~ ., data=design.matrix.df)
+    fit <- summary(mod)
+    beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
+    beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
+    ## use one-side p-value to test H1: beta>0 for case-control and continuous outcome
+    pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
     stats.vec <- c(
-      fit$coefficients[2,4], # p-value for attribute beta, pval.a
-      fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-      #fit$fstatistic[1],     # F-stat and next is its p-value, F.stat
-      #(1.0 - pf(fit$fstatistic[1], fit$fstatistic[2], fit$fstatistic[3])), # Fstat.pval
-      fit$coefficients[1,3], # beta_hat_0, intercept, B0
-      fit$coefficients[1,4], # p-value for intercept, B0.pval
-      fit$r.squared         # R^2 of fit, R.sqr
-  ) 
+      #fit$coefficients[2,4], # p-value for attribute beta, pval.a
+      #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
+      pval_beta_a,            # one-sided p-value for attribute beta
+      beta_a,                 # beta_a for attribute a
+      beta_zscore_a,          # standardized beta for attribut a
+      fit$coefficients[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
+      fit$coefficients[1,4],   # p-value for intercept, row 1 is intercept, col 4 is p-val 
+      fit$r.squared           # R^2 of fit, R.sqr
+    )
   } else{ #regression.type=="glm"
     mod <- glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df)
     fit <- summary(mod)
@@ -37,6 +43,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
       #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
       pval_beta_a,            # one-sided p-value for attribute beta
       beta_a,                 # beta_a for attribute a
+      beta_zscore_a,          # standardized beta for attribut a
       fit$coefficients[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
       fit$coefficients[1,4]   # p-value for intercept, row 1 is intercept, col 4 is p-val 
     )
@@ -202,10 +209,10 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     # prepend adjused attribute p-values to first column
     glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
     if (regression.type=="lm"){# stats colnames for lm
-      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr",  
+      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "std.beta.attr",  
                                                     "beta.0", "pval.0", "R.sqr")
     } else{ # stats columns for glm
-      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "beta.0", "pval.0")
+      colnames(glmSTIR.stats.pval_ordered.mat) <- c("pval.adj", "pval.attr", "beta.attr", "std.beta.attr", "beta.0", "pval.0")
     }
     # dataframe final output for regular glmSTIR
     glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)

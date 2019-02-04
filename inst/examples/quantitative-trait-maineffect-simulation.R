@@ -78,6 +78,21 @@ core.learn.qtrait.detect <- detectionStats(functional.qtrait,
                                           names(core.learn.qtrait)[core.learn.qtrait.order[1:20]])
 cat(core.learn.qtrait.detect$report)
 
+### Compare corelearn and glmSTIR
+corelearn.df <- data.frame(vars=names(core.learn.qtrait),rrelief=core.learn.qtrait)
+glmstir.beta.df <- data.frame(vars=rownames(glm.stir.qtrait.results),glmstir.beta=(glm.stir.qtrait.results$beta.attr))
+
+#stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
+glmstir.pcutoff <- -log10(glm.stir.qtrait.results$pval.attr[which(glm.stir.qtrait.results$pval.adj>.05)[1]-1])
+
+library(ggplot2)
+test.df <- merge(corelearn.df,glmstir.beta.df)
+functional <- factor(c(rep("Func",length(functional.qtrait)),rep("Non-Func",n.variables-length(functional.qtrait))))
+ggplot(test.df, aes(x=rrelief,y=glmstir.beta)) + geom_point(aes(colour = functional), size=4) +
+  theme(text = element_text(size = 20)) +
+  #geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
+  geom_hline(yintercept=glmstir.pcutoff, linetype="dashed") +
+  xlab("RRelief Scores") + ylab("NPDR Coefficients") 
 
 ##### Consensus Nested Cross Validation with ReliefF with surf fixed k
 # selects features and learns regression model.
