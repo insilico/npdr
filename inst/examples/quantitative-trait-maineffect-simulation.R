@@ -73,24 +73,29 @@ core.learn.qtrait <- CORElearn::attrEval("qtrait", data = qtrait.data,
 core.learn.qtrait.order <- order(core.learn.qtrait, decreasing = T)
 t(t(core.learn.qtrait[core.learn.qtrait.order[1:20]]))
 
+arbitrary_threshold = .005
+t(t(core.learn.qtrait[core.learn.qtrait>arbitrary_threshold]))
+
 # functional attribute detection stats
+#core.learn.qtrait.detect <- detectionStats(functional.qtrait, 
+#                                          names(core.learn.qtrait)[core.learn.qtrait.order[1:20]])
 core.learn.qtrait.detect <- detectionStats(functional.qtrait, 
-                                          names(core.learn.qtrait)[core.learn.qtrait.order[1:20]])
+                                           names(core.learn.qtrait)[core.learn.qtrait>arbitrary_threshold])
 cat(core.learn.qtrait.detect$report)
 
 ### Compare corelearn and glmSTIR
 corelearn.df <- data.frame(vars=names(core.learn.qtrait),rrelief=core.learn.qtrait)
 glmstir.beta.df <- data.frame(vars=rownames(glm.stir.qtrait.results),glmstir.beta=(glm.stir.qtrait.results$beta.attr))
 
-#stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
-glmstir.pcutoff <- -log10(glm.stir.qtrait.results$pval.attr[which(glm.stir.qtrait.results$pval.adj>.05)[1]-1])
+corelearn.cutoff <- arbitrary_threshold
+glmstir.pcutoff <- (glm.stir.qtrait.results$beta.attr[which(glm.stir.qtrait.results$pval.adj>.05)[1]-1])
 
 library(ggplot2)
 test.df <- merge(corelearn.df,glmstir.beta.df)
 functional <- factor(c(rep("Func",length(functional.qtrait)),rep("Non-Func",n.variables-length(functional.qtrait))))
 ggplot(test.df, aes(x=rrelief,y=glmstir.beta)) + geom_point(aes(colour = functional), size=4) +
   theme(text = element_text(size = 20)) +
-  #geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
+  geom_vline(xintercept=corelearn.cutoff, linetype="dashed") +
   geom_hline(yintercept=glmstir.pcutoff, linetype="dashed") +
   xlab("RRelief Scores") + ylab("NPDR Coefficients") 
 
@@ -98,9 +103,9 @@ ggplot(test.df, aes(x=rrelief,y=glmstir.beta)) + geom_point(aes(colour = functio
 # selects features and learns regression model.
 
 cncv.qtrait <- consensus_nestedCV(train.ds = qtrait.data, 
-                                  validation.ds =  qtrait.3sets$validation, 
+                                  validation.ds =  NULL, 
                                   label = "qtrait",
-                                  method.model = "classification",
+                                  method.model = "regression",
                                   is.simulated = TRUE,
                                   ncv_folds = c(10, 10),
                                   param.tune = FALSE,
@@ -123,9 +128,9 @@ cat(detectionStats(functional.qtrait, cncv.qtrait$Features)$report)
 rncv.qtrait <- regular_nestedCV(train.ds = qtrait.data, 
                                   validation.ds =  qtrait.3sets$validation, 
                                   label = "qtrait",
-                                  method.model = "classification",
+                                  method.model = "regression",
                                   is.simulated = TRUE,
-                                  ncv_folds = c(10, 10),
+                                  ncv_folds = c(5, 5),
                                   param.tune = FALSE,
                                   learning_method = "rf", 
                                   importance.algorithm = "RReliefFequalK",

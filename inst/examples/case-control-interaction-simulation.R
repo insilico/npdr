@@ -57,6 +57,23 @@ glm.stir.cc.positives <- row.names(glm.stir.cc.results[glm.stir.cc.results[,1]<.
 glm.stir.cc.detect.stats <- detectionStats(functional.case.control, glm.stir.cc.positives)
 cat(glm.stir.cc.detect.stats$report)
 
+### Compare univariate and glmSTIR
+univ.log10.df <- data.frame(vars=rownames(univariate.cc.results),univ.log10=-log10(univariate.cc.results[,"pval"]))
+glmstir.cc.log10.df <- data.frame(vars=rownames(glm.stir.cc.results),glmstir.cc.log10=-log10(glm.stir.cc.results$pval.attr))
+
+univ.cc.pcutoff <- max(-log10(univariate.cc.results[,"pval"]))
+#univ.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
+glmstir.cc.pcutoff <- -log10(glm.stir.cc.results$pval.attr[which(glm.stir.cc.results$pval.adj>.05)[1]-1])
+
+library(ggplot2)
+test.cc.df <- merge(univ.log10.df,glmstir.cc.log10.df)
+functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
+ggplot(test.cc.df, aes(x=univ.log10,y=glmstir.cc.log10)) + geom_point(aes(colour = functional), size=4) +
+  theme(text = element_text(size = 20)) +
+  #geom_vline(xintercept=univ.cc.pcutoff, linetype="dashed") +
+  geom_hline(yintercept=glmstir.cc.pcutoff, linetype="dashed") +
+  xlab("Logistic Regression -log10(P)") + ylab("NPDR -log10(P)") 
+
 ##### original (pseudo t-test) STIR
 # impression is that glmSTIR gives same resutls as original t-STIR
 #install_github("insilico/stir")
@@ -105,10 +122,30 @@ core.learn.case.control.order <- order(core.learn.case.control, decreasing = T)
 t(t(core.learn.case.control[core.learn.case.control.order[1:20]]))
 
 # functional attribute detection stats
-core.learn.detect.stats <- detectionStats(functional.case.control, 
-                                          names(core.learn.case.control)[core.learn.case.control.order[1:20]])
-cat(core.learn.detect.stats$report)
+#core.learn.detect.stats <- detectionStats(functional.case.control, 
+#                                          names(core.learn.case.control)[core.learn.case.control.order[1:20]])
 
+arbitrary.cc.threshold <- .0072
+core.learn.cc.detect <- detectionStats(functional.case.control, 
+                                           names(core.learn.case.control)[core.learn.case.control>arbitrary.cc.threshold])
+cat(core.learn.cc.detect$report)
+
+### Compare corelearn and glmSTIR
+corelearn.cc.df <- data.frame(vars=names(core.learn.case.control),rrelief=core.learn.case.control)
+glmstir.cc.beta.df <- data.frame(vars=rownames(glm.stir.cc.results),glmstir.beta=(glm.stir.cc.results$beta.attr))
+
+corelearn.cc.cutoff <- arbitrary.cc.threshold
+glmstir.cc.pcutoff <- (glm.stir.cc.results$beta.attr[which(glm.stir.cc.results$pval.adj>.05)[1]-1])
+
+
+library(ggplot2)
+test.cc.df <- merge(corelearn.cc.df,glmstir.cc.beta.df)
+functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
+ggplot(test.cc.df, aes(x=rrelief,y=glmstir.beta)) + geom_point(aes(colour = functional), size=4) +
+  theme(text = element_text(size = 20)) +
+  geom_vline(xintercept=corelearn.cc.cutoff, linetype="dashed") +
+  geom_hline(yintercept=glmstir.cc.pcutoff, linetype="dashed") +
+  xlab("Relief Score") + ylab("NPDR Coefficient") 
 
 ##### Consensus Nested Cross Validation with ReliefF with surf fixed k
 # selects features and learns classification model.
