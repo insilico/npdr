@@ -200,6 +200,8 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
     }
     
     # attribute p-values
+    # relies on first column [, 1] being the p-value for now
+    # later first columns becomes att and adjusted p-value
     attr.pvals <- npdr.stats.attr_ordered.mat[, 1]
     # order-index for sorted attribute-beta p-values
     attr.pvals.order.idx <- order(attr.pvals, decreasing = F)

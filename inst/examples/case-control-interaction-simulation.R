@@ -38,7 +38,7 @@ functional.case.control <- case.control.3sets$signal.names # functional attribut
 # linear regression on all predictors, fdr adjust, check functional hits
 # standardized beta and p-value
 # npdr utulity function
-univariate.cc.results <- univariateRegression(outcome="class", dataset=case.control.data, regression.type="glm")
+univariate.cc.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="glm")
 #univariate.cc.results[1:10,]
 # don't expect any less than .05 for interaction simulations
 univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
