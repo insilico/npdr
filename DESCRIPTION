@@ -1,5 +1,5 @@
-Package: glmSTIR
-Title: Generalized Linear Model STatistical Inference Relief
+Package: npdr
+Title: Nearest-neighbor Projected-Distance Regression
 Version: 0.0.0.9000
 Authors@R: person("Brett", "McKinney", email = "brett.mckinney@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
