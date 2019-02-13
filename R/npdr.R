@@ -191,8 +191,6 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
     # rownames
     if (!is.null(colnames(attr.mat))){
-      # add attribute column
-      glmSTIR.stats.attr_ordered.mat <- cbind(colnames(attr.mat), glmSTIR.stats.attr_ordered.mat)
       # add attribute names to stats/results matrix if the data matrix contains them
       rownames(glmSTIR.stats.attr_ordered.mat) <- colnames(attr.mat)
     } else {
@@ -200,7 +198,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     }
     
     # attribute p-values
-    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 2]
+    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 1]
     # order-index for sorted attribute-beta p-values
     attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
     # adjust p-values using Benjamini-Hochberg (default)
@@ -210,6 +208,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     glmSTIR.stats.pval_ordered.mat <- glmSTIR.stats.attr_ordered.mat[attr.pvals.order.idx, ]
     # prepend adjused attribute p-values to first column
     glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
+    # prepend attribute column (att)
+    glmSTIR.stats.attr_ordered.mat <- cbind(colnames(attr.mat), glmSTIR.stats.attr_ordered.mat)
     if (regression.type=="lm"){# stats colnames for lm
       colnames(glmSTIR.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
