@@ -189,7 +189,6 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   if (regression.type!="glmnet"){ # sort and format output if you did regular glmSTIR
     # combine non-glmnet result lists into a matrix
     glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
-    cat(glmSTIR.stats.attr_ordered.mat)
     # rownames
     if (!is.null(colnames(attr.mat))){
       # add attribute column
@@ -201,7 +200,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     }
     
     # attribute p-values
-    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 1]
+    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 2]
     # order-index for sorted attribute-beta p-values
     attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
     # adjust p-values using Benjamini-Hochberg (default)
