@@ -189,7 +189,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
   if (regression.type!="glmnet"){ # sort and format output if you did regular glmSTIR
     # combine non-glmnet result lists into a matrix
     glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
-    (glmSTIR.stats.attr_ordered.mat)
+    cat(glmSTIR.stats.attr_ordered.mat)
     # rownames
     if (!is.null(colnames(attr.mat))){
       # add attribute column
