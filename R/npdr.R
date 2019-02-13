@@ -1,11 +1,11 @@
 #=========================================================================#
 #' diffRegression
 #'
-#' Wrapper for lm and glm to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in glmSTIR.
+#' Wrapper for lm and glm to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
 #'
 #' @param design.matrix.df Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.   
 #' @param regression.type (\code{"lm"}, \code{"glm"}) 
-#' @return vector of regression stats to put into list for glmSTIR and combine into matrix
+#' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @examples
 #'
@@ -36,7 +36,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
     fit <- summary(mod)
     beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
     beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
-    ## use one-side p-value to test H1: beta>0 for case-control glmSTIR scores
+    ## use one-side p-value to test H1: beta>0 for case-control npdr scores
     pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
     stats.vec <- c(
       #fit$coefficients[2,4], # p-value for attribute beta, pval.a
@@ -52,12 +52,14 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 }
 
 #=========================================================================#
-#' glmSTIR
+#' npdr
 #'
-#' generalized linear model (GLM) based STatistical Inference Relief (STIR)
-#' Computes Relief-based attribute statistical signficance for case/control or quantitative outcomes.
-#' Allows for categorical (SNP) or numeric (expession) predictor data types. 
-#' Allows for covariate correction.   
+#' Nearest-Neighbor Projected-Distance Regression (npdr) 
+#' generalized linear model (GLM) extension of STatistical Inference Relief (STIR)
+#' Computes attribute statistical signficance with logistic for case/control and linear model for quantitative outcomes.
+#' NPDR allows for categorical (SNP) or numeric (expession) predictor data types. 
+#' NPDR allows for covariate correction.
+#' Observations in the model are projected-distance differences between neighbors. 
 #'
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression 
 #' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
@@ -74,30 +76,30 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param glmnet.alpha penalty mixture for glmnetSTIR: alpha=1 (lasso default, L1) alpha=0 (ridge, L2) 
 #' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
-#' @param fdr.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
-#' @return glmSTIR.stats.df: glmSTIR fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
+#' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
+#' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
 #' @examples
 #' # Data interface options.
 #' # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
 #' # ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
-#' glmstir.results.df <- glmSTIR("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
+#' npdr.results.df <- npdr("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, padj.method="bonferroni")
 #'
 #' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
 #  # ReliefF fixed-k nbd, choose a k (knn=10). Or choose msurf.sd.frac
-#' glmstir.results.df <- glmSTIR(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", knn=10, fdr.method="bonferroni")
+#' npdr.results.df <- npdr(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", knn=10, padj.method="bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
-#' glmstir.results.df <- glmSTIR(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, fdr.method="bonferroni")
-#' # attributes with glmSTIR adjusted p-value less than .05 
-#' glmstir.positives <- row.names(glmstir.results.df[glmstir.results.df$pva.adj<.05,]) # glmSTIR p.adj<.05
+#' npdr.results.df <- npdr(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, padj.method="bonferroni")
+#' # attributes with npdr adjusted p-value less than .05 
+#' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj<.05,]) # npdr p.adj<.05
 #' @export
-glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
+npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.family="binomial", rm.attr.from.dist=c(), 
-                    fdr.method="bonferroni", verbose=FALSE){
+                    padj.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -142,8 +144,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
-  ##### run glmSTIR, each attribute is a list, then we do.call rbind to a matrix
-  glmSTIR.stats.list <- vector("list",num.samp) # initialize
+  ##### run npdr, each attribute is a list, then we do.call rbind to a matrix
+  npdr.stats.list <- vector("list",num.samp) # initialize
   for (attr.idx in seq(1, num.attr)){
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
@@ -181,43 +183,43 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     }
     # utility function: RUN regression
     #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    glmSTIR.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
+    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
   } # end of for loop, regression done for each attribute
   if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not count intercept): ")
                cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," variables.\n", sep="")
   }
-  if (regression.type!="glmnet"){ # sort and format output if you did regular glmSTIR
+  if (regression.type!="glmnet"){ # sort and format output if you did regular npdr
     # combine non-glmnet result lists into a matrix
-    glmSTIR.stats.attr_ordered.mat <- do.call(rbind, glmSTIR.stats.list)
+    npdr.stats.attr_ordered.mat <- do.call(rbind, npdr.stats.list)
     # rownames
     if (!is.null(colnames(attr.mat))){
       # add attribute names to stats/results matrix if the data matrix contains them
-      rownames(glmSTIR.stats.attr_ordered.mat) <- colnames(attr.mat)
+      rownames(npdr.stats.attr_ordered.mat) <- colnames(attr.mat)
     } else {
       message("If you have attribute names, add them to colnames of input data.")
     }
     
     # attribute p-values
-    attr.pvals <- glmSTIR.stats.attr_ordered.mat[, 1]
+    attr.pvals <- npdr.stats.attr_ordered.mat[, 1]
     # order-index for sorted attribute-beta p-values
     attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
     # adjust p-values using Benjamini-Hochberg (default)
-    attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=fdr.method)
+    attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=padj.method)
     
     # order by attribute p-value
-    glmSTIR.stats.pval_ordered.mat <- glmSTIR.stats.attr_ordered.mat[attr.pvals.order.idx, ]
+    npdr.stats.pval_ordered.mat <- npdr.stats.attr_ordered.mat[attr.pvals.order.idx, ]
     # prepend adjused attribute p-values to first column
-    glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
+    npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
     # prepend attribute column (att)
-    glmSTIR.stats.pval_ordered.mat <- cbind(rownames(glmSTIR.stats.pval_ordered.mat), data.frame(glmSTIR.stats.pval_ordered.mat))
+    npdr.stats.pval_ordered.mat <- cbind(rownames(npdr.stats.pval_ordered.mat), data.frame(npdr.stats.pval_ordered.mat))
     if (regression.type=="lm"){# stats colnames for lm
-      colnames(glmSTIR.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
+      colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
     } else{ # stats columns for glm
-     colnames(glmSTIR.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
+     colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
     }
-    # dataframe final output for regular glmSTIR
-    glmSTIR.stats.df <- data.frame(glmSTIR.stats.pval_ordered.mat)
+    # dataframe final output for regular npdr
+    npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
     
   } else{ # Here we add an option glmnetSTIR regression.type="glmnet"
           # Need to create a data matrix with each column as a vector of diffs for each attribute.
@@ -246,8 +248,8 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     glmnet.STIR.coeffs<-as.matrix(predict(glmnet.STIR.model,type="coefficients"))
     row.names(glmnet.STIR.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
     glmnet.sorted<-as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1) # sort
-    glmSTIR.stats.df<-data.frame(scores=glmnet.sorted)
+    npdr.stats.df<-data.frame(scores=glmnet.sorted)
   } # end glmnetSTIR option
   
-  return(glmSTIR.stats.df)
+  return(npdr.stats.df)
 }
