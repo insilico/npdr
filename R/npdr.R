@@ -209,7 +209,7 @@ glmSTIR <- function(outcome, dataset, regression.type="glm", attr.diff.type="num
     # prepend adjused attribute p-values to first column
     glmSTIR.stats.pval_ordered.mat <- cbind(attr.pvals.adj, glmSTIR.stats.pval_ordered.mat)
     # prepend attribute column (att)
-    glmSTIR.stats.attr_ordered.mat <- cbind(colnames(attr.mat), glmSTIR.stats.attr_ordered.mat)
+    glmSTIR.stats.attr_ordered.mat <- cbind(rownames(glmSTIR.stats.attr_ordered.mat), glmSTIR.stats.attr_ordered.mat)
     if (regression.type=="lm"){# stats colnames for lm
       colnames(glmSTIR.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
