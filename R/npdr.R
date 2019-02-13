@@ -66,7 +66,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' @param regression.type (\code{"lm"} or \code{"glm"})
 #' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm, phenotype diff is \code{"match-mismatch"}. 
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
-#' @param nbd.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
+#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 #' The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default) 
 #' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
@@ -135,12 +135,12 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
   if (regression.type=="lm"){
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
   } else { #regression.type=="glm"
     # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
     # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
@@ -150,7 +150,7 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-    attr.diff.vec <- stirDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
     # model data.frame to go into lm or glm
     design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
     ### diff vector for each covariate
@@ -167,7 +167,7 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
         covar.vals <- covars[, covar.col]
         Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
         NN.covar.vals <- covar.vals[neighbor.pairs.idx[,2]]
-        covar.diff.vec <- stirDiff(Ri.covar.vals, NN.covar.vals, diff.type=covar.diff.type[covar.col])
+        covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals, diff.type=covar.diff.type[covar.col])
         #covar.diff.list[[covar.col]] <- covar.diff.vec
         # add covar diff vector to data.frame
         # these covars will be included in each attribute's model
@@ -229,19 +229,19 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
       attr.vals <- attr.mat[, attr.idx]
       Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
       NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-      attr.diff.vec <- stirDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
       attr.diff.mat[,attr.idx] <- attr.diff.vec
     }
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     if (glmnet.family=="binomial"){
-      pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
       glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
     } else{ # "gaussian"
-      pheno.diff.vec <- stirDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
       # Run glmnet on the diff attribute columns
       glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",type.measure="mse")
     }

@@ -1,5 +1,5 @@
 #=========================================================================#
-#' stirDiff
+#' npdrDiff
 #'
 #' A diff is a function that computes the diffrence of values for an attribute between two instances.
 #' It is used for attribute selection for attribute diffs and phenotype diffs.  
@@ -12,7 +12,7 @@
 #' @examples
 #' Example
 #' @export
-stirDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
+npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
   # compute the difference between two vectors elementwise
   if (diff.type=="numeric-sqr"){ # numeric squared difference
     val <- abs(a - b)^2/norm.fac
@@ -29,7 +29,7 @@ stirDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
 }
 
 #=========================================================================#
-#' stirDistances
+#' npdrDistances
 #'
 #' Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors(). 
 #' Note: Probably best to standardize data before manhattan and euclidean.
@@ -39,9 +39,9 @@ stirDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
 #' versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).
 #' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
 #' @examples
-#' dist.mat <- stirDistances(predictors.mat, metric = "manhattan")
+#' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
 #' @export
-stirDistances <- function(attr.mat, metric="manhattan"){
+npdrDistances <- function(attr.mat, metric="manhattan"){
   # Compute distance matrix between all samples (rows)
   # reSTIR default is numeric manhattan ("manhattan"), max-min scaling is not needed for stir
   if (metric == "hamming"){
@@ -80,7 +80,7 @@ stirDistances <- function(attr.mat, metric="manhattan"){
 #' Also used in reSTIR for case/control, but hit/miss is used in reSTIR function. 
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes 
-#' @param nb.metric used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
+#' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
 #' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
@@ -111,7 +111,7 @@ nearestNeighbors <- function(attr.mat,
     attr.mat <- attr.mat[,-which(colnames(attr.mat) %in% attr_removal_vec_from_dist_calc)]
   }
 
-  dist.mat <- stirDistances(attr.mat, metric = nb.metric)
+  dist.mat <- npdrDistances(attr.mat, metric = nb.metric)
   num.samp <- nrow(attr.mat)
   
   if (nb.method == "relieff"){  
