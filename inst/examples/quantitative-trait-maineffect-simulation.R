@@ -3,8 +3,8 @@ library(broom)
 
 ## glmSTIR install
 library(devtools)
-install_github("insilico/glmSTIR")
-library(glmSTIR)
+install_github("insilico/npdr")
+library(npdr)
 
 ##### simulate case-control interaction effect data 
 n.samples <- 300     # 100 samples in train/holdout/test
