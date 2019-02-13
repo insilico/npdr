@@ -23,7 +23,7 @@ npdr(outcome, dataset, regression.type = "glm",
 
 \item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().}
 
-\item{nbd.metric}{used in stirDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().}
+\item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().}
 
 \item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
