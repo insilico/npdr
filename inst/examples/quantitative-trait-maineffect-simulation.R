@@ -1,5 +1,6 @@
 library(privateEC)
 library(broom)
+library(dplyr)
 
 ## npdr install
 library(devtools)
@@ -54,7 +55,8 @@ npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,] # pval.adj, first column
 #rownames(npdr.qtrait.results)[npdr.qtrait.results$pval.attr<.05] # pval.attr, second column
 
 # functional attribute detection stats
-npdr.qtrait.positives <- row.names(npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,]) # p.adj<.05
+npdr.qtrait.positives <- npdr.qtrait.results %>% filter(pval.adj<.05) %>% pull(att)
+  #row.names(npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,]) # p.adj<.05
 npdr.qtrait.detect.stats <- detectionStats(functional.qtrait, npdr.qtrait.positives)
 cat(npdr.qtrait.detect.stats$report)
 
@@ -85,7 +87,7 @@ cat(core.learn.qtrait.detect$report)
 
 ### Compare corelearn and npdr
 corelearn.df <- data.frame(vars=names(core.learn.qtrait),rrelief=core.learn.qtrait)
-npdr.beta.df <- data.frame(vars=rownames(npdr.qtrait.results),npdr.beta=(npdr.qtrait.results$beta.attr))
+npdr.beta.df <- data.frame(vars=npdr.qtrait.results$att,npdr.beta=(npdr.qtrait.results$beta.raw.att))
 
 corelearn.cutoff <- arbitrary_threshold
 npdr.pcutoff <- (npdr.qtrait.results$beta.attr[which(npdr.qtrait.results$pval.adj>.05)[1]-1])

@@ -13,11 +13,11 @@ NPDR is a nearest-neighbor feature selection algorithm that fits a generalized l
 
 [insilico McKinney Lab](http://insilico.utulsa.edu/)
 
-Related References. 
+#### Related References. 
 
-[STIR](https://doi.org/10.1093/bioinformatics/bty788)
+[2017 STIR paper in Bioinformatics](https://doi.org/10.1093/bioinformatics/bty788)
 
-[Gene-wise adaptive-neighbors Relief](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081527)
+[2013 Gene-Wise Adaptive-Neighbors paper in PLoS One](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081527)
 
 ### To install:
 

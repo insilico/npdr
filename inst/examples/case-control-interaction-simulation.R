@@ -1,5 +1,6 @@
 library(privateEC)
 library(broom)
+library(dplyr)
 
 ## npdr install
 library(devtools)
@@ -53,17 +54,18 @@ npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
 #rownames(npdr.cc.results)[npdr.cc.results$pval.attr<.05] # pval.attr, second column
 
 # functional attribute detection stats
-npdr.cc.positives <- row.names(npdr.cc.results[npdr.cc.results[,1]<.05,]) # p.adj<.05
+#npdr.cc.positives <- row.names(npdr.cc.results[npdr.cc.results$pval.adj<.05,]) # p.adj<.05
+npdr.cc.positives <- npdr.cc.results %>% filter(pval.adj<.05) %>% pull(att)
 npdr.cc.detect.stats <- detectionStats(functional.case.control, npdr.cc.positives)
 cat(npdr.cc.detect.stats$report)
 
 ### Compare univariate and npdr
 univ.log10.df <- data.frame(vars=rownames(univariate.cc.results),univ.log10=-log10(univariate.cc.results[,"pval"]))
-npdr.cc.log10.df <- data.frame(vars=rownames(npdr.cc.results),npdr.cc.log10=-log10(npdr.cc.results$pval.attr))
+npdr.cc.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.cc.log10=-log10(npdr.cc.results$pval.att))
 
 univ.cc.pcutoff <- max(-log10(univariate.cc.results[,"pval"]))
 #univ.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
-npdr.cc.pcutoff <- -log10(npdr.cc.results$pval.attr[which(npdr.cc.results$pval.adj>.05)[1]-1])
+npdr.cc.pcutoff <- -log10(npdr.cc.results$pval.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
 
 library(ggplot2)
 test.cc.df <- merge(univ.log10.df,npdr.cc.log10.df)
@@ -96,7 +98,7 @@ cat(tstat_stir.detect.stats$report)
 
 ### Compare STIR and npdr
 stir.log10.df <- data.frame(vars=rownames(t_sorted_multisurf),stir.log10=-log10(t_sorted_multisurf$t.pval.stir))
-npdr.log10.df <- data.frame(vars=rownames(npdr.cc.results),npdr.log10=-log10(npdr.cc.results$pval.attr))
+npdr.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.log10=-log10(npdr.cc.results$pval.att))
 
 stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
 npdr.pcutoff <- -log10(npdr.cc.results$pval.attr[which(npdr.cc.results$pval.adj>.05)[1]-1])
@@ -127,15 +129,15 @@ t(t(core.learn.case.control[core.learn.case.control.order[1:20]]))
 
 arbitrary.cc.threshold <- .0072
 core.learn.cc.detect <- detectionStats(functional.case.control, 
-                                           names(core.learn.case.control)[core.learn.case.control>arbitrary.cc.threshold])
+                            names(core.learn.case.control)[core.learn.case.control>arbitrary.cc.threshold])
 cat(core.learn.cc.detect$report)
 
 ### Compare corelearn and npdr
 corelearn.cc.df <- data.frame(vars=names(core.learn.case.control),rrelief=core.learn.case.control)
-npdr.cc.beta.df <- data.frame(vars=rownames(npdr.cc.results),npdr.beta=(npdr.cc.results$beta.attr))
+npdr.cc.beta.df <- data.frame(vars=npdr.cc.results$att,npdr.beta=npdr.cc.results$beta.raw.att)
 
 corelearn.cc.cutoff <- arbitrary.cc.threshold
-npdr.cc.pcutoff <- (npdr.cc.results$beta.attr[which(npdr.cc.results$pval.adj>.05)[1]-1])
+npdr.cc.pcutoff <- (npdr.cc.results$beta.raw.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
 
 
 library(ggplot2)

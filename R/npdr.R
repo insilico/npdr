@@ -213,7 +213,8 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
     # prepend adjused attribute p-values to first column
     npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
     # prepend attribute column (att)
-    npdr.stats.pval_ordered.mat <- cbind(rownames(npdr.stats.pval_ordered.mat), data.frame(npdr.stats.pval_ordered.mat))
+    attributes.col <- as.character(rownames(npdr.stats.pval_ordered.mat))
+    npdr.stats.pval_ordered.mat <- cbind(attributes.col, data.frame(npdr.stats.pval_ordered.mat))
     if (regression.type=="lm"){# stats colnames for lm
       colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
