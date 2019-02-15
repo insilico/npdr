@@ -20,7 +20,7 @@ association attribute names, returns detection statistics like recall and precis
 }
 \examples{
 functional <- case.control.3sets$signal.names  
-positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
-glm.stir.detect.stats <- detectionStats(functional.case.control, glm.stir.positives)
-cat(glm.stir.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
+positives <- row.names(npdr.cc.results.df[npdr.cc.results.df[,1]<.05,]) # p.adj<.05
+npdr.cc.detect.stats <- detectionStats(functional.case.control, positives)
+cat(npdr.cc.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
 }

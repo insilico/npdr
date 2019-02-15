@@ -1,17 +1,17 @@
 #=========================================================================#
 #' diffRegression
 #'
-#' Wrapper for lm and glm to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
+#' Wrapper for lm and glm-binomial to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
 #'
 #' @param design.matrix.df Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.   
-#' @param regression.type (\code{"lm"}, \code{"glm"}) 
+#' @param regression.type (\code{"lm"}, \code{"binomial"}) 
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @examples
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type="glm") {
+diffRegression <- function(design.matrix.df, regression.type="binomial") {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   if (regression.type=="lm"){
@@ -31,7 +31,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
       fit$coefficients[1,4],   # p-value for intercept, row 1 is intercept, col 4 is p-val 
       fit$r.squared           # R^2 of fit, R.sqr
     )
-  } else{ #regression.type=="glm"
+  } else{ #regression.type=="binomial"
     mod <- glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df)
     fit <- summary(mod)
     beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
@@ -63,8 +63,8 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #'
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression 
 #' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
-#' @param regression.type (\code{"lm"} or \code{"glm"})
-#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm, phenotype diff is \code{"match-mismatch"}. 
+#' @param regression.type (\code{"lm"} or \code{"binomial"})
+#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"}. 
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
@@ -73,7 +73,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).
-#' @param glmnet.alpha penalty mixture for glmnetSTIR: alpha=1 (lasso default, L1) alpha=0 (ridge, L2) 
+#' @param glmnet.alpha penalty mixture for npdrNET: alpha=1 (lasso default, L1) alpha=0 (ridge, L2) 
 #' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
@@ -95,7 +95,7 @@ diffRegression <- function(design.matrix.df, regression.type="glm") {
 #' # attributes with npdr adjusted p-value less than .05 
 #' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj<.05,]) # npdr p.adj<.05
 #' @export
-npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeric-abs",
+npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.family="binomial", rm.attr.from.dist=c(), 
@@ -129,14 +129,14 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
   if (verbose){
     cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
   }
-  ### pheno diff vector for glm or lm to use in each attribute's diff regression in for loop.
+  ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
   # Not needed in loop.
   # create pheno diff vector for linear regression (numeric)  
   if (regression.type=="lm"){
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
-  } else { #regression.type=="glm"
+  } else { #regression.type=="binomial"
     # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
@@ -151,13 +151,13 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
     attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
-    # model data.frame to go into lm or glm
+    # model data.frame to go into lm or glm-binomial
     design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
     ### diff vector for each covariate
     # optional covariates to add to design.matrix.df model
     if (length(covars)>1){ # if covars is a vector or matrix
       if (regression.type=="glment"){
-        message("glmnetSTIR does not currently support covariates.")
+        message("penalized npdrNET does not currently support covariates.")
       }
       # default value is covar="none" (no covariates) which has length 1
       covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
@@ -219,15 +219,15 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
     if (regression.type=="lm"){# stats colnames for lm
       colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
-    } else{ # stats columns for glm
+    } else{ # stats columns for glm-binomial
      colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
     }
     # dataframe final output for regular npdr
     npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
     
-  } else{ # Here we add an option glmnetSTIR regression.type="glmnet"
+  } else{ # Here we add an option npdrNET regression.type="glmnet"
           # Need to create a data matrix with each column as a vector of diffs for each attribute.
-          # Need matrix because glmnetSTIR operates on all attributes at once.
+          # Need matrix because npdrNET operates on all attributes at once.
     attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
     for (attr.idx in seq(1, num.attr)){
       attr.vals <- attr.mat[, attr.idx]
@@ -243,15 +243,15 @@ npdr <- function(outcome, dataset, regression.type="glm", attr.diff.type="numeri
       pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
-      glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
     } else{ # "gaussian"
       pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
       # Run glmnet on the diff attribute columns
-      glmnet.STIR.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",type.measure="mse")
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",type.measure="mse")
     }
-    glmnet.STIR.coeffs<-as.matrix(predict(glmnet.STIR.model,type="coefficients"))
-    row.names(glmnet.STIR.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
-    glmnet.sorted<-as.matrix(glmnet.STIR.coeffs[order(abs(glmnet.STIR.coeffs),decreasing = T),],ncol=1) # sort
+    npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
+    row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
+    glmnet.sorted<-as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs),decreasing = T),],ncol=1) # sort
     npdr.stats.df<-data.frame(scores=glmnet.sorted)
   } # end glmnetSTIR option
   

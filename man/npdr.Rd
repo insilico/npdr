@@ -4,7 +4,7 @@
 \alias{npdr}
 \title{npdr}
 \usage{
-npdr(outcome, dataset, regression.type = "glm",
+npdr(outcome, dataset, regression.type = "binomial",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
   nbd.metric = "manhattan", knn = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
@@ -17,9 +17,9 @@ npdr(outcome, dataset, regression.type = "glm",
 
 \item{dataset}{m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames.}
 
-\item{regression.type}{(\code{"lm"} or \code{"glm"})}
+\item{regression.type}{(\code{"lm"} or \code{"binomial"})}
 
-\item{attr.diff.type}{diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm, phenotype diff is \code{"match-mismatch"}.}
+\item{attr.diff.type}{diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"}.}
 
 \item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().}
 
@@ -35,7 +35,7 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{covar.diff.type}{string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).}
 
-\item{glmnet.alpha}{penalty mixture for glmnetSTIR: alpha=1 (lasso default, L1) alpha=0 (ridge, L2)}
+\item{glmnet.alpha}{penalty mixture for npdrNET: alpha=1 (lasso default, L1) alpha=0 (ridge, L2)}
 
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
 

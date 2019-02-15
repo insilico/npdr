@@ -4,18 +4,18 @@
 \alias{diffRegression}
 \title{diffRegression}
 \usage{
-diffRegression(design.matrix.df, regression.type = "glm")
+diffRegression(design.matrix.df, regression.type = "binomial")
 }
 \arguments{
 \item{design.matrix.df}{Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.}
 
-\item{regression.type}{(\code{"lm"}, \code{"glm"})}
+\item{regression.type}{(\code{"lm"}, \code{"binomial"})}
 }
 \value{
 vector of regression stats to put into list for npdr and combine into matrix
 }
 \description{
-Wrapper for lm and glm to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
+Wrapper for lm and glm-binomial to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
 }
 \examples{
 

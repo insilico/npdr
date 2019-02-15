@@ -11,6 +11,8 @@ univarRegress(outcome, dataset, regression.type = "lm",
 \item{outcome}{string with name of class column.}
 
 \item{dataset}{data matrix with predictor columns and outcome column.}
+
+\item{regression.type}{"lm" or "binomial"}
 }
 \value{
 matrix of beta, p-value and adjusted p-value, sorted by p-value.
@@ -19,5 +21,5 @@ matrix of beta, p-value and adjusted p-value, sorted by p-value.
 Univariate logistic or linear regression for a dataset.
 }
 \examples{
-lr.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="glm")
+lr.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="binomial")
 }

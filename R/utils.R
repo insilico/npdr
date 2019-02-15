@@ -47,9 +47,10 @@ knnSURF <- function(m.samples,sd.frac=.5){
 #'
 #' @param outcome string with name of class column.
 #' @param dataset data matrix with predictor columns and outcome column.
+#' @param regression.type "lm" or "binomial"
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.  
 #' @examples
-#' lr.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="glm")
+#' lr.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="binomial")
 #  lr.results[lr.results[,"p.adj"]<.05] 
 #' @export
 univarRegress <- function(outcome, dataset, regression.type="lm", covars="none"){
@@ -73,14 +74,14 @@ univarRegress <- function(outcome, dataset, regression.type="lm", covars="none")
     } else { # covar=="none"
       model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,c(1,4)])}  
     } 
-    } else { # "glm"
+    } else { # "binomial"
     if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
       model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,c(1,4)]}
     } else { # covar=="none"
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
       model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,c(1,4)]}
-    } } # end else glm
+    } } # end else binomial
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
@@ -107,9 +108,9 @@ univarRegress <- function(outcome, dataset, regression.type="lm", covars="none")
 #' @return list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (string).  
 #' @examples
 #' functional <- case.control.3sets$signal.names  
-#' positives <- row.names(glm.stir.results.df[glm.stir.results.df[,1]<.05,]) # p.adj<.05
-#' glm.stir.detect.stats <- detectionStats(functional.case.control, glm.stir.positives)
-#' cat(glm.stir.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
+#' positives <- row.names(npdr.cc.results.df[npdr.cc.results.df[,1]<.05,]) # p.adj<.05
+#' npdr.cc.detect.stats <- detectionStats(functional.case.control, positives)
+#' cat(npdr.cc.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
 #' @export
 detectionStats <- function(functional, positives){
   TP <- sum(positives %in% functional)
