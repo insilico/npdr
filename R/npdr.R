@@ -28,7 +28,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
       beta_a,                 # beta_a for attribute a
       beta_zscore_a,          # standardized beta for attribut a
       fit$coefficients[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
-      fit$coefficients[1,4],   # p-value for intercept, row 1 is intercept, col 4 is p-val 
+      fit$coefficients[1,4],  # p-value for intercept, row 1 is intercept, col 4 is p-val 
       fit$r.squared           # R^2 of fit, R.sqr
     )
   } else{ #regression.type=="binomial"

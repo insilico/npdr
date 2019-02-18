@@ -23,9 +23,9 @@ NPDR is a nearest-neighbor feature selection algorithm that fits a generalized l
 
     >library(devtools)
     
-    >install_github("insilico/glmSTIR")  # todo (optional build_vignettes = TRUE)
-    >library(glmSTIR)
-    >data(package="glmSTIR")
+    >install_github("insilico/npdr")  # todo (optional build_vignettes = TRUE)
+    >library(npdr)
+    >data(package="npdr")
     
     # >vignette(" ") # todo (if you build_vignettes)
     
