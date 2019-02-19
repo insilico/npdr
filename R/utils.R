@@ -41,19 +41,21 @@ knnSURF <- function(m.samples,sd.frac=.5){
   }
 
 #=========================================================================#
-#' univarRegress
+#' uniReg
 #'
 #' Univariate logistic or linear regression for a dataset.
 #'
 #' @param outcome string with name of class column.
 #' @param dataset data matrix with predictor columns and outcome column.
 #' @param regression.type "lm" or "binomial"
+#' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
+#' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.  
 #' @examples
-#' lr.results <- univarRegress(outcome="class", dataset=case.control.data, regression.type="binomial")
+#' lr.results <- uniReg(outcome="class", dataset=case.control.data, regression.type="binomial")
 #  lr.results[lr.results[,"p.adj"]<.05] 
 #' @export
-univarRegress <- function(outcome, dataset, regression.type="lm", covars="none"){
+uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", covars="none"){
   ## parse input
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and data.set is data.frame including outcome variable
@@ -85,7 +87,7 @@ univarRegress <- function(outcome, dataset, regression.type="lm", covars="none")
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
-  univariate.padj <- p.adjust(beta_pvals[,2]) # fdr
+  univariate.padj <- p.adjust(beta_pvals[,2], method=padj.method) # fdr
   univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
   pvals <- as.numeric(format(beta_pvals[,2], scientific = T, digits=5))

@@ -38,7 +38,7 @@ functional.qtrait <- qtrait.3sets$signal.names # functional attributes
 # linear regression on all predictors, fdr adjust, check functional hits
 # standardized beta and p-value
 # npdr utulity function
-univariate.results <- univarRegress(outcome="qtrait", dataset=qtrait.data, regression.type="lm")
+univariate.results <- uniReg(outcome="qtrait", dataset=qtrait.data, regression.type="lm")
 univariate.results[1:10,]
 # fdr significant.
 univariate.05.fdr <- univariate.results[univariate.results[,"p.adj"]<.05,]
