@@ -72,30 +72,32 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
   ## set up model
   if (regression.type=="lm"){
     if (length(covars)>1){
-      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x] + covars))$coeff[2,c(1,4)])}
+      # 2 below means attribte stats (1 would be the intercept)
+      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x] + covars))$coeff[2,])}
     } else { # covar=="none"
-      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,c(1,4)])}  
+      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,])}  
     } 
     } else { # "binomial"
     if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
-      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,c(1,4)]}
+      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,]}
     } else { # covar=="none"
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
-      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,c(1,4)]}
+      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,]}
     } } # end else binomial
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
-  univariate.padj <- p.adjust(beta_pvals[,2], method=padj.method) # fdr
+  univariate.padj <- p.adjust(beta_pvals[,4], method=padj.method) # fdr
   univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
-  pvals <- as.numeric(format(beta_pvals[,2], scientific = T, digits=5))
-  beta_pvals <- cbind(betas,pvals,univariate.padj) # adjusted p-val column
+  betas.Z.att <- as.numeric(format(beta_pvals[,3], scientific = F, digits=5))
+  pvals <- as.numeric(format(beta_pvals[,4], scientific = T, digits=5))
+  beta_pvals <- cbind(betas,betas.Z.att,pvals,univariate.padj) # adjusted p-val column
   row.names(beta_pvals)<- colnames(attr.mat) # add predictor names
   #row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
-  beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,2]), decreasing = F),] # sort by pval
-  colnames(beta_pvals_sorted) <- c("beta", "pval", "p.adj")
+  beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,3]), decreasing = F),] # sort by pval
+  colnames(beta_pvals_sorted) <- c("beta", "beta.Z.att", "pval", "p.adj")
   return(beta_pvals_sorted)
 }
 
