@@ -134,7 +134,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- floor((num.samp-1)*(1-erf(msurf.sd.frac/sqrt(2)))/2)
-    cat("Theoretical predicted multiSURF average neighbors: ", k.msurf.theory,".\n")
+    cat("Theoretical predicted multiSURF average neighbors: ", k.msurf.theory,".\n",sep="")
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
   # Not needed in loop.
@@ -192,8 +192,8 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
   } # end of for loop, regression done for each attribute
-  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, does not count intercept): ")
-               cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," variables.\n", sep="")
+  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, including intercept): ")
+               cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," columns.\n", sep="")
   }
   if (regression.type!="glmnet"){ # sort and format output if you did regular npdr
     # combine non-glmnet result lists into a matrix
