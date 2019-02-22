@@ -133,7 +133,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     cat(num.neighbor.pairs, "total neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-    k.msurf.theory <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)
+    k.msurf.theory <- floor((num.samp-1)*(1-erf(msurf.sd.frac/sqrt(2)))/2)
     cat("Theoretical predicted multiSURF average neighbors: ", k.msurf.theory,".\n")
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
