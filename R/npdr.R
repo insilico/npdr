@@ -121,13 +121,20 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   ##### get Neighbors (no phenotype used)
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
   # msurf.sd.frac used by surf/multisurf relieff for theoretical k
-                   
+  
+  start_time <- Sys.time()                 
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method, nb.metric=nbd.metric, 
                                          sd.frac = msurf.sd.frac, k=knn,
                                          attr_removal_vec_from_dist_calc=rm.attr.from.dist)
+  end_time <- Sys.time()
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
-    cat(num.neighbor.pairs, "neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
+    cat("Neighborhood calculation time: ", end_time - start_time,".\n")
+    cat(num.neighbor.pairs, "total neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
+    erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
+    # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
+    k.msurf.theory <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)
+    cat("Theoretical predicted multiSURF average neighbors: ", k.msurf.theory,".\n")
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
   # Not needed in loop.

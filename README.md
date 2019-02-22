@@ -9,7 +9,7 @@ NPDR is a nearest-neighbor feature selection algorithm that fits a generalized l
 
 [STIR Github Page](https://insilico.github.io/stir/)
 
-[insilico Github Orgnalization](https://github.com/insilico)
+[insilico Github Organization](https://github.com/insilico)
 
 [insilico McKinney Lab](http://insilico.utulsa.edu/)
 
