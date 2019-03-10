@@ -45,6 +45,7 @@ univariate.cc.results <- uniReg(outcome="class", dataset=case.control.data, regr
 univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 ##### Run npdr
+
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                             padj.method="bonferroni", verbose=T)
@@ -134,10 +135,10 @@ cat(core.learn.cc.detect$report)
 
 ### Compare corelearn and npdr
 corelearn.cc.df <- data.frame(vars=names(core.learn.case.control),rrelief=core.learn.case.control)
-npdr.cc.beta.df <- data.frame(vars=npdr.cc.results$att,npdr.beta=npdr.cc.results$beta.raw.att)
+npdr.cc.beta.df <- data.frame(vars=npdr.cc.results$att,npdr.beta=npdr.cc.results$beta.Z.att)
 
 corelearn.cc.cutoff <- arbitrary.cc.threshold
-npdr.cc.pcutoff <- (npdr.cc.results$beta.raw.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
+npdr.cc.pcutoff <- (npdr.cc.results$beta.Z.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
 
 
 library(ggplot2)
@@ -241,3 +242,74 @@ as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1)
 npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
 npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
 cat(npdrNET.cc.detect.stats$report)
+
+## Random Forest
+library(randomForest)
+ranfor.cc.fit <- randomForest(as.factor(class) ~ ., data = case.control.data) 
+rf.cc.importance <- importance(ranfor.cc.fit)  
+rf.cc.sorted<-sort(rf.cc.importance, decreasing=T, index.return=T)
+#rf.cc.sorted$ix
+#rownames(rf.cc.importance)[rf.cc.sorted$ix]
+#cbind(rownames(rf.cc.importance)[rf.cc.sorted$ix],rf.cc.importance[rf.cc.sorted$ix])[1:25,]
+
+### Compare corelearn and npdr
+rf.cc.df <- data.frame(vars=rownames(rf.cc.importance),MeanDecreaseGini=rf.cc.importance)
+npdr.cc.beta.df <- data.frame(vars=npdr.cc.results$att,npdr.beta=npdr.cc.results$beta.Z.att)
+
+rf.cc.cutoff <- 0
+npdr.cc.pcutoff <- (npdr.cc.results$beta.Z.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
+
+
+library(ggplot2)
+test.cc.df <- merge(rf.cc.df,npdr.cc.beta.df)
+functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
+ggplot(test.cc.df, aes(x=MeanDecreaseGini,y=npdr.beta)) + geom_point(aes(colour = functional), size=4) +
+  theme(text = element_text(size = 20)) +
+  geom_vline(xintercept=rf.cc.cutoff, linetype="dashed") +
+  geom_hline(yintercept=npdr.cc.pcutoff, linetype="dashed") +
+  xlab("Random Forest Score") + ylab("NPDR Standardized Coefficient") 
+
+
+## Testing out penalized neighbor idea
+
+my.attrs <- case.control.data[,colnames(case.control.data)!="class"]
+my.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
+neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
+                                       nb.method="relieff", nb.metric="manhattan", 
+                                       sd.frac = .5, k=0,
+                                       attr_removal_vec_from_dist_calc=NULL)
+
+Ridx_vec <- neighbor.pairs.idx[,"Ri_idx"]
+NNidx_vec <- neighbor.pairs.idx[,"NN_idx"]
+
+attr.idx <- 1
+my.attr <- my.attrs[,attr.idx] 
+
+num.samp <- nrow(my.attrs)
+knnSURF(num.samp,.5)
+neighborhood.betas <- rep(0,num.samp)
+neighborhood.pvals <- rep(0,num.samp)
+for (Ridx in 1:num.samp){
+  #Ridx <- 51
+  Ri.attr.vals <- my.attr[Ridx]
+  NN.attr.vals <- my.attr[NNidx_vec[Ridx_vec==Ridx]]
+  attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type="numeric-abs")
+
+  Ri.pheno.vals <- my.pheno[Ridx]
+  NN.pheno.vals <- my.pheno[NNidx_vec[Ridx_vec==Ridx]]
+  pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+  pheno.diff.vec <- factor(pheno.diff.vec, levels=c(0,1))
+  mod <- glm(pheno.diff.vec ~ attr.diff.vec, family=binomial(link=logit))
+  fit <- summary(mod)
+  beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
+  beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
+  ## use one-side p-value to test H1: beta>0 for case-control npdr scores
+  pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
+  neighborhood.betas[Ridx] <- beta_zscore_a
+  neighborhood.pvals[Ridx] <- pval_beta_a
+}
+cbind(neighborhood.betas, neighborhood.pvals, my.pheno)
+beta_zscore_ave <- mean(neighborhood.betas)
+mean(neighborhood.pvals)
+pt(beta_zscore_ave, knnSURF(num.samp,.5), lower = FALSE) 
+pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)

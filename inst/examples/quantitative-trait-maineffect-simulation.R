@@ -48,7 +48,7 @@ cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 ##### Run npdr
 npdr.qtrait.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                            padj.method="bonferroni")
+                            padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,] # pval.adj, first column
 # attributes with npdr raw/nominal p-value less than .05

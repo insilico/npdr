@@ -129,7 +129,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   end_time <- Sys.time()
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
-    cat("Neighborhood calculation time: ", end_time - start_time,".\n")
+    cat("Neighborhood calculation time. "); difftime(end_time, start_time); cat("\n",sep="")
     cat(num.neighbor.pairs, "total neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
@@ -250,11 +250,13 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",type.measure="class")
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
+                               lower.limits=0, type.measure="class")
     } else{ # "gaussian"
       pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
       # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",type.measure="mse")
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
+                               lower.limits=0, type.measure="mse")
     }
     npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
     row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
