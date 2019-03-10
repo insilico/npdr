@@ -73,7 +73,8 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
 #' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors(). 
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).
-#' @param glmnet.alpha penalty mixture for npdrNET: alpha=1 (lasso default, L1) alpha=0 (ridge, L2) 
+#' @param glmnet.alpha penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2) 
+#' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default 
 #' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
@@ -98,7 +99,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
 npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
-                    glmnet.alpha=1, glmnet.family="binomial", rm.attr.from.dist=c(), 
+                    glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", rm.attr.from.dist=c(), 
                     padj.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
@@ -251,12 +252,12 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
-                               lower.limits=0, type.measure="class")
+                               lower.limits=glmnet.lower, type.measure="class")
     } else{ # "gaussian"
       pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
-                               lower.limits=0, type.measure="mse")
+                               lower.limits=glmnet.lower, type.measure="mse")
     }
     npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
     row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results

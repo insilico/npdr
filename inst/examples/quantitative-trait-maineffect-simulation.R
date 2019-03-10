@@ -164,8 +164,7 @@ cat(detectionStats(functional.qtrait, nonzero.glmnet.qtrait.coeffs)$report)
 ##### Run npdrNET, penalized npdr
 npdrNET.qtrait.results <- npdr("qtrait", qtrait.data, regression.type="glmnet", attr.diff.type="numeric-abs",
                                  nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                                 glmnet.alpha=1, glmnet.family="gaussian",
-                                 padj.method="bonferroni", verbose=T)
+                                 glmnet.alpha=1, glmnet.lower=0, glmnet.family="gaussian", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdrNET.qtrait.results.mat <- as.matrix(npdrNET.qtrait.results)
 # .05 regression coefficient threshold is arbitrary
@@ -178,3 +177,47 @@ as.matrix(npdrNET.qtrait.results.mat[nonzero.npdrNET.qtrait.mask,],ncol=1)
 npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
 npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
 cat(npdrNET.cc.detect.stats$report)
+
+## Testing out penalized neighbor idea
+
+my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
+my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
+neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
+                                       nb.method="relieff", nb.metric="manhattan", 
+                                       sd.frac = .5, k=0,
+                                       attr_removal_vec_from_dist_calc=NULL)
+
+Ridx_vec <- neighbor.pairs.idx[,"Ri_idx"]
+NNidx_vec <- neighbor.pairs.idx[,"NN_idx"]
+
+attr.idx <- 1
+my.attr <- my.attrs[,attr.idx] 
+
+num.samp <- nrow(my.attrs)
+knnSURF(num.samp,.5)
+neighborhood.betas <- rep(0,num.samp)
+neighborhood.pvals <- rep(0,num.samp)
+for (Ridx in 1:num.samp){
+  #Ridx <- 51
+  Ri.attr.vals <- my.attr[Ridx]
+  NN.attr.vals <- my.attr[NNidx_vec[Ridx_vec==Ridx]]
+  attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type="numeric-abs")
+  
+  Ri.pheno.vals <- my.pheno[Ridx]
+  NN.pheno.vals <- my.pheno[NNidx_vec[Ridx_vec==Ridx]]
+  pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+  mod <- lm(pheno.diff.vec ~ attr.diff.vec)
+  fit <- summary(mod)
+  beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
+  beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
+  ## use one-side p-value to test H1: beta>0 for case-control npdr scores
+  pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
+  neighborhood.betas[Ridx] <- beta_zscore_a
+  neighborhood.pvals[Ridx] <- pval_beta_a
+}
+cbind(neighborhood.betas, neighborhood.pvals, my.pheno)
+beta_zscore_ave <- mean(neighborhood.betas)
+mean(neighborhood.pvals)
+pt(beta_zscore_ave, knnSURF(num.samp,.5), lower = FALSE) 
+pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)
+

@@ -223,20 +223,18 @@ glmnet.cc.sorted[abs(glmnet.cc.sorted)>0,]
 ##### Run npdrNET, penalized npdr
 npdrNET.cc.results <- npdr("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
                                nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                               glmnet.alpha=1, glmnet.family="binomial",
-                               padj.method="bonferroni", verbose=T)
-# attributes with npdr adjusted p-value less than .05 
+                               glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", verbose=T)
 npdrNET.cc.results.mat <- as.matrix(npdrNET.cc.results)
 # .05 regression coefficient threshold is arbitrary
 # not sure why glment did not force zeros
 # Negative coefficients mean irrelevant attributes for Relief scores.
 # However, glmnet does not include ordinal models. 
-nonzero.npdrNET.mask <- abs(npdrNET.cc.results.mat[,1])>0.05  
+nonzero.npdrNET.mask <- abs(npdrNET.cc.results.mat[,1])>0 
 as.matrix(npdrNET.cc.results.mat[nonzero.npdrNET.mask,],ncol=1)
 
 # Naively remove negative coefficients, but would be better to modify shrinkage model.
-pos.npdrNET.mask <- npdrNET.cc.results.mat[,1]>0.05  
-as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1)
+#pos.npdrNET.mask <- npdrNET.cc.results.mat[,1]>0.05  
+#as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1)
 
 # functional attribute detection stats
 npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
