@@ -9,7 +9,7 @@ npdr(outcome, dataset, regression.type = "binomial",
   nbd.metric = "manhattan", knn = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
   glmnet.alpha = 1, glmnet.lower = 0, glmnet.family = "binomial",
-  rm.attr.from.dist = c(), neighbor.sampling = NULL,
+  rm.attr.from.dist = c(), neighbor.sampling = "none",
   padj.method = "bonferroni", verbose = FALSE)
 }
 \arguments{
@@ -41,7 +41,7 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
 
-\item{neighbor.sampling}{NULL or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)}
+\item{neighbor.sampling}{"none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)}
 
 \item{padj.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
 

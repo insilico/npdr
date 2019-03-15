@@ -77,7 +77,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
 #' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default 
 #' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
-#' @param neighbor.sampling NULL or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
+#' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
@@ -101,7 +101,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", 
-                    rm.attr.from.dist=c(), neighbor.sampling=NULL,
+                    rm.attr.from.dist=c(), neighbor.sampling="none",
                     padj.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){

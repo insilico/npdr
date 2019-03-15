@@ -84,7 +84,7 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
-#' @param neighbor.sampling NULL or \code{"unique"} if you want to return only unique neighbor pairs
+#' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
 #' @param attr_removal_vec_from_dist_calc attributes for removal (possible confounders) from the distance matrix calculation. 
 #' 
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
@@ -103,7 +103,7 @@ nearestNeighbors <- function(attr.mat,
                              nb.method="multisurf", 
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
-                             neighbor.sampling=NULL,
+                             neighbor.sampling="none",
                              attr_removal_vec_from_dist_calc=c()){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors

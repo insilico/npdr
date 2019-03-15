@@ -6,7 +6,7 @@
 \usage{
 nearestNeighbors(attr.mat, nb.method = "multisurf",
   nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0,
-  neighbor.sampling = NULL, attr_removal_vec_from_dist_calc = c())
+  neighbor.sampling = "none", attr_removal_vec_from_dist_calc = c())
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
@@ -20,7 +20,7 @@ nearestNeighbors(attr.mat, nb.method = "multisurf",
 \item{k}{number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.}
 
-\item{neighbor.sampling}{NULL or \code{"unique"} if you want to return only unique neighbor pairs}
+\item{neighbor.sampling}{"none" or \code{"unique"} if you want to return only unique neighbor pairs}
 
 \item{attr_removal_vec_from_dist_calc}{attributes for removal (possible confounders) from the distance matrix calculation.}
 }
