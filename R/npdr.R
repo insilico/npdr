@@ -77,6 +77,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
 #' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default 
 #' @param glment.family "binomial" for logistic regression, "gaussian" for regression
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
+#' @param neighbor.sampling NULL or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
@@ -99,7 +100,8 @@ diffRegression <- function(design.matrix.df, regression.type="binomial") {
 npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
-                    glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", rm.attr.from.dist=c(), 
+                    glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", 
+                    rm.attr.from.dist=c(), neighbor.sampling=NULL,
                     padj.method="bonferroni", verbose=FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
@@ -127,6 +129,11 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method, nb.metric=nbd.metric, 
                                          sd.frac = msurf.sd.frac, k=knn,
                                          attr_removal_vec_from_dist_calc=rm.attr.from.dist)
+  num.neighbor.pairs <- nrow(neighbor.pairs.idx)
+  if (neighbor.sampling=="unique"){
+      # if you only want to return unique neighbors
+      neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
+  }
   end_time <- Sys.time()
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
@@ -136,6 +143,11 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- floor((num.samp-1)*(1-erf(msurf.sd.frac/sqrt(2)))/2)
     cat("Theoretical predicted multiSURF average neighbors: ", k.msurf.theory,".\n",sep="")
+    if (neighbor.sampling=="unique"){
+      # if you only want to return unique neighbors
+      num.neighbor.pairs <- nrow(neighbor.pairs.idx)
+      cat(num.neighbor.pairs, "unique neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors (unique) per instance.\n")
+    }
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
   # Not needed in loop.

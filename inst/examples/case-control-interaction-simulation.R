@@ -60,6 +60,23 @@ npdr.cc.positives <- npdr.cc.results %>% filter(pval.adj<.05) %>% pull(att)
 npdr.cc.detect.stats <- detectionStats(functional.case.control, npdr.cc.positives)
 cat(npdr.cc.detect.stats$report)
 
+##### Run npdr unique neighbors
+
+npdr.cc.unique.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
+                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                        neighbor.sampling="unique",
+                        padj.method="bonferroni", verbose=T)
+# attributes with npdr adjusted p-value less than .05 
+npdr.cc.unique.results[npdr.cc.unique.results$pval.adj<.05,] # pval.adj, first column
+# attributes with npdr raw/nominal p-value less than .05
+#rownames(npdr.cc.results)[npdr.cc.results$pval.attr<.05] # pval.attr, second column
+
+# functional attribute detection stats
+#npdr.cc.positives <- row.names(npdr.cc.results[npdr.cc.results$pval.adj<.05,]) # p.adj<.05
+npdr.cc.unique.positives <- npdr.cc.unique.results %>% filter(pval.adj<.05) %>% pull(att)
+npdr.cc.unique.detect.stats <- detectionStats(functional.case.control, npdr.cc.unique.positives)
+cat(npdr.cc.unique.detect.stats$report)
+
 ### Compare univariate and npdr
 univ.log10.df <- data.frame(vars=rownames(univariate.cc.results),univ.log10=-log10(univariate.cc.results[,"pval"]))
 npdr.cc.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.cc.log10=-log10(npdr.cc.results$pval.att))
@@ -230,11 +247,12 @@ npdrNET.cc.results.mat <- as.matrix(npdrNET.cc.results)
 # Negative coefficients mean irrelevant attributes for Relief scores.
 # However, glmnet does not include ordinal models. 
 nonzero.npdrNET.mask <- abs(npdrNET.cc.results.mat[,1])>0 
-as.matrix(npdrNET.cc.results.mat[nonzero.npdrNET.mask,],ncol=1)
+cbind(shrunk.betas=npdrNET.cc.results.mat[nonzero.npdrNET.mask,1])  # rownames and 1 column of shrunk betas
 
+dim(npdrNET.cc.results.mat)
 # Naively remove negative coefficients, but would be better to modify shrinkage model.
 #pos.npdrNET.mask <- npdrNET.cc.results.mat[,1]>0.05  
-#as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1)
+#as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1) 
 
 # functional attribute detection stats
 npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
@@ -270,31 +288,30 @@ ggplot(test.cc.df, aes(x=MeanDecreaseGini,y=npdr.beta)) + geom_point(aes(colour 
 
 ## Testing out penalized neighbor idea
 
-my.attrs <- case.control.data[,colnames(case.control.data)!="class"]
-my.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
-neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
+my.cc.attrs <- case.control.data[,colnames(case.control.data)!="class"]
+my.cc.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
+neighbor.cc.pairs.idx <- nearestNeighbors(my.cc.attrs, 
                                        nb.method="relieff", nb.metric="manhattan", 
-                                       sd.frac = .5, k=0,
-                                       attr_removal_vec_from_dist_calc=NULL)
+                                       sd.frac = .5, k=0)
 
-Ridx_vec <- neighbor.pairs.idx[,"Ri_idx"]
-NNidx_vec <- neighbor.pairs.idx[,"NN_idx"]
+Ridx_vec <- neighbor.cc.pairs.idx[,"Ri_idx"]
+NNidx_vec <- neighbor.cc.pairs.idx[,"NN_idx"]
 
 attr.idx <- 1
-my.attr <- my.attrs[,attr.idx] 
+my.cc.attr <- my.cc.attrs[,attr.idx] 
 
-num.samp <- nrow(my.attrs)
+num.samp <- nrow(my.cc.attrs)
 knnSURF(num.samp,.5)
-neighborhood.betas <- rep(0,num.samp)
-neighborhood.pvals <- rep(0,num.samp)
+neighborhood.cc.betas <- rep(0,num.samp)
+neighborhood.cc.pvals <- rep(0,num.samp)
 for (Ridx in 1:num.samp){
   #Ridx <- 51
-  Ri.attr.vals <- my.attr[Ridx]
-  NN.attr.vals <- my.attr[NNidx_vec[Ridx_vec==Ridx]]
+  Ri.attr.vals <- my.cc.attr[Ridx]
+  NN.attr.vals <- my.cc.attr[NNidx_vec[Ridx_vec==Ridx]]
   attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type="numeric-abs")
 
-  Ri.pheno.vals <- my.pheno[Ridx]
-  NN.pheno.vals <- my.pheno[NNidx_vec[Ridx_vec==Ridx]]
+  Ri.pheno.vals <- my.cc.pheno[Ridx]
+  NN.pheno.vals <- my.cc.pheno[NNidx_vec[Ridx_vec==Ridx]]
   pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
   pheno.diff.vec <- factor(pheno.diff.vec, levels=c(0,1))
   mod <- glm(pheno.diff.vec ~ attr.diff.vec, family=binomial(link=logit))
@@ -303,11 +320,11 @@ for (Ridx in 1:num.samp){
   beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
   ## use one-side p-value to test H1: beta>0 for case-control npdr scores
   pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
-  neighborhood.betas[Ridx] <- beta_zscore_a
-  neighborhood.pvals[Ridx] <- pval_beta_a
+  neighborhood.cc.betas[Ridx] <- beta_zscore_a
+  neighborhood.cc.pvals[Ridx] <- pval_beta_a
 }
-cbind(neighborhood.betas, neighborhood.pvals, my.pheno)
-beta_zscore_ave <- mean(neighborhood.betas)
-mean(neighborhood.pvals)
+cbind(neighborhood.cc.betas, neighborhood.cc.pvals, my.cc.pheno)
+beta_zscore_ave <- mean(neighborhood.cc.betas)
+mean(neighborhood.cc.pvals)
 pt(beta_zscore_ave, knnSURF(num.samp,.5), lower = FALSE) 
 pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)

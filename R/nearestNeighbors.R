@@ -76,8 +76,7 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' nearestNeighbors
 #'
 #' Find nearest neighbors of each instance using relief.method
-#' Used for regression stir (reSTIR) (no hits or misses specified in function).
-#' Also used in reSTIR for case/control, but hit/miss is used in reSTIR function. 
+#' Used for npdr (no hits or misses specified in neighbor function).
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes 
 #' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
@@ -85,6 +84,7 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
+#' @param neighbor.sampling NULL or \code{"unique"} if you want to return only unique neighbor pairs
 #' @param attr_removal_vec_from_dist_calc attributes for removal (possible confounders) from the distance matrix calculation. 
 #' 
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
@@ -103,6 +103,7 @@ nearestNeighbors <- function(attr.mat,
                              nb.method="multisurf", 
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
+                             neighbor.sampling=NULL,
                              attr_removal_vec_from_dist_calc=c()){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
@@ -164,6 +165,47 @@ nearestNeighbors <- function(attr.mat,
     Ri_NN.idxmat <- do.call(rbind, Ri.nearestPairs.list)
     colnames(Ri_NN.idxmat) <- c("Ri_idx","NN_idx")
   }
+  if (neighbor.sampling=="unique"){
+    # if you only want to return unique neighbors
+      Ri_NN.idxmat <- uniqueNeighbors(Ri_NN.idxmat)
+  }
   # matrix of Ri's (first column) and their NN's (second column)
   return(Ri_NN.idxmat)
 }
+
+#=========================================================================#
+#' uniqueNeighbors
+#'
+#' Find pairs of unique nearest neighbors pairs from possible redundant pairs. 
+#' Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functions. 
+#'
+#' @param neighbor.pairs.idx two columns of redundant "i,j" pairs from nearestNeighbors function 
+#' @return  unique.idx vector index of the unique pairs from the input neighborhood
+#'
+#' @examples
+#' unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)  # unique neighbor pairs
+#'
+#' @export
+uniqueNeighbors <- function(neighbor.pairs.idx){
+  # input: two columns of redundant "i,j" pairs
+  # return: vector index of the unique pairs from the input
+  # usage: 
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  my.groups <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  for(i in 1:num.all.pairs){
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i,]
+    curr.pair <- sort(curr.pair,decreasing=F)
+    my.groups[i] <- paste(curr.pair,collapse=",")
+  }
+  unique.pairs <- unique(my.groups) # just the unique pairs
+  num.unique.pairs <- length(unique.pairs)
+  unique.idx <- numeric(length=num.unique.pairs) # first index of a unique pairing in the full redundant vector
+  for(i in 1:num.unique.pairs){
+    curr.pair <- unique.pairs[i]
+    idx.pair <- which(my.groups==curr.pair)
+    unique.idx[i] <- idx.pair[1]
+  }
+  return(neighbor.pairs.idx[unique.vector.idx,])
+}
+

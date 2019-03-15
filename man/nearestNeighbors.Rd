@@ -6,7 +6,7 @@
 \usage{
 nearestNeighbors(attr.mat, nb.method = "multisurf",
   nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0,
-  attr_removal_vec_from_dist_calc = c())
+  neighbor.sampling = NULL, attr_removal_vec_from_dist_calc = c())
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
@@ -20,6 +20,8 @@ nearestNeighbors(attr.mat, nb.method = "multisurf",
 \item{k}{number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.}
 
+\item{neighbor.sampling}{NULL or \code{"unique"} if you want to return only unique neighbor pairs}
+
 \item{attr_removal_vec_from_dist_calc}{attributes for removal (possible confounders) from the distance matrix calculation.}
 }
 \value{
@@ -27,8 +29,7 @@ Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 }
 \description{
 Find nearest neighbors of each instance using relief.method
-Used for regression stir (reSTIR) (no hits or misses specified in function).
-Also used in reSTIR for case/control, but hit/miss is used in reSTIR function.
+Used for npdr (no hits or misses specified in neighbor function).
 }
 \examples{
 # multisurf neighborhood with sigma/2 (sd.frac=0.5) "dead-band" boundary
