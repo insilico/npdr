@@ -45,6 +45,22 @@ univariate.05.fdr <- univariate.results[univariate.results[,"p.adj"]<.05,]
 univariate.05.fdr
 cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 
+##### Run npdr unique
+npdr.qtrait.unique.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
+                            nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                            neighbor.sampling = "unique",
+                            padj.method="bonferroni", verbose=T)
+# attributes with npdr adjusted p-value less than .05 
+npdr.qtrait.unique.results[npdr.qtrait.unique.results$pval.adj<.05,] # pval.adj, first column
+# attributes with npdr raw/nominal p-value less than .05
+#rownames(npdr.qtrait.results)[npdr.qtrait.results$pval.attr<.05] # pval.attr, second column
+
+# functional attribute detection stats
+npdr.qtrait.unique.positives <- npdr.qtrait.unique.results %>% filter(pval.adj<.05) %>% pull(att)
+  #row.names(npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,]) # p.adj<.05
+npdr.qtrait.unique.detect.stats <- detectionStats(functional.qtrait, npdr.qtrait.unique.positives)
+cat(npdr.qtrait.unique.detect.stats$report)
+
 ##### Run npdr
 npdr.qtrait.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
@@ -56,7 +72,7 @@ npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,] # pval.adj, first column
 
 # functional attribute detection stats
 npdr.qtrait.positives <- npdr.qtrait.results %>% filter(pval.adj<.05) %>% pull(att)
-  #row.names(npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,]) # p.adj<.05
+#row.names(npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,]) # p.adj<.05
 npdr.qtrait.detect.stats <- detectionStats(functional.qtrait, npdr.qtrait.positives)
 cat(npdr.qtrait.detect.stats$report)
 

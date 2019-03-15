@@ -135,10 +135,9 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
   }
   end_time <- Sys.time()
-  num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   if (verbose){
     cat("Neighborhood calculation time. "); difftime(end_time, start_time); cat("\n",sep="")
-    cat(num.neighbor.pairs, "total neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
+    cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- floor((num.samp-1)*(1-erf(msurf.sd.frac/sqrt(2)))/2)
