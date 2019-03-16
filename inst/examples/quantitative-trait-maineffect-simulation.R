@@ -224,7 +224,7 @@ my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
 neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
                                        nb.method="relieff", nb.metric="manhattan", 
-                                       sd.frac = .5, k=0,
+                                       sd.frac = .5, k=1,
                                        attr_removal_vec_from_dist_calc=NULL)
 
 neighbor.pairs.idx <- nearestNeighbors(my.attrs, 

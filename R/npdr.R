@@ -137,7 +137,8 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   end_time <- Sys.time()
   if (verbose){
     cat("Neighborhood calculation time. "); difftime(end_time, start_time); cat("\n",sep="")
-    cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).", num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
+    cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).\n")
+    #, num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- floor((num.samp-1)*(1-erf(msurf.sd.frac/sqrt(2)))/2)
@@ -145,7 +146,8 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     if (neighbor.sampling=="unique"){
       # if you only want to return unique neighbors
       num.neighbor.pairs <- nrow(neighbor.pairs.idx)
-      cat(num.neighbor.pairs, "unique neighbor pairs.", num.neighbor.pairs/num.samp, "average neighbors (unique) per instance.\n")
+      cat(num.neighbor.pairs, "unique neighbor pairs.\n")
+      #, num.neighbor.pairs/num.samp, "average neighbors (unique) per instance.\n")
     }
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.

@@ -63,7 +63,7 @@ cat(npdr.cc.detect.stats$report)
 ##### Run npdr unique neighbors
 
 npdr.cc.unique.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
-                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=1, 
                         neighbor.sampling="unique",
                         padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 

@@ -206,6 +206,6 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
     idx.pair <- which(my.groups==curr.pair)
     unique.idx[i] <- idx.pair[1]
   }
-  return(neighbor.pairs.idx[unique.vector.idx,])
+  return(neighbor.pairs.idx[unique.idx,])
 }
 
