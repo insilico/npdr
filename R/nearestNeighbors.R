@@ -188,24 +188,16 @@ nearestNeighbors <- function(attr.mat,
 #' @export
 uniqueNeighbors <- function(neighbor.pairs.idx){
   # input: two columns of redundant "i,j" pairs
-  # return: vector index of the unique pairs from the input
-  # usage: 
+  # return: two columns of unique pairs from the redundant input
   num.all.pairs <- nrow(neighbor.pairs.idx)
-  my.groups <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
   for(i in 1:num.all.pairs){
     # make all pairs ordered
     curr.pair <- neighbor.pairs.idx[i,]
     curr.pair <- sort(curr.pair,decreasing=F)
-    my.groups[i] <- paste(curr.pair,collapse=",")
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")
   }
-  unique.pairs <- unique(my.groups) # just the unique pairs
-  num.unique.pairs <- length(unique.pairs)
-  unique.idx <- numeric(length=num.unique.pairs) # first index of a unique pairing in the full redundant vector
-  for(i in 1:num.unique.pairs){
-    curr.pair <- unique.pairs[i]
-    idx.pair <- which(my.groups==curr.pair)
-    unique.idx[i] <- idx.pair[1]
-  }
+  unique.idx <- which(!duplicated(pairs.sorted))
   return(neighbor.pairs.idx[unique.idx,])
 }
 

@@ -48,6 +48,7 @@ univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                            neighbor.sampling="none",
                             padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
@@ -63,7 +64,7 @@ cat(npdr.cc.detect.stats$report)
 ##### Run npdr unique neighbors
 
 npdr.cc.unique.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
-                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=1, 
+                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                         neighbor.sampling="unique",
                         padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
@@ -77,12 +78,16 @@ npdr.cc.unique.positives <- npdr.cc.unique.results %>% filter(pval.adj<.05) %>% 
 npdr.cc.unique.detect.stats <- detectionStats(functional.case.control, npdr.cc.unique.positives)
 cat(npdr.cc.unique.detect.stats$report)
 
+# nearly perfect correlation, but unique npdr shrinks all betas
+cor(npdr.cc.results$beta.Z.att,npdr.cc.unique.results$beta.Z.att)
+plot(npdr.cc.results$beta.Z.att,npdr.cc.unique.results$beta.Z.att)
+plot(npdr.cc.results$beta.raw.att,npdr.cc.unique.results$beta.raw.att)
+
 ### Compare univariate and npdr
 univ.log10.df <- data.frame(vars=rownames(univariate.cc.results),univ.log10=-log10(univariate.cc.results[,"pval"]))
 npdr.cc.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.cc.log10=-log10(npdr.cc.results$pval.att))
 
 univ.cc.pcutoff <- max(-log10(univariate.cc.results[,"pval"]))
-#univ.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
 npdr.cc.pcutoff <- -log10(npdr.cc.results$pval.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
 
 library(ggplot2)
@@ -328,3 +333,61 @@ beta_zscore_ave <- mean(neighborhood.cc.betas)
 mean(neighborhood.cc.pvals)
 pt(beta_zscore_ave, knnSURF(num.samp,.5), lower = FALSE) 
 pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)
+
+
+#### look at nearest neighbors
+
+predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
+my.cc.nbrs <- nearestNeighbors(predictors.cc.mat, 
+                             nb.method="multisurf", 
+                             nb.metric = "manhattan", 
+                             sd.frac = 0.5, k=0,
+                             neighbor.sampling="none")
+length(my.cc.nbrs[,1])
+my.cc.nbrs[my.cc.nbrs[,1]==23,2]
+my.cc.nbrs[my.cc.nbrs[,1]==31,2]
+my.cc.nbrs[my.cc.nbrs[,1]==102,2]
+
+averageKNN <- function(neighbor.pairs.mat){
+  sample.ids <- unique(neighbor.pairs.mat[,1])
+  n.samp <- length(sample.ids)
+  knn.vec <- numeric(length=n.samp) # k for each sample's neighborhood
+  for (i in 1:n.samp){
+    knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
+  }
+  return(knn.vec)
+}
+plot(averageKNN(my.cc.nbrs))
+mean(averageKNN(my.cc.nbrs))
+
+knnSURF(200,.5)
+
+testUnique <- function(neighbor.pairs.idx){
+  # input: two columns of redundant "i,j" pairs
+  # return: vector index of the unique pairs from the input
+  # usage: unique.vector.idx <- uniqueNeighbors(neighbor.pairs.idx)
+  #        unique.neighbor.pairs.idx <- neighbor.pairs.idx[unique.vector.idx,]
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  for(i in 1:num.all.pairs){
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i,]
+    curr.pair <- sort(curr.pair,decreasing=F)
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")
+  }
+  unique.idx <- which(!duplicated(pairs.sorted))
+  return(neighbor.pairs.idx[unique.idx,])
+}
+testUnique(my.cc.nbrs)
+
+x <- c("1,36","2,47","1,36")
+which(!duplicated(x))
+
+#my.cc.unique.nbrs <- uniqueNeighbors(my.cc.nbrs)
+my.cc.unique.nbrs <- testUnique(my.cc.nbrs)
+plot(averageKNN(my.cc.unique.nbrs))
+mean(averageKNN(my.cc.unique.nbrs))
+length(my.cc.unique.nbrs[,1])
+my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==2,2]
+my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==31,2]
+my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==102,2]

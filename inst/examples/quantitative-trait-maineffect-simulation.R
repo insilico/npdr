@@ -63,7 +63,8 @@ cat(npdr.qtrait.unique.detect.stats$report)
 
 ##### Run npdr
 npdr.qtrait.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
-                            nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                            nbd.method="multisurf", nbd.metric = "manhattan", 
+                            msurf.sd.frac=.5, neighbor.sampling="none",
                             padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdr.qtrait.results[npdr.qtrait.results$pval.adj<.05,] # pval.adj, first column
@@ -196,29 +197,29 @@ cat(npdrNET.cc.detect.stats$report)
 
 ## Testing out penalized neighbor idea
 
-uniqueNeighbors <- function(neighbor.pairs.idx){
-  # input: two columns of redundant "i,j" pairs
-  # return: vector index of the unique pairs from the input
-  # usage: unique.vector.idx <- uniqueNeighbors(neighbor.pairs.idx)
-  #        unique.neighbor.pairs.idx <- neighbor.pairs.idx[unique.vector.idx,]
-  num.all.pairs <- nrow(neighbor.pairs.idx)
-  my.groups <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
-  for(i in 1:num.all.pairs){
-    # make all pairs ordered
-    curr.pair <- neighbor.pairs.idx[i,]
-    curr.pair <- sort(curr.pair,decreasing=F)
-    my.groups[i] <- paste(curr.pair,collapse=",")
-  }
-  unique.pairs <- unique(my.groups) # just the unique pairs
-  num.unique.pairs <- length(unique.pairs)
-  unique.idx <- numeric(length=num.unique.pairs) # first index of a unique pairing in the full redundant vector
-  for(i in 1:num.unique.pairs){
-    curr.pair <- unique.pairs[i]
-    idx.pair <- which(my.groups==curr.pair)
-    unique.idx[i] <- idx.pair[1]
-  }
-  return(neighbor.pairs.idx[unique.vector.idx,])
-}
+# uniqueNeighbors <- function(neighbor.pairs.idx){
+#   # input: two columns of redundant "i,j" pairs
+#   # return: vector index of the unique pairs from the input
+#   # usage: unique.vector.idx <- uniqueNeighbors(neighbor.pairs.idx)
+#   #        unique.neighbor.pairs.idx <- neighbor.pairs.idx[unique.vector.idx,]
+#   num.all.pairs <- nrow(neighbor.pairs.idx)
+#   my.groups <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+#   for(i in 1:num.all.pairs){
+#     # make all pairs ordered
+#     curr.pair <- neighbor.pairs.idx[i,]
+#     curr.pair <- sort(curr.pair,decreasing=F)
+#     my.groups[i] <- paste(curr.pair,collapse=",")
+#   }
+#   unique.pairs <- unique(my.groups) # just the unique pairs
+#   num.unique.pairs <- length(unique.pairs)
+#   unique.idx <- numeric(length=num.unique.pairs) # first index of a unique pairing in the full redundant vector
+#   for(i in 1:num.unique.pairs){
+#     curr.pair <- unique.pairs[i]
+#     idx.pair <- which(my.groups==curr.pair)
+#     unique.idx[i] <- idx.pair[1]
+#   }
+#   return(neighbor.pairs.idx[unique.vector.idx,])
+# }
 
 my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
