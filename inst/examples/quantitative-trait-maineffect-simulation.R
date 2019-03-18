@@ -223,28 +223,35 @@ cat(npdrNET.cc.detect.stats$report)
 
 my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
-neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
-                                       nb.method="relieff", nb.metric="manhattan", 
-                                       sd.frac = .5, k=1,
-                                       attr_removal_vec_from_dist_calc=NULL)
 
-neighbor.pairs.idx <- nearestNeighbors(my.attrs, 
-                                       nb.method="multisurf", nb.metric="manhattan", 
-                                       sd.frac = .5, k=0,
-                                       attr_removal_vec_from_dist_calc=NULL)
+my.qtrait.nbrs <- nearestNeighbors(my.attrs, 
+                               nb.method="multisurf", 
+                               nb.metric = "manhattan", 
+                               sd.frac = 0.5, k=0,
+                               neighbor.sampling="none")
 
-unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
+# knnVec <- function(neighbor.pairs.mat){
+#   # number of neighbors for each sample (vector) from neighbor-pair matrix
+#   sample.ids <- unique(neighbor.pairs.mat[,1])
+#   n.samp <- length(sample.ids)
+#   knn.vec <- numeric(length=n.samp) # k for each sample's neighborhood
+#   for (i in 1:n.samp){
+#     knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
+#   }
+#   return(knn.vec)
+# }
+plot(knnVec(my.qtrait.nbrs))
+mean(knnVec(my.qtrait.nbrs))
 
-unique.num.pairs <- nrow(unique.neighbor.pairs.idx)
-original.num.pairs <- nrow(neighbor.pairs.idx)
-unique.num.pairs
-original.num.pairs
-(original.num.pairs-unique.num.pairs)/original.num.pairs  # redundant
+knnSURF(200,.5)
 
-library(pracma)
-200*(1-erf(.5/sqrt(2)))*200/2  # total neighbors expected, fixed k, full redundancy
+my.qtrait.unique.nbrs <- uniqueNeighbors(my.qtrait.nbrs)
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[,1]==1,2]
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[,1]==74,2]
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[,1]==119,2]
+plot(knnVec(my.qtrait.unique.nbrs))
 
-head(unique.neighbor.pairs.idx)
+###
 
 Ridx_vec <- neighbor.pairs.idx[,"Ri_idx"]
 NNidx_vec <- neighbor.pairs.idx[,"NN_idx"]

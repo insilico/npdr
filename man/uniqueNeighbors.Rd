@@ -7,10 +7,10 @@
 uniqueNeighbors(neighbor.pairs.idx)
 }
 \arguments{
-\item{neighbor.pairs.idx}{two columns of redundant "i,j" pairs from nearestNeighbors function}
+\item{neighbor.pairs.idx}{two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function}
 }
 \value{
-unique.idx vector index of the unique pairs from the input neighborhood
+new neighborhood pair matrix of only unique pairs
 }
 \description{
 Find pairs of unique nearest neighbors pairs from possible redundant pairs. 

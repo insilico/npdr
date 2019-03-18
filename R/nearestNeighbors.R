@@ -179,8 +179,8 @@ nearestNeighbors <- function(attr.mat,
 #' Find pairs of unique nearest neighbors pairs from possible redundant pairs. 
 #' Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functions. 
 #'
-#' @param neighbor.pairs.idx two columns of redundant "i,j" pairs from nearestNeighbors function 
-#' @return  unique.idx vector index of the unique pairs from the input neighborhood
+#' @param neighbor.pairs.idx two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function 
+#' @return new neighborhood pair matrix of only unique pairs 
 #'
 #' @examples
 #' unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)  # unique neighbor pairs
@@ -201,3 +201,25 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
   return(neighbor.pairs.idx[unique.idx,])
 }
 
+#=========================================================================#
+#' knnVec
+#'
+#' Number of neighbors for each sample (vector) from a neighbor-pair matrix.
+#'
+#' @param neighbor.pairs.idx two columns of redundant "i,j" pairs from nearestNeighbors function 
+#' @return  knn.vec vector number of nearest neighbors for each instance
+#'
+#' @examples
+#' mean(knnVec(neighbor.pairs.idx))  # average number of neighbors
+#'
+#' @export
+knnVec <- function(neighbor.pairs.mat){
+  # number of neighbors for each sample (vector) from neighbor-pair matrix
+  sample.ids <- unique(neighbor.pairs.mat[,1])
+  n.samp <- length(sample.ids)
+  knn.vec <- numeric(length=n.samp) # k for each sample's neighborhood
+  for (i in 1:n.samp){
+    knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
+  }
+  return(knn.vec)
+}
