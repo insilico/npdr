@@ -144,7 +144,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- knnSURF(num.samp,msurf.sd.frac)
     cat("Theoretical (predicted) multiSURF average neighbors: ", k.msurf.theory,".\n",sep="")
-    cat("Emperical (computed from neighborhood) average neighbors: ", k.ave.empirical,".\n",sep="")
+    cat("Empirical (computed from neighborhood) average neighbors: ", k.ave.empirical,".\n",sep="")
     if (neighbor.sampling=="unique"){
       # if you only want to return unique neighbors
       num.neighbor.pairs <- nrow(neighbor.pairs.idx)
