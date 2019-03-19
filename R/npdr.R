@@ -134,6 +134,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   if (neighbor.sampling=="unique"){
     if (verbose){
       cat("Extracting unique neighbors.\n")
+    }
       # if you only want to return unique neighbors
       neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
   }
