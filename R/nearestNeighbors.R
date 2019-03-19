@@ -197,7 +197,7 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
     curr.pair <- sort(curr.pair,decreasing=F)
     pairs.sorted[i] <- paste(curr.pair,collapse=",")
   }
-  unique.idx <- which(!duplicated(pairs.sorted))
+  unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2)))
   return(neighbor.pairs.idx[unique.idx,])
 }
 
