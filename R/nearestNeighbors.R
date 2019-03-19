@@ -197,9 +197,27 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
     curr.pair <- sort(curr.pair,decreasing=F)
     pairs.sorted[i] <- paste(curr.pair,collapse=",")
   }
-  unique.idx <- which(!duplicated(pairs.sorted))
-  #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
-  return(neighbor.pairs.idx[unique.idx,])
+  unique.pairs.collapsed <- distinct(data.frame(pairs=pairs.sorted))
+  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",")
+  unique.pairs.char <- do.call(rbind,unique.pairs.split)
+  pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
+  pairs2 <- as.matrix(mapply(unique.pairs.char[,2], FUN=as.numeric),ncol=2,byrow=F)
+  unique.pairs.list <- cbind(pairs1,pairs2)
+  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)
+  return(unique.pairs.list)
+  
+  # OLD: Memory issue with duplicated
+  # num.all.pairs <- nrow(neighbor.pairs.idx)
+  # pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  # for(i in 1:num.all.pairs){
+  #   # make all pairs ordered
+  #   curr.pair <- neighbor.pairs.idx[i,]
+  #   curr.pair <- sort(curr.pair,decreasing=F)
+  #   pairs.sorted[i] <- paste(curr.pair,collapse=",")
+  # }
+  # unique.idx <- which(!duplicated(pairs.sorted))
+  # #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
+  # return(neighbor.pairs.idx[unique.idx,])
 }
 
 #=========================================================================#

@@ -10,5 +10,6 @@ LazyData: true
 Suggests: knitr,
     rmarkdown,
     glmnet
+Imports: dplyr
 VignetteBuilder: knitr
 RoxygenNote: 6.1.0

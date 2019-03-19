@@ -221,6 +221,30 @@ cat(npdrNET.cc.detect.stats$report)
 #   return(neighbor.pairs.idx[unique.vector.idx,])
 # }
 
+testUnique <- function(neighbor.pairs.idx){
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  for(i in 1:num.all.pairs){
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i,]
+    curr.pair <- sort(curr.pair,decreasing=F)
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")
+  }
+  #unique.idx <- which(!duplicated(pairs.sorted))
+  #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
+  unique.pairs.collapsed <- distinct(data.frame(pairs=pairs.sorted))
+  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",")
+  unique.pairs.char <- do.call(rbind,unique.pairs.split)
+  pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
+  pairs2 <- as.matrix(mapply(unique.pairs.char[,2], FUN=as.numeric),ncol=2,byrow=F)
+  unique.pairs.list <- cbind(pairs1,pairs2)
+  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)
+  return(unique.pairs.list)
+}
+
+
 my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
 
@@ -229,6 +253,16 @@ my.qtrait.nbrs <- nearestNeighbors(my.attrs,
                                nb.metric = "manhattan", 
                                sd.frac = 0.5, k=0,
                                neighbor.sampling="none")
+
+str(my.qtrait.nbrs)
+str(my.qtrait.unique.nbrs)
+my.qtrait.unique.nbrs <- testUnique(my.qtrait.nbrs)
+
+x<- do.call(rbind,my.qtrait.unique.nbrs)
+dim(x)
+pair1 <- as.matrix(mapply(x[,1], FUN=as.numeric),ncol=2,byrow=F)
+pair2 <- as.matrix(mapply(x[,2], FUN=as.numeric),ncol=2,byrow=F)
+cbind(pair1,pair2)
 
 # knnVec <- function(neighbor.pairs.mat){
 #   # number of neighbors for each sample (vector) from neighbor-pair matrix
