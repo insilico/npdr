@@ -187,41 +187,16 @@ nearestNeighbors <- function(attr.mat,
 #'
 #' @export
 uniqueNeighbors <- function(neighbor.pairs.idx){
-  # input: two columns of redundant i j pairs
+  # input: two columns of redundant "i,j" pairs
   # return: two columns of unique pairs from the redundant input
-  num.all.pairs <- nrow(neighbor.pairs.idx)
-  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" collapsed pairs
-  for(i in 1:num.all.pairs){
-    # make all pairs ordered
-    curr.pair <- neighbor.pairs.idx[i,]
-    curr.pair <- sort(curr.pair,decreasing=F)  # e.g., pairs 1  36 and 36  1 both become 1  36
-    pairs.sorted[i] <- paste(curr.pair,collapse=",")  # e.g., pair 1  36 becomes "1,36"
-  }
-  # get distinct pairs and then unravel the data types
-  unique.pairs.collapsed <- dplyr::distinct(data.frame(pairs=pairs.sorted))
-  # split "i,j" into i  j
-  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",") # list
-  unique.pairs.char <- do.call(rbind,unique.pairs.split) # matrix, but character
-  # convert to numeric
-  pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
-  pairs2 <- as.matrix(mapply(unique.pairs.char[,2], FUN=as.numeric),ncol=2,byrow=F)
-  unique.pairs.list <- cbind(pairs1,pairs2)  # put back into matrix
-  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)  # add back original column names
-  # output is a 2-column matrix: my.qtrait.nbrs[,"Ri_idx"] and my.qtrait.nbrs[,"NN_idx"] 
-  return(unique.pairs.list)
-  
-  # OLD: Memory issue with duplicated
-  # num.all.pairs <- nrow(neighbor.pairs.idx)
-  # pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
-  # for(i in 1:num.all.pairs){
-  #   # make all pairs ordered
-  #   curr.pair <- neighbor.pairs.idx[i,]
-  #   curr.pair <- sort(curr.pair,decreasing=F)
-  #   pairs.sorted[i] <- paste(curr.pair,collapse=",")
-  # }
-  # unique.idx <- which(!duplicated(pairs.sorted))
-  # #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
-  # return(neighbor.pairs.idx[unique.idx,])
+  # sort and make create redundant vector of "i,j" pairs
+  # e.g., pairs 1  36 and 36  1 both become 1  36
+  sorted_pairs <- data.frame(xmin = pmin(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]), 
+                             xmax = pmax(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]))
+  pair_str <- tidyr::unite(sorted_pairs, xmin, xmax, sep = ',')
+  unique.idx <- !duplicated(pair_str)
+  #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
+  return(neighbor.pairs.idx[unique.idx,])
 }
 
 #=========================================================================#
