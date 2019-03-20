@@ -187,10 +187,10 @@ nearestNeighbors <- function(attr.mat,
 #'
 #' @export
 uniqueNeighbors <- function(neighbor.pairs.idx){
-  # input: two columns of redundant "i,j" pairs
+  # input: two columns of redundant i j pairs
   # return: two columns of unique pairs from the redundant input
   num.all.pairs <- nrow(neighbor.pairs.idx)
-  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" collapsed pairs
   for(i in 1:num.all.pairs){
     # make all pairs ordered
     curr.pair <- neighbor.pairs.idx[i,]
@@ -198,13 +198,16 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
     pairs.sorted[i] <- paste(curr.pair,collapse=",")  # e.g., pair 1  36 becomes "1,36"
   }
   # get distinct pairs and then unravel the data types
-  unique.pairs.collapsed <- dplyr::distinct(data.frame(pairs=pairs.sorted))  
-  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",")
-  unique.pairs.char <- do.call(rbind,unique.pairs.split)
+  unique.pairs.collapsed <- dplyr::distinct(data.frame(pairs=pairs.sorted))
+  # split "i,j" into i  j
+  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",") # list
+  unique.pairs.char <- do.call(rbind,unique.pairs.split) # matrix, but character
+  # convert to numeric
   pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
   pairs2 <- as.matrix(mapply(unique.pairs.char[,2], FUN=as.numeric),ncol=2,byrow=F)
-  unique.pairs.list <- cbind(pairs1,pairs2)
+  unique.pairs.list <- cbind(pairs1,pairs2)  # put back into matrix
   dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)
+  # output is a 2-column matrix: my.qtrait.nbrs[,"Ri_idx"] and my.qtrait.nbrs[,"NN_idx"] 
   return(unique.pairs.list)
   
   # OLD: Memory issue with duplicated
