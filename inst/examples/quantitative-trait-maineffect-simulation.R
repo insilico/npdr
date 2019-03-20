@@ -244,6 +244,51 @@ testUnique <- function(neighbor.pairs.idx){
   return(unique.pairs.list)
 }
 
+testUnique2 <- function(neighbor.pairs.idx){
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  for(i in 1:num.all.pairs){
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i,]
+    curr.pair <- sort(curr.pair,decreasing=F)
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")
+  }
+  keep <- c()
+  pair.row <- 1
+  while (!is.na(pairs.sorted[pair.row])){
+    curr.pair <- pairs.sorted[pair.row]
+    repeat.rows <- sort(which(curr.pair==pairs.sorted))
+    #cat(repeat.rows,"\n")
+    if (length(repeat.rows) == 2){
+      keep <- c(keep,pair.row)  # add to list to keep
+      pairs.sorted[-repeat.rows[2]]  # remove the second redundant row from checking
+    } 
+    pair.row <- pair.row + 1
+  }
+  #for(i in 1:num.all.pairs){
+  #  curr.pair <- pairs.sorted[i]
+  #  repeat.rows <- which(curr.pair==pairs.sorted)
+  #  if length(repeat.rows) 
+  #}
+  return(keep)
+}
+
+pastePairs <- function(neighbor.pairs.idx){
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
+  for(i in 1:num.all.pairs){
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i,]
+    curr.pair <- sort(curr.pair,decreasing=F)
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")
+  }
+  return(pairs.sorted)
+}
+
 
 my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
@@ -257,6 +302,13 @@ my.qtrait.nbrs <- nearestNeighbors(my.attrs,
 str(my.qtrait.nbrs)
 str(my.qtrait.unique.nbrs)
 my.qtrait.unique.nbrs <- testUnique(my.qtrait.nbrs)
+dim(my.qtrait.unique.nbrs)
+
+test.pairs <- pastePairs(my.qtrait.nbrs)
+which(test.pairs=="1,188")
+temp <- testUnique2(my.qtrait.nbrs)
+my.unique2 <- my.qtrait.nbrs[-temp,]
+cbind(my.qtrait.nbrs[temp[1:30],], my.qtrait.unique.nbrs[1:30,],my.qtrait.nbrs[1:30,])
 
 x<- do.call(rbind,my.qtrait.unique.nbrs)
 dim(x)

@@ -194,10 +194,11 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
   for(i in 1:num.all.pairs){
     # make all pairs ordered
     curr.pair <- neighbor.pairs.idx[i,]
-    curr.pair <- sort(curr.pair,decreasing=F)
-    pairs.sorted[i] <- paste(curr.pair,collapse=",")
+    curr.pair <- sort(curr.pair,decreasing=F)  # e.g., pairs 1  36 and 36  1 both become 1  36
+    pairs.sorted[i] <- paste(curr.pair,collapse=",")  # e.g., pair 1  36 becomes "1,36"
   }
-  unique.pairs.collapsed <- distinct(data.frame(pairs=pairs.sorted))
+  # get distinct pairs and then unravel the data types
+  unique.pairs.collapsed <- dplyr::distinct(data.frame(pairs=pairs.sorted))  
   unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs),",")
   unique.pairs.char <- do.call(rbind,unique.pairs.split)
   pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
