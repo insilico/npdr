@@ -195,31 +195,7 @@ npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p
 npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
 cat(npdrNET.cc.detect.stats$report)
 
-## Testing out penalized neighbor idea
-
-# uniqueNeighbors <- function(neighbor.pairs.idx){
-#   # input: two columns of redundant "i,j" pairs
-#   # return: vector index of the unique pairs from the input
-#   # usage: unique.vector.idx <- uniqueNeighbors(neighbor.pairs.idx)
-#   #        unique.neighbor.pairs.idx <- neighbor.pairs.idx[unique.vector.idx,]
-#   num.all.pairs <- nrow(neighbor.pairs.idx)
-#   my.groups <- numeric(length=num.all.pairs) # redundant vector of "i,j" pairs
-#   for(i in 1:num.all.pairs){
-#     # make all pairs ordered
-#     curr.pair <- neighbor.pairs.idx[i,]
-#     curr.pair <- sort(curr.pair,decreasing=F)
-#     my.groups[i] <- paste(curr.pair,collapse=",")
-#   }
-#   unique.pairs <- unique(my.groups) # just the unique pairs
-#   num.unique.pairs <- length(unique.pairs)
-#   unique.idx <- numeric(length=num.unique.pairs) # first index of a unique pairing in the full redundant vector
-#   for(i in 1:num.unique.pairs){
-#     curr.pair <- unique.pairs[i]
-#     idx.pair <- which(my.groups==curr.pair)
-#     unique.idx[i] <- idx.pair[1]
-#   }
-#   return(neighbor.pairs.idx[unique.vector.idx,])
-# }
+## Unique pairs
 
 testUnique <- function(neighbor.pairs.idx){
   # input: two columns of redundant "i,j" pairs
@@ -257,22 +233,19 @@ testUnique2 <- function(neighbor.pairs.idx){
   }
   keep <- c()
   pair.row <- 1
-  while (!is.na(pairs.sorted[pair.row])){
+  while (!is.na(pairs.sorted[pair.row])){ # do until we run out of pairs to check
     curr.pair <- pairs.sorted[pair.row]
     repeat.rows <- sort(which(curr.pair==pairs.sorted))
     #cat(repeat.rows,"\n")
-    if (length(repeat.rows) == 2){
-      keep <- c(keep,pair.row)  # add to list to keep
-      pairs.sorted[-repeat.rows[2]]  # remove the second redundant row from checking
-    } 
+    if (length(repeat.rows) == 2){ # found a repeat
+      keep <- c(keep,pair.row)  # add first to keep list
+      pairs.sorted <- pairs.sorted[-repeat.rows[2]]  # remove the second redundant row from checking
+    } else{ # no repeat
+      keep <- c(keep,pair.row) # add unique to keep list
+    }
     pair.row <- pair.row + 1
   }
-  #for(i in 1:num.all.pairs){
-  #  curr.pair <- pairs.sorted[i]
-  #  repeat.rows <- which(curr.pair==pairs.sorted)
-  #  if length(repeat.rows) 
-  #}
-  return(keep)
+  return(neighbor.pairs.idx[keep,])
 }
 
 pastePairs <- function(neighbor.pairs.idx){
@@ -289,7 +262,6 @@ pastePairs <- function(neighbor.pairs.idx){
   return(pairs.sorted)
 }
 
-
 my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
 
@@ -298,17 +270,22 @@ my.qtrait.nbrs <- nearestNeighbors(my.attrs,
                                nb.metric = "manhattan", 
                                sd.frac = 0.5, k=0,
                                neighbor.sampling="none")
-
-str(my.qtrait.nbrs)
+dim(my.qtrait.nbrs)
 str(my.qtrait.unique.nbrs)
+start_time <- Sys.time()      
 my.qtrait.unique.nbrs <- testUnique(my.qtrait.nbrs)
+end_time <- Sys.time()  
+end_time-start_time
 dim(my.qtrait.unique.nbrs)
 
 test.pairs <- pastePairs(my.qtrait.nbrs)
 which(test.pairs=="1,188")
-temp <- testUnique2(my.qtrait.nbrs)
-my.unique2 <- my.qtrait.nbrs[-temp,]
-cbind(my.qtrait.nbrs[temp[1:30],], my.qtrait.unique.nbrs[1:30,],my.qtrait.nbrs[1:30,])
+start_time <- Sys.time()      
+temp2 <- testUnique2(my.qtrait.nbrs)
+end_time <- Sys.time() 
+end_time-start_time
+dim(temp2)
+cbind(temp2, my.qtrait.unique.nbrs)
 
 x<- do.call(rbind,my.qtrait.unique.nbrs)
 dim(x)
@@ -337,7 +314,7 @@ my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[,1]==74,2]
 my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[,1]==119,2]
 plot(knnVec(my.qtrait.unique.nbrs))
 
-###
+### regress each sample's neighborhood:
 
 Ridx_vec <- neighbor.pairs.idx[,"Ri_idx"]
 NNidx_vec <- neighbor.pairs.idx[,"NN_idx"]

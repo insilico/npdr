@@ -124,7 +124,9 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   ##### get Neighbors (no phenotype used)
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
   # msurf.sd.frac used by surf/multisurf relieff for theoretical k
-  
+  if (verbose){
+    cat("Finding nearest neighbor pairs.\n")
+  }
   start_time <- Sys.time()                 
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method, nb.metric=nbd.metric, 
                                          sd.frac = msurf.sd.frac, k=knn,
@@ -152,6 +154,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       # if you only want to return unique neighbors
       num.neighbor.pairs <- nrow(neighbor.pairs.idx)
       cat(num.neighbor.pairs, "unique neighbor pairs.\n")
+      cat("\nPerforming projected distance regression.\n")
       #, num.neighbor.pairs/num.samp, "average neighbors (unique) per instance.\n")
     }
   }

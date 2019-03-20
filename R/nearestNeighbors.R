@@ -206,7 +206,7 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
   pairs1 <- as.matrix(mapply(unique.pairs.char[,1], FUN=as.numeric),ncol=2,byrow=F)
   pairs2 <- as.matrix(mapply(unique.pairs.char[,2], FUN=as.numeric),ncol=2,byrow=F)
   unique.pairs.list <- cbind(pairs1,pairs2)  # put back into matrix
-  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)
+  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)  # add back original column names
   # output is a 2-column matrix: my.qtrait.nbrs[,"Ri_idx"] and my.qtrait.nbrs[,"NN_idx"] 
   return(unique.pairs.list)
   
