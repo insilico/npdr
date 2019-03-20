@@ -219,5 +219,6 @@ knnVec <- function(neighbor.pairs.mat){
   for (i in 1:n.samp){
     knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
   }
+  # knn.vec <- count(neighbor.pairs.mat, Ri_idx)[,2]
   return(knn.vec)
 }
