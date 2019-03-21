@@ -163,12 +163,12 @@ nearestNeighbors <- function(attr.mat,
     } # end for, now stack lists into matrix, do.call rbind
     
     Ri_NN.idxmat <- do.call(rbind, Ri.nearestPairs.list)
-    colnames(Ri_NN.idxmat) <- c("Ri_idx","NN_idx")
   }
   if (neighbor.sampling=="unique"){
     # if you only want to return unique neighbors
       Ri_NN.idxmat <- uniqueNeighbors(Ri_NN.idxmat)
   }
+  colnames(Ri_NN.idxmat) <- c("Ri_idx","NN_idx")
   # matrix of Ri's (first column) and their NN's (second column)
   return(Ri_NN.idxmat)
 }
@@ -186,17 +186,16 @@ nearestNeighbors <- function(attr.mat,
 #' unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)  # unique neighbor pairs
 #'
 #' @export
-uniqueNeighbors <- function(neighbor.pairs.idx){
+uniqueNeighbors <- function(neighbor.pairs){
   # input: two columns of redundant "i,j" pairs
   # return: two columns of unique pairs from the redundant input
   # sort and make create redundant vector of "i,j" pairs
   # e.g., pairs 1  36 and 36  1 both become 1  36
-  sorted_pairs <- data.frame(xmin = pmin(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]), 
-                             xmax = pmax(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]))
+  sorted_pairs <- data.frame(xmin = pmin(neighbor.pairs[, 1], neighbor.pairs[, 2]), 
+                             xmax = pmax(neighbor.pairs[, 1], neighbor.pairs[, 2]))
   pair_str <- tidyr::unite(sorted_pairs, 'combined', xmin, xmax, sep = ',')
   unique.idx <- !duplicated(pair_str)
-  #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
-  return(neighbor.pairs.idx[unique.idx,])
+  return(neighbor.pairs[unique.idx,])
 }
 
 #=========================================================================#
@@ -212,13 +211,6 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
 #'
 #' @export
 knnVec <- function(neighbor.pairs.mat){
-  # number of neighbors for each sample (vector) from neighbor-pair matrix
-  sample.ids <- unique(neighbor.pairs.mat[,1])
-  n.samp <- length(sample.ids)
-  knn.vec <- numeric(length=n.samp) # k for each sample's neighborhood
-  for (i in 1:n.samp){
-    knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
-  }
-  # knn.vec <- count(neighbor.pairs.mat, Ri_idx)[,2]
+  knn.vec <- data.frame(neighbor.pairs.mat) %>% dplyr::count(Ri_idx) %>% pull(n)
   return(knn.vec)
 }
