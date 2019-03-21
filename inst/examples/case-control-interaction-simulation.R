@@ -3,10 +3,11 @@ library(broom)
 library(dplyr)
 
 ## npdr install
-library(devtools)
-install_github("insilico/npdr")
-library(npdr)
+# library(devtools)
+# install_github("insilico/npdr")
+# library(npdr)
 
+set.seed(1618)
 ##### simulate case-control interaction effect data 
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
@@ -124,15 +125,15 @@ stir.log10.df <- data.frame(vars=rownames(t_sorted_multisurf),stir.log10=-log10(
 npdr.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.log10=-log10(npdr.cc.results$pval.att))
 
 stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
-npdr.pcutoff <- -log10(npdr.cc.results$pval.attr[which(npdr.cc.results$pval.adj>.05)[1]-1])
+npdr.pcutoff <- -log10(npdr.cc.results$pval.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
 
 library(ggplot2)
 test.df <- merge(stir.log10.df,npdr.log10.df)
 functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
 ggplot(test.df, aes(x=stir.log10,y=npdr.log10)) + geom_point(aes(colour = functional), size=4) +
   theme(text = element_text(size = 20)) +
-  geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
-  geom_hline(yintercept=npdr.pcutoff, linetype="dashed") +
+  # geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
+  # geom_hline(yintercept=npdr.pcutoff, linetype="dashed") +
   xlab("STIR -log10(P)") + ylab("NPDR -log10(P)") 
 
 ##### CORElearn ReliefF with surf fixed k

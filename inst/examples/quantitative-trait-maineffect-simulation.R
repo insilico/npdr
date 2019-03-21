@@ -3,9 +3,10 @@ library(broom)
 library(tidyverse)
 
 ## npdr install
-library(devtools)
-install_github("insilico/npdr")
-library(npdr)
+# library(devtools)
+# install_github("insilico/npdr")
+# library(npdr)
+set.seed(1618)
 
 ##### simulate case-control interaction effect data 
 n.samples <- 300     # 100 samples in train/holdout/test
@@ -50,6 +51,8 @@ npdr.qtrait.unique.results <- npdr("qtrait", qtrait.data, regression.type="lm", 
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
                             neighbor.sampling = "unique",
                             padj.method="bonferroni", verbose=T)
+
+
 # attributes with npdr adjusted p-value less than .05 
 npdr.qtrait.unique.results[npdr.qtrait.unique.results$pval.adj<.05,] # pval.adj, first column
 # attributes with npdr raw/nominal p-value less than .05
@@ -104,10 +107,10 @@ cat(core.learn.qtrait.detect$report)
 
 ### Compare corelearn and npdr
 corelearn.df <- data.frame(vars=names(core.learn.qtrait),rrelief=core.learn.qtrait)
-npdr.beta.df <- data.frame(vars=npdr.qtrait.results$att,npdr.beta=(npdr.qtrait.results$beta.raw.att))
+npdr.beta.df <- data.frame(vars=npdr.qtrait.results$att,npdr.beta=(npdr.qtrait.results$beta.Z.att))
 
 corelearn.cutoff <- arbitrary_threshold
-npdr.pcutoff <- (npdr.qtrait.results$beta.attr[which(npdr.qtrait.results$pval.adj>.05)[1]-1])
+npdr.pcutoff <- (npdr.qtrait.results$beta.Z.att[which(npdr.qtrait.results$pval.adj>.05)[1]-1])
 
 library(ggplot2)
 test.df <- merge(corelearn.df,npdr.beta.df)
