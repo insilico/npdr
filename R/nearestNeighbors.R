@@ -100,20 +100,24 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #'
 #' @export
 nearestNeighbors <- function(attr.mat, 
-                             nb.method="multisurf", 
+                             nb.method = "multisurf", 
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
-                             neighbor.sampling="none",
+                             neighbor.sampling = "none",
                              attr_removal_vec_from_dist_calc=c()){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   
-  if (length(attr_removal_vec_from_dist_calc)>1){ # remove attributes (possible confounders) from distance matrix calculation 
-    attr.mat <- attr.mat[,-which(colnames(attr.mat) %in% attr_removal_vec_from_dist_calc)]
+  if (!is.null(attr_removal_vec_from_dist_calc)){ # remove attributes (possible confounders) from distance matrix calculation 
+    attr.mat <- attr.mat %>% data.frame() %>% 
+      select(- attr_removal_vec_from_dist_calc)
+    # [,-which(colnames(attr.mat) %in% attr_removal_vec_from_dist_calc)]
   }
 
   dist.mat <- npdrDistances(attr.mat, metric = nb.metric)
   num.samp <- nrow(attr.mat)
+  
+  
   
   if (nb.method == "relieff"){  
     if (k==0){ # if no k specified or value 0
@@ -123,7 +127,7 @@ nearestNeighbors <- function(attr.mat,
       k <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)  # uses sd.frac
     }
     Ri_NN.idxmat <- matrix(0, nrow = num.samp * k, ncol = 2)
-    colnames(Ri_NN.idxmat) <- c("Ri_idx","NN_idx")
+    # colnames(Ri_NN.idxmat) <- c("Ri_idx","NN_idx")
     for (Ri in seq(1:num.samp)){ # for each sample Ri
       Ri.distances <- dist.mat[Ri,] # all distances to sample Ri
       Ri.nearest <- order(Ri.distances, decreasing = F) # closest to furthest
@@ -148,9 +152,21 @@ nearestNeighbors <- function(attr.mat,
       Ri.radius <- colSums(dist.mat)/(num.samp - 1) - sd.frac*sd.vec # use adaptive radius
     }
     
-    # put each Ri's nbd in a list then rbind them at the end with do.call(rbind, List)
+    # print(head(names(attr.mat)))
+    # print(head(dist.mat))
+    # put each Ri's nbd in a list then rbind them at the end with bind_rows()
     # initialize list:
-    Ri.nearestPairs.list <- vector("list",num.samp)
+    Ri.nearestPairs.list <- vector("list", num.samp)
+    # dist.df <- data.frame(dist.mat)
+    # for (Ri in rownames(dist.df)){
+    #   # print(Ri)
+    #   if (Ri == 'X6') {
+    #     print(head(dist.df %>%
+    #                  select(!!Ri)) %>%
+    #             arrange(!!Ri) %>%
+    #             rownames_to_column())}
+    # }
+    
     for (Ri in seq(1:num.samp)){ # for each sample Ri
       Ri.distances <- sort(dist.mat[Ri,], decreasing = F)
       Ri.nearest <- Ri.distances[Ri.distances < Ri.radius[Ri]] # within the threshold
@@ -158,11 +174,12 @@ nearestNeighbors <- function(attr.mat,
       Ri.nearest.idx <- match(names(Ri.nearest), row.names(attr.mat))
       if (length(Ri.nearest.idx) > 1){ # if neighborhood not empty
         # cbind automatically repeats Ri
-        Ri.nearestPairs.list[[Ri]] <- cbind(Ri, Ri.nearest.idx) 
+        Ri.nearestPairs.list[[Ri]] <- data.frame(Ri = Ri, Ri_neighbor = Ri.nearest.idx) 
       } 
     } # end for, now stack lists into matrix, do.call rbind
     
-    Ri_NN.idxmat <- do.call(rbind, Ri.nearestPairs.list)
+    # Ri_NN.idxmat <- do.call(rbind, Ri.nearestPairs.list)
+    Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
   }
   if (neighbor.sampling=="unique"){
     # if you only want to return unique neighbors
