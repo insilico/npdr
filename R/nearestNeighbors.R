@@ -193,7 +193,7 @@ uniqueNeighbors <- function(neighbor.pairs.idx){
   # e.g., pairs 1  36 and 36  1 both become 1  36
   sorted_pairs <- data.frame(xmin = pmin(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]), 
                              xmax = pmax(neighbor.pairs.idx[, 1], neighbor.pairs.idx[, 2]))
-  pair_str <- tidyr::unite('combined', sorted_pairs, xmin, xmax, sep = ',')
+  pair_str <- tidyr::unite(sorted_pairs, 'combined', xmin, xmax, sep = ',')
   unique.idx <- !duplicated(pair_str)
   #unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
   return(neighbor.pairs.idx[unique.idx,])
