@@ -1,6 +1,6 @@
 library(privateEC)
 library(broom)
-library(dplyr)
+library(tidyverse)
 
 ## npdr install
 library(devtools)
