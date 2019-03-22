@@ -28,7 +28,17 @@ NPDR is a nearest-neighbor feature selection algorithm that fits a generalized l
     >data(package="npdr")
     
     # >vignette(" ") # todo (if you build_vignettes)
-    
+
+### Dependencies
+To install the `tidyverse` collection of R packages:
+
+```
+install.packages('tidyverse')
+```
+
+If an issue arises with updating `openssl`, try updating it on your own system, e.g. for MacOS:
+```brew install openssl@1.1```
+
 ### Examples
 
 
