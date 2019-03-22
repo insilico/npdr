@@ -11,43 +11,38 @@
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type="binomial") {
+diffRegression <- function(design.matrix.df, regression.type="binomial", speedy = FALSE) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
-  if (regression.type=="lm"){
-    mod <- lm(pheno.diff.vec ~ ., data=design.matrix.df)
-    fit <- summary(mod)
-    beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
-    beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
-    ## use one-side p-value to test H1: beta>0 for case-control and continuous outcome
-    pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
-    stats.vec <- c(
-      #fit$coefficients[2,4], # p-value for attribute beta, pval.a
-      #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-      pval_beta_a,            # one-sided p-value for attribute beta
-      beta_a,                 # beta_a for attribute a
-      beta_zscore_a,          # standardized beta for attribut a
-      fit$coefficients[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
-      fit$coefficients[1,4],  # p-value for intercept, row 1 is intercept, col 4 is p-val 
-      fit$r.squared           # R^2 of fit, R.sqr
-    )
-  } else{ #regression.type=="binomial"
-    mod <- glm(pheno.diff.vec ~ ., family=binomial(link=logit), data=design.matrix.df)
-    fit <- summary(mod)
-    beta_a <- coef(fit)[2, 1]         # raw beta coefficient, slope (not standardized)
-    beta_zscore_a <- coef(fit)[2, 3]  # standardized beta coefficient (col 3)
-    ## use one-side p-value to test H1: beta>0 for case-control npdr scores
-    pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
-    stats.vec <- c(
-      #fit$coefficients[2,4], # p-value for attribute beta, pval.a
-      #fit$coefficients[2,3], # beta_hat_a, standardize beta for attribute, Ba
-      pval_beta_a,            # one-sided p-value for attribute beta
-      beta_a,                 # beta_a for attribute a
-      beta_zscore_a,          # standardized beta for attribut a
-      fit$coefficients[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
-      fit$coefficients[1,4]   # p-value for intercept, row 1 is intercept, col 4 is p-val 
-    )
+  # design.matrix.df must have column named 'pheno.diff.vec'
+  if (speedy == TRUE){
+    if (regression.type=="lm"){
+      mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = gaussian())
+    } else { # regression.type == "binomial"
+      mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
+    }
+    res_df <- mod$df
+  } else { # non-speedy version -- but why?
+    if (regression.type=="lm"){
+      mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
+    } else { # regression.type == "binomial"
+      mod <- glm(pheno.diff.vec ~ ., family = binomial(link = logit), data = design.matrix.df)
+    }
+    res_df <- mod$df.residual
   }
+  # fit <- summary(mod)
+  beta_a <- coef(fit)[2,1]          # beta_a for attribute a, raw, slope (not standardized)
+  beta_zscore_a <- coef(fit)[2,3]   # standardized beta coefficient for attribute a
+  beta_0 <- fit$coefficients[1,1]   # beta for intercept, row 1 is inercept, col 1 is raw beta
+  pval_0 <- fit$coefficients[1,4]   # p for intercept, row 1 is intercept, col 4 is p-val
+  # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
+  pval_beta_a <- pt(beta_zscore_a, res_df, lower = FALSE)  
+  # close to fit$coefficients[2,4]? p-value for attribute beta, pval.a?
+  stats.vec <- c(pval_beta_a, beta_a, beta_zscore_a, beta_0, pval_0)
+
+  if (regression.type=="lm"){
+    stats.vec <- c(stats.vec, R_sqr = fit$r.squared)}
+  
   return(stats.vec)
 }
 
@@ -102,7 +97,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", 
                     rm.attr.from.dist=c(), neighbor.sampling="none",
-                    padj.method="bonferroni", verbose=FALSE){
+                    padj.method="bonferroni", verbose=FALSE, speedy = FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -144,7 +139,6 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   if (verbose){
     cat("Neighborhood calculation time. "); difftime(end_time, start_time); cat("\n",sep="")
     cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).\n")
-    #, num.neighbor.pairs/num.samp, "average neighbors per instance.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- knnSURF(num.samp,msurf.sd.frac)
@@ -155,43 +149,40 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       num.neighbor.pairs <- nrow(neighbor.pairs.idx)
       cat(num.neighbor.pairs, "unique neighbor pairs.\n")
       cat("\nPerforming projected distance regression.\n")
-      #, num.neighbor.pairs/num.samp, "average neighbors (unique) per instance.\n")
     }
   }
   ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop.
   # Not needed in loop.
-  # create pheno diff vector for linear regression (numeric)  
-  if (regression.type=="lm"){
-    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
-    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
-  } else { #regression.type=="binomial"
+  # create pheno diff vector for linear regression (numeric)
+  Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
+  NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
+  if (regression.type == "lm"){
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs", speedy = speedy)
+  } else { #regression.type == "binomial"
     # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
-    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
-    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch", speedy = speedy)
     # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
   ##### run npdr, each attribute is a list, then we do.call rbind to a matrix
-  npdr.stats.list <- vector("list",num.samp) # initialize
+  npdr.stats.list <- vector("list", num.samp) # initialize
   for (attr.idx in seq(1, num.attr)){
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type, speedy = speedy)
     # model data.frame to go into lm or glm-binomial
-    design.matrix.df <- data.frame(attr.diff.vec=attr.diff.vec,pheno.diff.vec=pheno.diff.vec)
+    design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
+                                   pheno.diff.vec = pheno.diff.vec)
     ### diff vector for each covariate
     # optional covariates to add to design.matrix.df model
     if (length(covars)>1){ # if covars is a vector or matrix
-      if (regression.type=="glment"){
+      if (regression.type=="glmnet"){
         message("penalized npdrNET does not currently support covariates.")
       }
       # default value is covar="none" (no covariates) which has length 1
       covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
       # covar.diff.type can be a vector of strings because each column of covars may be a different data type
-      #covar.diff.list <- vector("list",length(covar.diff.type)) # initialize
       for (covar.col in (1:length(covar.diff.type))){
         covar.vals <- covars[, covar.col]
         Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
@@ -208,15 +199,16 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
         design.matrix.df$temp <- covar.diff.vec  # add the diff covar to the design matrix data frame
         colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
       }
-      #covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix
+      # covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix
     }
     # utility function: RUN regression
-    #                                                design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
+    # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
   } # end of for loop, regression done for each attribute
   if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, including intercept): ")
                cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," columns.\n", sep="")
   }
+  
   if (regression.type!="glmnet"){ # sort and format output if you did regular npdr
     # combine non-glmnet result lists into a matrix
     npdr.stats.attr_ordered.mat <- do.call(rbind, npdr.stats.list)
@@ -234,7 +226,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     attr.pvals <- npdr.stats.attr_ordered.mat[, 1]
     # order-index for sorted attribute-beta p-values
     attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
-    # adjust p-values using Benjamini-Hochberg (default)
+    # adjust p-values using Bonferroni (default)
     attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=padj.method)
     
     # order by attribute p-value
@@ -254,7 +246,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     # dataframe final output for regular npdr
     npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
     
-  } else{ # Here we add an option npdrNET regression.type="glmnet"
+  } else { # Here we add an option npdrNET regression.type="glmnet"
           # Need to create a data matrix with each column as a vector of diffs for each attribute.
           # Need matrix because npdrNET operates on all attributes at once.
     attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
@@ -262,20 +254,20 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       attr.vals <- attr.mat[, attr.idx]
       Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
       NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type, speedy = speedy)
       attr.diff.mat[,attr.idx] <- attr.diff.vec
     }
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     if (glmnet.family=="binomial"){
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch", speedy = speedy)
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
                                lower.limits=glmnet.lower, type.measure="class")
-    } else{ # "gaussian"
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+    } else { # "gaussian"
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs", speedy = speedy)
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
                                lower.limits=glmnet.lower, type.measure="mse")

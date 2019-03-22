@@ -22,7 +22,7 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
     # used automatically for case-control pheno, optional genotype mismatch diff for snps
     val <- ifelse(a==b,0,1)  # hit pairs are 0 and miss pairs are 1
     #val <- as.character(a==b) # convert this to factor in glmSTIR
-  } else{ # numeric abs difference
+  } else { # numeric abs difference
     val <- abs(a - b)/norm.fac
   }
   return(val)
