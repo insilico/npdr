@@ -35,8 +35,14 @@ To install the `tidyverse` collection of R packages:
 ```
 install.packages('tidyverse')
 ```
+To set `speedy = TRUE` or `use.glmnet = TRUE` please install the `speedglm` and `glmnet` packages:
+
+```
+install.packages(c('speedglm', 'glmnet'))
+```
 
 If an issue arises with updating `openssl`, try updating it on your own system, e.g. for MacOS:
+
 ```brew install openssl@1.1```
 
 ### Examples
