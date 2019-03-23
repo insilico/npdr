@@ -11,13 +11,13 @@
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type="binomial", speedy = FALSE) {
+diffRegression <- function(design.matrix.df, regression.type="binomial", speedy) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
   if (speedy == TRUE){
     if (regression.type=="lm"){
-      mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = gaussian())
+      mod <- speedlm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
@@ -137,7 +137,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   }
   end_time <- Sys.time()
   if (verbose){
-    cat("Neighborhood calculation time. "); difftime(end_time, start_time); cat("\n",sep="")
+    cat("Neighborhood calculation:", capture.output(end_time - start_time), "\n")
     cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
@@ -240,7 +240,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     if (regression.type=="lm"){# stats colnames for lm
       colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
                                                     "beta.0", "pval.0", "R.sqr")
-    } else{ # stats columns for glm-binomial
+    } else { # stats columns for glm-binomial
      colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
     }
     # dataframe final output for regular npdr
