@@ -22,26 +22,30 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
     res_df <- mod$df
-  } else { # non-speedy version -- but why? https://media.giphy.com/media/1M9fmo1WAFVK0/giphy.gif
+    tcol <- 't'
+    coef <- 'coef'
+    pcol <- 'p.value'
+  } else { # non-speedy version -- but why?
     if (regression.type=="lm"){
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
       mod <- glm(pheno.diff.vec ~ ., family = binomial(link = logit), data = design.matrix.df)
     }
     res_df <- mod$df.residual
+    tcol <- 't value'
+    coef <- 'Estimate'
+    pcol <- 'Pr(>|t|)'
   }
   fit <- summary(mod)
-  beta_a <- coef(fit)[2,1]          # beta_a for attribute a, raw, slope (not standardized)
-  beta_zscore_a <- coef(fit)[2,3]   # standardized beta coefficient for attribute a
-  beta_0 <- fit$coefficients[1,1]   # beta for intercept, row 1 is inercept, col 1 is raw beta
-  pval_0 <- fit$coefficients[1,4]   # p for intercept, row 1 is intercept, col 4 is p-val
-  # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
-  pval_beta_a <- pt(beta_zscore_a, res_df, lower = FALSE)  
-  # close to fit$coefficients[2,4]? p-value for attribute beta, pval.a?
-  stats.vec <- c(pval_beta_a, beta_a, beta_zscore_a, beta_0, pval_0)
+  stats.vec <- data.frame(pval.att = pt(coef(fit)[2, tcol], res_df, lower = FALSE), 
+                 # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
+                 beta.raw.att = coef(fit)[2, coef],   # for attribute a, raw, slope (not standardized)
+                 beta.Z.att = coef(fit)[2, tcol],     # standardized beta coefficient for attribute a
+                 beta.0 = coef(fit)[1, coef],         # beta for intercept, row 1 is inercept, col 1 is raw beta
+                 pval.0 = coef(fit)[1, pcol])         # p for intercept, row 1 is intercept, col 4 is p-val
 
   if (regression.type=="lm"){
-    stats.vec <- c(stats.vec, R_sqr = fit$r.squared)}
+    stats.vec <- data.frame(stats.vec, R.sqr = fit$r.squared)}
   
   return(stats.vec)
 }
@@ -101,12 +105,8 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
-    pheno.vec <- dataset[,outcome] # get phenotype
-    if (is.character(outcome)){ # example column name: outcome="qtrait"
-      attr.mat <- dataset[ , !(names(dataset) %in% outcome)]  # drop the outcome/phenotype
-    } else { # example column index: outcome=101
-      attr.mat <- dataset[ , -outcome]  # drop the outcome/phenotype  
-    }
+    pheno.vec <- dataset[, outcome] # get phenotype
+    attr.mat <- dataset %>% dplyr::select(- outcome) # outcome = "qtrait" or 101
   } else { # user specifies a separate phenotype vector
     pheno.vec <- outcome # assume users provides a separate outcome data vector
     attr.mat <- dataset # assumes dataset only contains attributes/predictors
@@ -128,7 +128,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
                                          attr_removal_vec_from_dist_calc=rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
-  if (neighbor.sampling=="unique"){
+  if (neighbor.sampling == "unique"){
     if (verbose){
       cat("Extracting unique neighbors.\n")
     }
@@ -165,7 +165,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
   ##### run npdr, each attribute is a list, then we do.call rbind to a matrix
-  npdr.stats.list <- vector("list", num.samp) # initialize
+  npdr.stats.list <- vector("list", num.attr) # initialize
   for (attr.idx in seq(1, num.attr)){
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
@@ -188,63 +188,32 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
         Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
         NN.covar.vals <- covar.vals[neighbor.pairs.idx[,2]]
         covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals, diff.type=covar.diff.type[covar.col])
-        #covar.diff.list[[covar.col]] <- covar.diff.vec
         # add covar diff vector to data.frame
         # these covars will be included in each attribute's model
         if (is.null(colnames(covars)[covar.col])){  # if covar vector has no column name, give it one
-          covar.name <- paste("cov",covar.col,sep="") # cov1, etc.
-        } else{
+          covar.name <- paste("cov", covar.col, sep="") # cov1, etc.
+        } else {
           covar.name <- colnames(covars)[covar.col] # else get the name from covars
         }
         design.matrix.df$temp <- covar.diff.vec  # add the diff covar to the design matrix data frame
         colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
       }
-      # covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix
     }
     # utility function: RUN regression
     # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type, speedy = speedy)
+    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type, speedy = speedy) 
   } # end of for loop, regression done for each attribute
-  if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, including intercept): ")
-               cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," columns.\n", sep="")
-  }
   
-  if (regression.type!="glmnet"){ # sort and format output if you did regular npdr
-    # combine non-glmnet result lists into a matrix
-    npdr.stats.attr_ordered.mat <- do.call(rbind, npdr.stats.list)
-    # rownames
-    if (!is.null(colnames(attr.mat))){
-      # add attribute names to stats/results matrix if the data matrix contains them
-      rownames(npdr.stats.attr_ordered.mat) <- colnames(attr.mat)
-    } else {
-      message("If you have attribute names, add them to colnames of input data.")
-    }
-    
-    # attribute p-values
-    # relies on first column [, 1] being the p-value for now
-    # later first columns becomes att and adjusted p-value
-    attr.pvals <- npdr.stats.attr_ordered.mat[, 1]
-    # order-index for sorted attribute-beta p-values
-    attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
-    # adjust p-values using Bonferroni (default)
-    attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=padj.method)
-    
-    # order by attribute p-value
-    npdr.stats.pval_ordered.mat <- npdr.stats.attr_ordered.mat[attr.pvals.order.idx, ]
-    # prepend adjused attribute p-values to first column
-    npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
-    # prepend attribute column (att)
-    attributes.col <- as.character(rownames(npdr.stats.pval_ordered.mat))
-    npdr.stats.pval_ordered.mat <- cbind(data.frame(att=attributes.col, stringsAsFactors=FALSE), 
-                                         data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
-    if (regression.type=="lm"){# stats colnames for lm
-      colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
-                                                    "beta.0", "pval.0", "R.sqr")
-    } else { # stats columns for glm-binomial
-     colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
-    }
-    # dataframe final output for regular npdr
-    npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
+  
+  if (regression.type!="glmnet"){ # combine non-glmnet result lists into a matrix
+    # sort and format output if you did regular npdr
+    npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
+    npdr.stats.df <- npdr.stats.attr.mat %>%
+      mutate(att = colnames(attr.mat), # add an attribute column
+             pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
+      ) %>% arrange(pval.adj) %>% # order by attribute p-value 
+      dplyr::select(att, pval.adj, everything()) %>% # reorder columns
+      as.data.frame() # convert tibbles to df -- can we remove this step?
     
   } else { # Here we add an option npdrNET regression.type="glmnet"
           # Need to create a data matrix with each column as a vector of diffs for each attribute.
