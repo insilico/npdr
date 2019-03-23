@@ -22,7 +22,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy 
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
     res_df <- mod$df
-  } else { # non-speedy version -- but why?
+  } else { # non-speedy version -- but why? https://media.giphy.com/media/1M9fmo1WAFVK0/giphy.gif
     if (regression.type=="lm"){
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
@@ -30,7 +30,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy 
     }
     res_df <- mod$df.residual
   }
-  # fit <- summary(mod)
+  fit <- summary(mod)
   beta_a <- coef(fit)[2,1]          # beta_a for attribute a, raw, slope (not standardized)
   beta_zscore_a <- coef(fit)[2,3]   # standardized beta coefficient for attribute a
   beta_0 <- fit$coefficients[1,1]   # beta for intercept, row 1 is inercept, col 1 is raw beta
