@@ -85,7 +85,7 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
-#' @param attr_removal_vec_from_dist_calc attributes for removal (possible confounders) from the distance matrix calculation. 
+#' @param att_to_remove attributes for removal (possible confounders) from the distance matrix calculation. 
 #' 
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
@@ -104,15 +104,15 @@ nearestNeighbors <- function(attr.mat,
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
                              neighbor.sampling = "none",
-                             attr_removal_vec_from_dist_calc=c()){
+                             att_to_remove=c()){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   
-  if (!is.null(attr_removal_vec_from_dist_calc)){ 
+  if (!is.null(att_to_remove)){ 
     # remove attributes (possible confounders) from distance matrix calculation
     tryCatch(
       attr.mat <- attr.mat %>% data.frame() %>% 
-        select(- attr_removal_vec_from_dist_calc), 
+        select(- att_to_remove), 
       error = function(c) 'The attribute to remove does not exist.'
     )
   }
@@ -135,7 +135,7 @@ nearestNeighbors <- function(attr.mat,
       Ri.int <- as.integer(Ri)
       Ri.nearest.idx <- dist.mat %>%
         dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-        rownames_to_column() %>% # push the neighbors from rownames to columns
+        tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
         top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
         pull(rowname) %>% # get the neighbors
         as.integer() # convert from string (rownames - not factors) to integers
