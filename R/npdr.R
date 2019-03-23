@@ -157,10 +157,10 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
   NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
   if (regression.type == "lm"){
-    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs", speedy = speedy)
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
   } else { #regression.type == "binomial"
     # create pheno diff vector for logistic regression (match-mismatch or hit-miss)  
-    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch", speedy = speedy)
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
     # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
@@ -170,7 +170,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type, speedy = speedy)
+    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
     # model data.frame to go into lm or glm-binomial
     design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
                                    pheno.diff.vec = pheno.diff.vec)
@@ -203,7 +203,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     }
     # utility function: RUN regression
     # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type)
+    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type, speedy = speedy)
   } # end of for loop, regression done for each attribute
   if (verbose){cat("Size of design matrices (phenotype + attribute + covariates, including intercept): ")
                cat(nrow(design.matrix.df)," diff-pairs by ", ncol(design.matrix.df)," columns.\n", sep="")
@@ -254,20 +254,20 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       attr.vals <- attr.mat[, attr.idx]
       Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
       NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type, speedy = speedy)
+      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
       attr.diff.mat[,attr.idx] <- attr.diff.vec
     }
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
     if (glmnet.family=="binomial"){
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch", speedy = speedy)
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
       pheno.diff.vec <- as.factor(pheno.diff.vec)
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
                                lower.limits=glmnet.lower, type.measure="class")
     } else { # "gaussian"
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs", speedy = speedy)
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
       # Run glmnet on the diff attribute columns
       npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
                                lower.limits=glmnet.lower, type.measure="mse")
