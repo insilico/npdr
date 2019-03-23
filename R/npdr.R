@@ -74,10 +74,11 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
 #' @param covar.diff.type string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).
 #' @param glmnet.alpha penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2) 
 #' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default 
-#' @param glment.family "binomial" for logistic regression, "gaussian" for regression
+#' @param use.glmnet logical, whether glmnet is employed
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
+#' @param speedy logical, whether regression is run with speedlm or speedglm
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
 #' @examples
@@ -99,7 +100,7 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
 npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="numeric-abs",
                     nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
                     covars="none", covar.diff.type="match-mismatch",
-                    glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", 
+                    glmnet.alpha=1, glmnet.lower=0, use.glmnet = FALSE, 
                     rm.attr.from.dist=c(), neighbor.sampling="none",
                     padj.method="bonferroni", verbose=FALSE, speedy = FALSE){
   ##### parse the commandline 
@@ -123,9 +124,10 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     cat("Finding nearest neighbor pairs.\n")
   }
   start_time <- Sys.time()                 
-  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method=nbd.method, nb.metric=nbd.metric, 
-                                         sd.frac = msurf.sd.frac, k=knn,
-                                         attr_removal_vec_from_dist_calc=rm.attr.from.dist)
+  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method = nbd.method, 
+                                         nb.metric = nbd.metric, 
+                                         sd.frac = msurf.sd.frac, k = knn,
+                                         att_to_remove = rm.attr.from.dist)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
   if (neighbor.sampling == "unique"){
@@ -164,19 +166,25 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
     # the reference group is the hit group, so the logistic probability is prob of a pair being a miss
     pheno.diff.vec <- as.factor(pheno.diff.vec)
   }
-  ##### run npdr, each attribute is a list, then we do.call rbind to a matrix
+  
+  # ----------------------------------------
+  # run npdr, each attribute produces a list
   npdr.stats.list <- vector("list", num.attr) # initialize
+  attr.diff.mat <- matrix(0, nrow = nrow(neighbor.pairs.idx), ncol = num.attr)
+  # for npdrnet later, need matrix because npdrNET operates on all attributes at once
+  
   for (attr.idx in seq(1, num.attr)){
     attr.vals <- attr.mat[, attr.idx]
     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
     NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
     attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+    attr.diff.mat[, attr.idx] <- attr.diff.vec
     # model data.frame to go into lm or glm-binomial
     design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
                                    pheno.diff.vec = pheno.diff.vec)
     ### diff vector for each covariate
     # optional covariates to add to design.matrix.df model
-    if (length(covars)>1){ # if covars is a vector or matrix
+    if (length(covars) > 1){ # if covars is a vector or matrix
       if (regression.type=="glmnet"){
         message("penalized npdrNET does not currently support covariates.")
       }
@@ -199,13 +207,12 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
         colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
       }
     }
-    # utility function: RUN regression
     # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
     npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type, speedy = speedy) 
   } # end of for loop, regression done for each attribute
   
   
-  if (regression.type!="glmnet"){ # combine non-glmnet result lists into a matrix
+  if (use.glmnet == FALSE){ # combine non-glmnet result lists into a matrix
     # sort and format output if you did regular npdr
     npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
     npdr.stats.df <- npdr.stats.attr.mat %>%
@@ -215,37 +222,23 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       dplyr::select(att, pval.adj, everything()) %>% # reorder columns
       as.data.frame() # convert tibbles to df -- can we remove this step?
     
-  } else { # Here we add an option npdrNET regression.type="glmnet"
-          # Need to create a data matrix with each column as a vector of diffs for each attribute.
-          # Need matrix because npdrNET operates on all attributes at once.
-    attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
-    for (attr.idx in seq(1, num.attr)){
-      attr.vals <- attr.mat[, attr.idx]
-      Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
-      NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
-      attr.diff.mat[,attr.idx] <- attr.diff.vec
-    }
-    #
-    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
-    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    if (glmnet.family=="binomial"){
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-      pheno.diff.vec <- as.factor(pheno.diff.vec)
-      # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
-                               lower.limits=glmnet.lower, type.measure="class")
+  } else { # Here we add an option npdrNET use.glmnet = TRUE
+    # Run glmnet on the diff attribute columns
+    if (regression.type == "binomial"){
+      npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                 alpha = glmnet.alpha, family = "binomial",
+                                 lower.limits = glmnet.lower, type.measure = "class")
     } else { # "gaussian"
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
-      # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
-                               lower.limits=glmnet.lower, type.measure="mse")
+      npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                 alpha = glmnet.alpha, family = "gaussian",
+                                 lower.limits = glmnet.lower, type.measure = "mse")
     }
-    npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
+    npdrNET.coeffs <- as.matrix(predict(npdrNET.model, type = "coefficients"))
     row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
-    glmnet.sorted<-as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs),decreasing = T),],ncol=1) # sort
-    npdr.stats.df<-data.frame(scores=glmnet.sorted)
-  } # end glmnetSTIR option
-  
+    glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T),], ncol = 1) # sort
+    npdr.stats.df <- data.frame(scores = glmnet.sorted) 
+    # %>%
+      # tibble::rownames_to_column('att')
+  } # end glmnetNPDR option
   return(npdr.stats.df)
 }
