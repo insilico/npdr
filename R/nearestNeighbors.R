@@ -134,7 +134,7 @@ nearestNeighbors <- function(attr.mat,
     for (Ri in colnames(dist.mat)){ # for each sample Ri
       Ri.int <- as.integer(Ri)
       Ri.nearest.idx <- dist.mat %>%
-        select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+        dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
         rownames_to_column() %>% # push the neighbors from rownames to columns
         top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
         pull(rowname) %>% # get the neighbors
@@ -166,9 +166,9 @@ nearestNeighbors <- function(attr.mat,
     for (Ri in colnames(dist.mat)){ # for each sample Ri
       Ri.int <- as.integer(Ri)
       Ri.nearest.idx <- dist.mat %>%
-        select(!!Ri) %>%
+        dplyr::select(!!Ri) %>%
         rownames_to_column() %>% 
-        filter(!!sym(Ri) < Ri.radius[Ri]) %>%
+        filter((!!sym(Ri)) < Ri.radius[Ri]) %>%
         pull(rowname) %>%
         as.integer()
   
