@@ -31,7 +31,7 @@ diffRegression <- function(design.matrix.df, regression.type, speedy) {
     res_df <- mod$df.residual
   }
   fit <- summary(mod)
-  coef_mat <- fit %>% coef() %>% mutate_if(is.factor, ~ as.numeric(as.character(.x)))
+  coef_mat <- coef(fit) %>% as.data.frame() %>% mutate_if(is.factor, ~ as.numeric(as.character(.x)))
   stats.vec <- data.frame(pval.att = pt(coef_mat[2, 3], res_df, lower = FALSE), 
                  # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
                  beta.raw.att = coef_mat[2, 1],   # for attribute a, raw, slope (not standardized)
