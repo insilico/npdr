@@ -43,7 +43,7 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
 #' @export
 npdrDistances <- function(attr.mat, metric="manhattan"){
   # Compute distance matrix between all samples (rows)
-  # reSTIR default is numeric manhattan ("manhattan"), max-min scaling is not needed for stir
+  # default is numeric manhattan ("manhattan"), max-min scaling is only needed for relief
   if (metric == "hamming"){
     distance.mat <- hamming.binary(attr.mat)
   } else if (metric == "allele-sharing-manhattan"){
@@ -72,6 +72,51 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
   distance.mat
 }
 
+
+#=========================================================================#
+#' npdrFastDistances
+#'
+#' Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors(). 
+#' Note: Probably best to standardize data before manhattan and euclidean.
+#'
+#' @param attr.mat m x p matrix of m instances and p attributes 
+#' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"}, 
+#' versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).
+#' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
+#' @examples
+#' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
+#' @export
+npdrFastDistances <- function(attr.mat, metric="manhattan"){
+  # require installing R package wordspace
+  # motivation: http://r.789695.n4.nabble.com/dist-function-in-R-is-very-slow-td4738317.html
+  if (metric == "hamming"){
+    distance.mat <- hamming.binary(attr.mat)
+  } else if (metric == "allele-sharing-manhattan"){
+    # allele-sharing-manhattan, AM for SNPs
+    attr.mat.scale <- attr.mat / 2
+    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "manhattan")
+  } else if (metric == "relief-scaled-manhattan"){
+    # value of metric, euclidean, manhattan or maximum
+    maxminVec <- attr.range(attr.mat)
+    minVec <- apply(attr.mat, 2, function(x) {min(x)})
+    attr.mat.centered <- t(attr.mat) - minVec
+    attr.mat.scale <- t(attr.mat.centered / maxminVec)
+    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "manhattan")
+  } else if (metric == "relief-scaled-euclidean"){
+    # value of metric, euclidean, manhattan or maximum
+    maxminVec <- attr.range(attr.mat)
+    minVec <- apply(attr.mat, 2, min)
+    attr.mat.centered <- t(attr.mat) - minVec
+    attr.mat.scale <- t(attr.mat.centered / maxminVec)
+    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "euclidean")
+  } else if (metric=="euclidean"){
+    distance.mat <- wordspace::dist.matrix(attr.mat, method = "euclidean")
+  } else {
+    distance.mat <- wordspace::dist.matrix(attr.mat, method = "manhattan")
+  }
+  distance.mat
+}
+
 #=========================================================================#
 #' nearestNeighbors
 #'
@@ -86,6 +131,7 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
 #' @param att_to_remove attributes for removal (possible confounders) from the distance matrix calculation. 
+#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace
 #' 
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
@@ -99,15 +145,16 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
 #' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method="relieff", nb.metric = "manhattan", k=10)
 #'
 #' @export
-nearestNeighbors <- function(attr.mat, 
+nearestNeighbors <- function(attr.mat,
                              nb.method = "multisurf", 
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
                              neighbor.sampling = "none",
-                             att_to_remove=c()){
+                             att_to_remove=c(), fast.dist, nn.parallel){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
-  
+  num.samp <- nrow(attr.mat)
+
   if (!is.null(att_to_remove)){ 
     # remove attributes (possible confounders) from distance matrix calculation
     tryCatch(
@@ -117,10 +164,16 @@ nearestNeighbors <- function(attr.mat,
     )
   }
 
-  dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
-    npdrDistances(metric = nb.metric) %>%
-    as.data.frame()
-  num.samp <- nrow(attr.mat)
+  if (fast.dist == T){
+    dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
+      npdrFastDistances(metric = nb.metric) %>%
+      as.data.frame()
+    colnames(dist.mat) <- as.character(seq.int(num.samp))
+  } else {
+    dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
+      npdrDistances(metric = nb.metric) %>%
+      as.data.frame()
+  }
 
   if (nb.method == "relieff"){  
     if (k==0){ # if no k specified or value 0
@@ -130,22 +183,45 @@ nearestNeighbors <- function(attr.mat,
       k <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)  # uses sd.frac
     }
     
-    Ri.nearestPairs.list <- vector("list", num.samp)
-    for (Ri in colnames(dist.mat)){ # for each sample Ri
-      Ri.int <- as.integer(Ri)
-      Ri.nearest.idx <- dist.mat %>%
-        dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-        tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
-        top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
-        filter((!!sym(Ri)) > 0) %>%
-        pull(rowname) %>% # get the neighbors
-        as.integer() # convert from string (rownames - not factors) to integers
-  
-      if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
-        # bind automatically repeated Ri, make sure to skip Ri self
-        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
+    if (nn.parallel == TRUE){
+      avai.cors <- parallel::detectCores() - 2
+      cl <- parallel::makeCluster(avai.cors)
+      doParallel::registerDoParallel(cl)
+      Ri_NN.idxmat <- foreach::foreach(
+        Ri.int = seq.int(num.samp), .combine = 'rbind', .packages=c('dplyr', 'tibble')) %dopar% {
+        Ri <- as.character(Ri.int)
+        Ri.nearest.idx <- dist.mat %>%
+          dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+          tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
+          top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
+          filter((!!sym(Ri)) > 0) %>%
+          pull(rowname) %>% # get the neighbors
+          as.integer() # convert from string (rownames - not factors) to integers
+        
+        return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
+      ## [1] 1.000000 1.414214 1.732051
+      parallel::stopCluster(cl)
+      
+    } else {
+      Ri.nearestPairs.list <- vector("list", num.samp)
+      for (Ri in colnames(dist.mat)){ # for each sample Ri
+        Ri.int <- as.integer(Ri)
+        Ri.nearest.idx <- dist.mat %>%
+          dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+          tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
+          top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
+          filter((!!sym(Ri)) > 0) %>%
+          pull(rowname) %>% # get the neighbors
+          as.integer() # convert from string (rownames - not factors) to integers
+        
+        if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
+          # bind automatically repeated Ri, make sure to skip Ri self
+          Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
+        }
+      }     
     }
+
     
   } else {
     
@@ -161,25 +237,46 @@ nearestNeighbors <- function(attr.mat,
       Ri.radius <- colSums(dist.mat)/(num.samp - 1) - sd.frac*sd.vec # use adaptive radius
     }
     
-    # put each Ri's nbd in a list then rbind them at the end with bind_rows()
-    Ri.nearestPairs.list <- vector("list", num.samp) # initialize list
-    
-    for (Ri in colnames(dist.mat)){ # for each sample Ri
-      Ri.int <- as.integer(Ri)
-      Ri.nearest.idx <- dist.mat %>%
-        dplyr::select(!!Ri) %>%
-        rownames_to_column() %>% 
-        filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-        pull(rowname) %>%
-        as.integer()
-  
-      if (!is.null(Ri.nearest.idx)){ # similar to relieff
-        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
+    if (nn.parallel == TRUE){
+      avai.cors <- parallel::detectCores() - 2
+      cl <- parallel::makeCluster(avai.cors)
+      doParallel::registerDoParallel(cl)
+      Ri_NN.idxmat <- foreach::foreach(
+        Ri.int = seq.int(num.samp), .combine = 'rbind', .packages=c('dplyr', 'tibble')) %dopar% {
+         Ri <- as.character(Ri.int)
+         Ri.nearest.idx <- dist.mat %>%
+           dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+           tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
+           dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
+           dplyr::pull(rowname) %>% # get the neighbors
+           as.integer() # convert from string (rownames - not factors) to integers
+         
+         return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
+      
+      parallel::stopCluster(cl)
+      
+    } else {
+      # put each Ri's nbd in a list then rbind them at the end with bind_rows()
+      Ri.nearestPairs.list <- vector("list", num.samp) # initialize list
+      
+      for (Ri in colnames(dist.mat)){ # for each sample Ri
+        Ri.int <- as.integer(Ri)
+        Ri.nearest.idx <- dist.mat %>%
+          dplyr::select(!!Ri) %>%
+          rownames_to_column() %>% 
+          filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
+          pull(rowname) %>%
+          as.integer()
+    
+        if (!is.null(Ri.nearest.idx)){ # similar to relieff
+          Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
+        }
+      }
+      Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
     }
   }
   
-  Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
   
   if (neighbor.sampling=="unique"){
     # if you only want to return unique neighbors
