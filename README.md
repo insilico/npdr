@@ -35,10 +35,10 @@ To install the `tidyverse` collection of R packages:
 ```
 install.packages('tidyverse')
 ```
-To set `speedy = TRUE` or `use.glmnet = TRUE` please install the `speedglm` and `glmnet` packages:
+To set `fast.reg = TRUE` or `fast.dist = TRUE` or `use.glmnet = TRUE`, please install the `speedglm` and `glmnet` packages:
 
 ```
-install.packages(c('speedglm', 'glmnet'))
+install.packages(c('speedglm', 'wordspace', 'glmnet'))
 ```
 
 If an issue arises with updating `openssl`, try updating it on your own system, e.g. for MacOS:
