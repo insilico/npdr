@@ -11,11 +11,11 @@
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type, speedy) {
+diffRegression <- function(design.matrix.df, regression.type, fast.reg) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
-  if (speedy == TRUE){
+  if (fast.reg == TRUE){
     if (regression.type == "lm"){
       mod <- speedlm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
@@ -73,7 +73,7 @@ diffRegression <- function(design.matrix.df, regression.type, speedy) {
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
-#' @param speedy logical, whether regression is run with speedlm or speedglm
+#' @param fast.reg logical, whether regression is run with speedlm or speedglm
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
 #' @examples
@@ -97,7 +97,8 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
                     covars="none", covar.diff.type="match-mismatch",
                     glmnet.alpha=1, glmnet.lower=0, use.glmnet = FALSE, 
                     rm.attr.from.dist=c(), neighbor.sampling="none",
-                    padj.method="bonferroni", verbose=FALSE, speedy = FALSE){
+                    padj.method="bonferroni", verbose=FALSE, fast.reg = FALSE, fast.dist = FALSE,
+                    nn.parallel = FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -122,7 +123,9 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method = nbd.method, 
                                          nb.metric = nbd.metric, 
                                          sd.frac = msurf.sd.frac, k = knn,
-                                         att_to_remove = rm.attr.from.dist)
+                                         att_to_remove = rm.attr.from.dist,
+                                         fast.dist = fast.dist,
+                                         nn.parallel = nn.parallel)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
   if (neighbor.sampling == "unique"){
@@ -203,7 +206,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       }
     }
     # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, speedy = speedy) 
+    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
   } # end of for loop, regression done for each attribute
   
   
