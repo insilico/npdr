@@ -11,19 +11,19 @@
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type="binomial", speedy) {
+diffRegression <- function(design.matrix.df, regression.type, speedy) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
   if (speedy == TRUE){
-    if (regression.type=="lm"){
+    if (regression.type == "lm"){
       mod <- speedlm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
     res_df <- mod$df
   } else { # non-speedy version -- but why?
-    if (regression.type=="lm"){
+    if (regression.type == "lm"){
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
       mod <- glm(pheno.diff.vec ~ ., family = binomial(link = logit), data = design.matrix.df)
@@ -31,14 +31,13 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
     res_df <- mod$df.residual
   }
   fit <- summary(mod)
-  coef_mat <- fit %>% coef()
+  coef_mat <- fit %>% coef() %>% mutate_if(is.factor, ~ as.numeric(as.character(.x)))
   stats.vec <- data.frame(pval.att = pt(coef_mat[2, 3], res_df, lower = FALSE), 
                  # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
                  beta.raw.att = coef_mat[2, 1],   # for attribute a, raw, slope (not standardized)
                  beta.Z.att = coef_mat[2, 3],     # standardized beta coefficient for attribute a
                  beta.0 = coef_mat[1, 1],         # beta for intercept, row 1 is inercept, col 1 is raw beta
-                 pval.0 = as.numeric(as.character(coef_mat[1, 4])))
-                 # p for intercept, row 1 is intercept, col 4 is p-val
+                 pval.0 = coef_mat[1, 4])         # p for intercept, row 1 is intercept, col 4 is p-val
 
   if (regression.type=="lm"){
     stats.vec <- data.frame(stats.vec, R.sqr = fit$r.squared)}
@@ -204,7 +203,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
       }
     }
     # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type=regression.type, speedy = speedy) 
+    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, speedy = speedy) 
   } # end of for loop, regression done for each attribute
   
   
