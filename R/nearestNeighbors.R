@@ -137,12 +137,13 @@ nearestNeighbors <- function(attr.mat,
         dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
         tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
         top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
+        filter((!!sym(Ri)) > 0) %>%
         pull(rowname) %>% # get the neighbors
         as.integer() # convert from string (rownames - not factors) to integers
   
       if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
         # bind automatically repeated Ri, make sure to skip Ri self
-        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx[-1])
+        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
       }
     }
     
@@ -168,12 +169,12 @@ nearestNeighbors <- function(attr.mat,
       Ri.nearest.idx <- dist.mat %>%
         dplyr::select(!!Ri) %>%
         rownames_to_column() %>% 
-        filter((!!sym(Ri)) < Ri.radius[Ri]) %>%
+        filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
         pull(rowname) %>%
         as.integer()
   
       if (!is.null(Ri.nearest.idx)){ # similar to relieff
-        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx[-1])
+        Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
       }
     }
   }
