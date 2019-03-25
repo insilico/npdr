@@ -22,9 +22,6 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
     res_df <- mod$df
-    tcol <- 't'
-    coef <- 'coef'
-    pcol <- 'p.value'
   } else { # non-speedy version -- but why?
     if (regression.type=="lm"){
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
@@ -32,17 +29,16 @@ diffRegression <- function(design.matrix.df, regression.type="binomial", speedy)
       mod <- glm(pheno.diff.vec ~ ., family = binomial(link = logit), data = design.matrix.df)
     }
     res_df <- mod$df.residual
-    tcol <- 't value'
-    coef <- 'Estimate'
-    pcol <- 'Pr(>|t|)'
   }
   fit <- summary(mod)
-  stats.vec <- data.frame(pval.att = pt(coef(fit)[2, tcol], res_df, lower = FALSE), 
+  coef_mat <- fit %>% coef()
+  stats.vec <- data.frame(pval.att = pt(coef_mat[2, 3], res_df, lower = FALSE), 
                  # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
-                 beta.raw.att = coef(fit)[2, coef],   # for attribute a, raw, slope (not standardized)
-                 beta.Z.att = coef(fit)[2, tcol],     # standardized beta coefficient for attribute a
-                 beta.0 = coef(fit)[1, coef],         # beta for intercept, row 1 is inercept, col 1 is raw beta
-                 pval.0 = coef(fit)[1, pcol])         # p for intercept, row 1 is intercept, col 4 is p-val
+                 beta.raw.att = coef_mat[2, 1],   # for attribute a, raw, slope (not standardized)
+                 beta.Z.att = coef_mat[2, 3],     # standardized beta coefficient for attribute a
+                 beta.0 = coef_mat[1, 1],         # beta for intercept, row 1 is inercept, col 1 is raw beta
+                 pval.0 = as.numeric(as.character(coef_mat[1, 4])))
+                 # p for intercept, row 1 is intercept, col 4 is p-val
 
   if (regression.type=="lm"){
     stats.vec <- data.frame(stats.vec, R.sqr = fit$r.squared)}
