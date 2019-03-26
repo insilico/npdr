@@ -199,8 +199,8 @@ npdr <- function(outcome, dataset,
       } else {
         covar.name <- colnames(covars)[covar.col] # else get the name from covars
       }
-      colnames(covar.diff.df)[covar.col] <- covar.name # change variable name
       covar.diff.df <- data.frame(covar.diff.df, covar.diff.vec)
+      colnames(covar.diff.df)[covar.col] <- covar.name # change variable name
     }
   }
   
