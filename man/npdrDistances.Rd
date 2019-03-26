@@ -4,7 +4,7 @@
 \alias{npdrDistances}
 \title{npdrDistances}
 \usage{
-npdrDistances(attr.mat, metric = "manhattan")
+npdrDistances(attr.mat, metric = "manhattan", fast.dist = FALSE)
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}

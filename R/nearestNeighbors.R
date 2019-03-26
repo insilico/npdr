@@ -41,7 +41,13 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
 #' @examples
 #' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
 #' @export
-npdrDistances <- function(attr.mat, metric="manhattan"){
+npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE){
+  if (fast.dist) {
+    npdr.dist.fn <- wordspace::dist.matrix
+  } else {
+    npdr.dist.fn <- dist
+  }
+  
   # Compute distance matrix between all samples (rows)
   # default is numeric manhattan ("manhattan"), max-min scaling is only needed for relief
   if (metric == "hamming"){
@@ -49,73 +55,29 @@ npdrDistances <- function(attr.mat, metric="manhattan"){
   } else if (metric == "allele-sharing-manhattan"){
     # allele-sharing-manhattan, AM for SNPs
     attr.mat.scale <- attr.mat / 2
-    distance.mat <- as.matrix(dist(attr.mat.scale, method = "manhattan"))
+    distance.mat <- npdr.dist.fn(attr.mat.scale, method = "manhattan")
   } else if (metric == "relief-scaled-manhattan"){
     # value of metric, euclidean, manhattan or maximum
     maxminVec <- attr.range(attr.mat)
     minVec <- apply(attr.mat, 2, function(x) {min(x)})
     attr.mat.centered <- t(attr.mat) - minVec
     attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- as.matrix(dist(attr.mat.scale, method = "manhattan"))
+    distance.mat <- npdr.dist.fn(attr.mat.scale, method = "manhattan")
   } else if (metric == "relief-scaled-euclidean"){
     # value of metric, euclidean, manhattan or maximum
     maxminVec <- attr.range(attr.mat)
     minVec <- apply(attr.mat, 2, min)
     attr.mat.centered <- t(attr.mat) - minVec
     attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- as.matrix(dist(attr.mat.scale, method = "euclidean"))
-  } else if (metric=="euclidean"){
-    distance.mat <- as.matrix(dist(attr.mat, method = "euclidean"))
+    distance.mat <- npdr.dist.fn(attr.mat.scale, method = "euclidean")
+  } else if (metric == "euclidean"){
+    distance.mat <- npdr.dist.fn(attr.mat, method = "euclidean")
   } else {
-    distance.mat <- as.matrix(dist(attr.mat, method = "manhattan"))
+    distance.mat <- npdr.dist.fn(attr.mat, method = "manhattan")
   }
-  distance.mat
+  as.matrix(distance.mat)
 }
 
-
-#=========================================================================#
-#' npdrFastDistances
-#'
-#' Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors(). 
-#' Note: Probably best to standardize data before manhattan and euclidean.
-#'
-#' @param attr.mat m x p matrix of m instances and p attributes 
-#' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"}, 
-#' versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).
-#' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
-#' @examples
-#' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
-#' @export
-npdrFastDistances <- function(attr.mat, metric="manhattan"){
-  # require installing R package wordspace
-  # motivation: http://r.789695.n4.nabble.com/dist-function-in-R-is-very-slow-td4738317.html
-  if (metric == "hamming"){
-    distance.mat <- hamming.binary(attr.mat)
-  } else if (metric == "allele-sharing-manhattan"){
-    # allele-sharing-manhattan, AM for SNPs
-    attr.mat.scale <- attr.mat / 2
-    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "manhattan")
-  } else if (metric == "relief-scaled-manhattan"){
-    # value of metric, euclidean, manhattan or maximum
-    maxminVec <- attr.range(attr.mat)
-    minVec <- apply(attr.mat, 2, function(x) {min(x)})
-    attr.mat.centered <- t(attr.mat) - minVec
-    attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "manhattan")
-  } else if (metric == "relief-scaled-euclidean"){
-    # value of metric, euclidean, manhattan or maximum
-    maxminVec <- attr.range(attr.mat)
-    minVec <- apply(attr.mat, 2, min)
-    attr.mat.centered <- t(attr.mat) - minVec
-    attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- wordspace::dist.matrix(attr.mat.scale, method = "euclidean")
-  } else if (metric=="euclidean"){
-    distance.mat <- wordspace::dist.matrix(attr.mat, method = "euclidean")
-  } else {
-    distance.mat <- wordspace::dist.matrix(attr.mat, method = "manhattan")
-  }
-  distance.mat
-}
 
 #=========================================================================#
 #' nearestNeighbors
@@ -131,8 +93,8 @@ npdrFastDistances <- function(attr.mat, metric="manhattan"){
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
 #' @param att_to_remove attributes for removal (possible confounders) from the distance matrix calculation. 
-#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace
-#' 
+#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
+#' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
 #' @examples
@@ -150,7 +112,7 @@ nearestNeighbors <- function(attr.mat,
                              nb.metric = "manhattan", 
                              sd.vec = NULL, sd.frac = 0.5, k=0,
                              neighbor.sampling = "none",
-                             att_to_remove=c(), fast.dist, nn.parallel){
+                             att_to_remove=c(), fast.dist = FALSE, dopar.nn = FALSE){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp <- nrow(attr.mat)
@@ -164,26 +126,20 @@ nearestNeighbors <- function(attr.mat,
     )
   }
 
-  if (fast.dist == T){
-    dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
-      npdrFastDistances(metric = nb.metric) %>%
-      as.data.frame()
-    colnames(dist.mat) <- as.character(seq.int(num.samp))
-  } else {
-    dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
-      npdrDistances(metric = nb.metric) %>%
-      as.data.frame()
-  }
+  dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
+    npdrDistances(metric = nb.metric, fast.dist = fast.dist) %>%
+    as.data.frame()
+  colnames(dist.mat) <- seq.int(num.samp)
 
   if (nb.method == "relieff"){  
-    if (k==0){ # if no k specified or value 0
+    if (k == 0){ # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
       k <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)  # uses sd.frac
     }
     
-    if (nn.parallel == TRUE){
+    if (dopar.nn == TRUE){
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -210,9 +166,9 @@ nearestNeighbors <- function(attr.mat,
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
           tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
-          top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
-          filter((!!sym(Ri)) > 0) %>%
-          pull(rowname) %>% # get the neighbors
+          dplyr::top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
+          dplyr::filter((!!sym(Ri)) > 0) %>%
+          dplyr::pull(rowname) %>% # get the neighbors
           as.integer() # convert from string (rownames - not factors) to integers
         
         if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
@@ -222,7 +178,6 @@ nearestNeighbors <- function(attr.mat,
       }     
     }
 
-    
   } else {
     
     if (nb.method == "surf"){
@@ -237,7 +192,7 @@ nearestNeighbors <- function(attr.mat,
       Ri.radius <- colSums(dist.mat)/(num.samp - 1) - sd.frac*sd.vec # use adaptive radius
     }
     
-    if (nn.parallel == TRUE){
+    if (dopar.nn == TRUE){
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -253,7 +208,6 @@ nearestNeighbors <- function(attr.mat,
          
          return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
-      
       parallel::stopCluster(cl)
       
     } else {

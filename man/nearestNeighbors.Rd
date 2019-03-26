@@ -6,7 +6,8 @@
 \usage{
 nearestNeighbors(attr.mat, nb.method = "multisurf",
   nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0,
-  neighbor.sampling = "none", attr_removal_vec_from_dist_calc = c())
+  neighbor.sampling = "none", att_to_remove = c(), fast.dist = FALSE,
+  dopar.nn = FALSE)
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
@@ -22,7 +23,11 @@ The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by de
 
 \item{neighbor.sampling}{"none" or \code{"unique"} if you want to return only unique neighbor pairs}
 
-\item{attr_removal_vec_from_dist_calc}{attributes for removal (possible confounders) from the distance matrix calculation.}
+\item{att_to_remove}{attributes for removal (possible confounders) from the distance matrix calculation.}
+
+\item{fast.dist}{whether or not distance is computed by faster algorithm in wordspace, default as F}
+
+\item{dopar.nn}{whether or not neighborhood is computed in parallel, default as F}
 }
 \value{
 Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)

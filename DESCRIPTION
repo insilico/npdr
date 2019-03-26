@@ -1,9 +1,10 @@
 Package: npdr
 Title: Nearest-neighbor Projected-Distance Regression
 Version: 0.0.0.9000
-Authors@R: person("Brett", "McKinney", email = "brett.mckinney@gmail.com", role = c("aut", "cre"))
+Authors@R: c(person("Brett", "McKinney", email = "brett.mckinney@gmail.com", role = c("aut", "cre")),
+  person("Trang", "Le", email = "ttle@pennmedicine.upenn.edu", role = c("aut")))
 Description: What the package does (one paragraph).
-Depends: R (>= 3.4.1), tidyverse, speedglm
+Depends: R (>= 3.4.1), tidyverse, speedglm, doParallel, parallel, foreach
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
