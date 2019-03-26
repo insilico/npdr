@@ -259,7 +259,7 @@ npdr <- function(outcome, dataset,
     npdr.stats.df <- npdr.stats.attr.mat %>% 
       mutate(att = colnames(attr.mat), # add an attribute column
              pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
-      ) %>% arrange(pval.adj) %>% # order by attribute p-value 
+      ) %>% arrange(pval.att) %>% # order by attribute p-value 
       dplyr::select(att, pval.adj, everything()) %>% # reorder columns
       as.data.frame() # convert tibbles to df -- can we remove this step?
     
