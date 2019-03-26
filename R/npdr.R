@@ -5,13 +5,14 @@
 #'
 #' @param design.matrix.df Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.   
 #' @param regression.type (\code{"lm"}, \code{"binomial"}) 
+#' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @examples
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type, fast.reg) {
+diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.reg = FALSE) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
@@ -73,7 +74,10 @@ diffRegression <- function(design.matrix.df, regression.type, fast.reg) {
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
-#' @param fast.reg logical, whether regression is run with speedlm or speedglm
+#' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
+#' @param dopar.nn logical, whether or not neighborhood is computed in parallel, default as F
+#' @param dopar.reg logical, whether or not regression is run in parallel, default as F
+#' 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
 #' @examples
@@ -92,13 +96,17 @@ diffRegression <- function(design.matrix.df, regression.type, fast.reg) {
 #' # attributes with npdr adjusted p-value less than .05 
 #' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj<.05,]) # npdr p.adj<.05
 #' @export
-npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="numeric-abs",
-                    nbd.method="multisurf", nbd.metric = "manhattan", knn=0, msurf.sd.frac=0.5, 
-                    covars="none", covar.diff.type="match-mismatch",
-                    glmnet.alpha=1, glmnet.lower=0, use.glmnet = FALSE, 
-                    rm.attr.from.dist=c(), neighbor.sampling="none",
-                    padj.method="bonferroni", verbose=FALSE, fast.reg = FALSE, fast.dist = FALSE,
-                    nn.parallel = FALSE){
+#' 
+npdr <- function(outcome, dataset, 
+                 regression.type = "binomial", attr.diff.type = "numeric-abs",
+                 nbd.method = "multisurf", nbd.metric = "manhattan", 
+                 knn = 0, msurf.sd.frac = 0.5, covars = "none", 
+                 covar.diff.type = "match-mismatch",
+                 padj.method = "bonferroni", verbose = FALSE, 
+                 use.glmnet = FALSE, glmnet.alpha = 1, glmnet.lower = 0, 
+                 rm.attr.from.dist = c(), neighbor.sampling = "none",
+                 fast.reg = FALSE, fast.dist = FALSE,
+                 dopar.nn = FALSE, dopar.reg = FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -125,7 +133,7 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
                                          sd.frac = msurf.sd.frac, k = knn,
                                          att_to_remove = rm.attr.from.dist,
                                          fast.dist = fast.dist,
-                                         nn.parallel = nn.parallel)
+                                         dopar.nn = dopar.nn)
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
   if (neighbor.sampling == "unique"){
@@ -170,50 +178,81 @@ npdr <- function(outcome, dataset, regression.type="binomial", attr.diff.type="n
   npdr.stats.list <- vector("list", num.attr) # initialize
   attr.diff.mat <- matrix(0, nrow = nrow(neighbor.pairs.idx), ncol = num.attr)
   # for npdrnet later, need matrix because npdrNET operates on all attributes at once
-  
-  for (attr.idx in seq(1, num.attr)){
-    attr.vals <- attr.mat[, attr.idx]
-    Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
-    NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-    attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
-    attr.diff.mat[, attr.idx] <- attr.diff.vec
-    # model data.frame to go into lm or glm-binomial
-    design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
-                                   pheno.diff.vec = pheno.diff.vec)
-    ### diff vector for each covariate
-    # optional covariates to add to design.matrix.df model
-    if (length(covars) > 1){ # if covars is a vector or matrix
-      if (regression.type=="glmnet"){
-        message("penalized npdrNET does not currently support covariates.")
-      }
-      # default value is covar="none" (no covariates) which has length 1
-      covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
-      # covar.diff.type can be a vector of strings because each column of covars may be a different data type
-      for (covar.col in (1:length(covar.diff.type))){
-        covar.vals <- covars[, covar.col]
-        Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
-        NN.covar.vals <- covar.vals[neighbor.pairs.idx[,2]]
-        covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals, diff.type=covar.diff.type[covar.col])
-        # add covar diff vector to data.frame
-        # these covars will be included in each attribute's model
-        if (is.null(colnames(covars)[covar.col])){  # if covar vector has no column name, give it one
-          covar.name <- paste("cov", covar.col, sep="") # cov1, etc.
-        } else {
-          covar.name <- colnames(covars)[covar.col] # else get the name from covars
-        }
-        design.matrix.df$temp <- covar.diff.vec  # add the diff covar to the design matrix data frame
-        colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
-      }
+  if (length(covars) > 1){ # if covars is a vector or matrix
+    if (use.glmnet == TRUE){
+      message("penalized npdrNET does not currently support covariates.")
     }
-    # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-    npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
-  } # end of for loop, regression done for each attribute
-  
+    # default value is covar="none" (no covariates) which has length 1
+    covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
+    # covar.diff.type can be a vector of strings because each column of covars may be a different data type
+    covar.diff.df <- data.frame()
+    for (covar.col in (1:length(covar.diff.type))){
+      covar.vals <- covars[, covar.col]
+      Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
+      NN.covar.vals <- covar.vals[neighbor.pairs.idx[,2]]
+      covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals, 
+                                 diff.type = covar.diff.type[covar.col])
+      # add covar diff vector to data.frame
+      # these covars will be included in each attribute's model
+      if (is.null(colnames(covars)[covar.col])){  # if covar vector has no column name, give it one
+        covar.name <- paste("cov", covar.col, sep="") # cov1, etc.
+      } else {
+        covar.name <- colnames(covars)[covar.col] # else get the name from covars
+      }
+      colnames(covar.diff.df)[covar.col] <- covar.name # change variable name
+      covar.diff.df <- data.frame(covar.diff.df, covar.diff.vec)
+    }
+  }
   
   if (use.glmnet == FALSE){ # combine non-glmnet result lists into a matrix
-    # sort and format output if you did regular npdr
-    npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
-    npdr.stats.df <- npdr.stats.attr.mat %>%
+    if (dopar.reg) { # perform regressions in parallel
+      avai.cors <- parallel::detectCores() - 2
+      cl <- parallel::makeCluster(avai.cors)
+      doParallel::registerDoParallel(cl)
+      
+      npdr.stats.attr.mat <- foreach::foreach(
+        attr.idx = seq.int(num.attr), .combine = 'rbind', .packages = c('dplyr')) %dopar% {
+        attr.vals <- attr.mat[, attr.idx]
+        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+        attr.diff.mat[, attr.idx] <- attr.diff.vec
+        design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
+                                       pheno.diff.vec = pheno.diff.vec)
+        if (length(covars) > 1){ # if covars is a vector or matrix
+          design.matrix.df <- data.frame(design.matrix.df, covar.diff.df)
+        }
+        # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
+        return(diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg))
+      } # end of foreach loop, regression done in parallel
+      parallel::stopCluster(cl)
+      
+      
+    } else {
+      for (attr.idx in seq(1, num.attr)){
+        attr.vals <- attr.mat[, attr.idx]
+        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+        attr.diff.mat[, attr.idx] <- attr.diff.vec
+        # model data.frame to go into lm or glm-binomial
+        design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
+                                       pheno.diff.vec = pheno.diff.vec)
+        ### diff vector for each covariate
+        # optional covariates to add to design.matrix.df model
+        if (length(covars) > 1){ # if covars is a vector or matrix
+          design.matrix.df <- data.frame(design.matrix.df, covar.diff.df)
+          # design.matrix.df$temp <- covar.diff.vec  # add the diff covar to the design matrix data frame
+          # colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
+        }
+        # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
+        npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
+      } # end of for loop, regression done for each attribute
+      
+      npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
+    }
+
+    npdr.stats.df <- npdr.stats.attr.mat %>% 
       mutate(att = colnames(attr.mat), # add an attribute column
              pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
       ) %>% arrange(pval.adj) %>% # order by attribute p-value 
