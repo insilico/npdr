@@ -4,12 +4,15 @@
 \alias{diffRegression}
 \title{diffRegression}
 \usage{
-diffRegression(design.matrix.df, regression.type = "binomial")
+diffRegression(design.matrix.df, regression.type = "binomial",
+  fast.reg = FALSE)
 }
 \arguments{
 \item{design.matrix.df}{Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.}
 
 \item{regression.type}{(\code{"lm"}, \code{"binomial"})}
+
+\item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
 }
 \value{
 vector of regression stats to put into list for npdr and combine into matrix

@@ -4,7 +4,7 @@
 \alias{uniqueNeighbors}
 \title{uniqueNeighbors}
 \usage{
-uniqueNeighbors(neighbor.pairs.idx)
+uniqueNeighbors(neighbor.pairs)
 }
 \arguments{
 \item{neighbor.pairs.idx}{two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function}

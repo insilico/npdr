@@ -8,9 +8,10 @@ npdr(outcome, dataset, regression.type = "binomial",
   attr.diff.type = "numeric-abs", nbd.method = "multisurf",
   nbd.metric = "manhattan", knn = 0, msurf.sd.frac = 0.5,
   covars = "none", covar.diff.type = "match-mismatch",
-  glmnet.alpha = 1, glmnet.lower = 0, glmnet.family = "binomial",
-  rm.attr.from.dist = c(), neighbor.sampling = "none",
-  padj.method = "bonferroni", verbose = FALSE)
+  padj.method = "bonferroni", verbose = FALSE, use.glmnet = FALSE,
+  glmnet.alpha = 1, glmnet.lower = 0, rm.attr.from.dist = c(),
+  neighbor.sampling = "none", fast.reg = FALSE, fast.dist = FALSE,
+  dopar.nn = FALSE, dopar.reg = FALSE)
 }
 \arguments{
 \item{outcome}{character name or length-m numeric outcome vector for linear regression, factor for logistic regression}
@@ -35,6 +36,10 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{covar.diff.type}{string (or string vector) specifying diff type(s) for covariate(s) (\code{"numeric-abs"} for numeric or \code{"match-mismatch"} for categorical).}
 
+\item{padj.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
+
+\item{use.glmnet}{logical, whether glmnet is employed}
+
 \item{glmnet.alpha}{penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2)}
 
 \item{glmnet.lower}{lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default}
@@ -43,9 +48,11 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{neighbor.sampling}{"none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)}
 
-\item{padj.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
+\item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
 
-\item{glment.family}{"binomial" for logistic regression, "gaussian" for regression}
+\item{dopar.nn}{logical, whether or not neighborhood is computed in parallel, default as F}
+
+\item{dopar.reg}{logical, whether or not regression is run in parallel, default as F}
 }
 \value{
 npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
