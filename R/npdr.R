@@ -184,9 +184,17 @@ npdr <- function(outcome, dataset,
     }
     # default value is covar="none" (no covariates) which has length 1
     covars <- as.matrix(covars)  # if covars is just one vector, make sure it's a 1-column matrix
+    num.covs <- length(covar.diff.type) # or ncol(covars)
     # covar.diff.type can be a vector of strings because each column of covars may be a different data type
-    covar.diff.df <- data.frame()
-    for (covar.col in (1:length(covar.diff.type))){
+    if (is.null(colnames(covars))){  # if covar vector has no column name, give it one
+      covar.names <- paste0("cov", seq.int(num.covs)) # cov1, etc.
+    } else {
+      covar.names <- colnames(covars) # else get the name from covars
+    }
+    
+    covar.diff.df <- data.frame(matrix(, nrow = nrow(neighbor.pairs.idx), ncol = 0))
+    for (covar.col in (1:num.covs)){
+      covar.name <- covar.names[covar.col]
       covar.vals <- covars[, covar.col]
       Ri.covar.vals <- covar.vals[neighbor.pairs.idx[,1]]
       NN.covar.vals <- covar.vals[neighbor.pairs.idx[,2]]
@@ -194,13 +202,9 @@ npdr <- function(outcome, dataset,
                                  diff.type = covar.diff.type[covar.col])
       # add covar diff vector to data.frame
       # these covars will be included in each attribute's model
-      if (is.null(colnames(covars)[covar.col])){  # if covar vector has no column name, give it one
-        covar.name <- paste("cov", covar.col, sep="") # cov1, etc.
-      } else {
-        covar.name <- colnames(covars)[covar.col] # else get the name from covars
-      }
-      covar.diff.df <- data.frame(covar.diff.df, covar.diff.vec)
-      colnames(covar.diff.df)[covar.col] <- covar.name # change variable name
+
+      covar.diff.df <- covar.diff.df %>% 
+        dplyr::mutate(!!covar.name := covar.diff.vec)
     }
   }
   
