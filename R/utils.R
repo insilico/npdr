@@ -102,7 +102,11 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
   row.names(beta_pvals)<- colnames(attr.mat) # add predictor names
   #row.names(beta_pvals)<- colnames(dataset)[-class.col] # add predictor names
   beta_pvals_sorted <- beta_pvals[order(as.numeric(beta_pvals[,3]), decreasing = F),] # sort by pval
-  colnames(beta_pvals_sorted) <- c("beta", "beta.Z.att", "pval", "p.adj")
+  if (num.attr==1){ # special case of only 1 attribute
+    names(beta_pvals_sorted) <- c("beta", "beta.Z.att", "pval", "p.adj")
+  } else{  # multiple attributes, typical
+    colnames(beta_pvals_sorted) <- c("beta", "beta.Z.att", "pval", "p.adj")
+  }
   return(beta_pvals_sorted)
 }
 
