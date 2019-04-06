@@ -49,7 +49,7 @@ cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 ##### Run npdr unique
 npdr.qtrait.unique.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                            neighbor.sampling = "unique",
+                            neighbor.sampling = "unique", fast.reg = T,
                             padj.method="bonferroni", verbose=T)
 
 

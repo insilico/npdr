@@ -87,7 +87,11 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
     } } # end else binomial
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
-  beta_pvals <- t(sapply(1:ncol(attr.mat), model.func)) # stats for all predictors
+  num.attr <- ncol(attr.mat)
+  if (is.null(num.attr)){ # if there is just one attribute
+    num.attr <- 1
+  }
+  beta_pvals <- t(sapply(1:num.attr, model.func)) # stats for all predictors
   univariate.padj <- p.adjust(beta_pvals[,4], method=padj.method) # fdr
   univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
