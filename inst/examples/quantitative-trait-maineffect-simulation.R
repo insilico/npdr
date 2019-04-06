@@ -5,7 +5,7 @@ library(tidyverse)
 ## npdr install
 # library(devtools)
 # install_github("insilico/npdr")
-# library(npdr)
+library(npdr)
 set.seed(1618)
 
 ##### simulate case-control interaction effect data 
