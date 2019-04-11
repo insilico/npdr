@@ -148,9 +148,9 @@ nearestNeighbors <- function(attr.mat,
         Ri <- as.character(Ri.int)
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
+          tibble::rownames_to_column() %>% # push the neighbors from rownames to a column named rowname
           top_n(-(k+1), !!sym(Ri)) %>% # select the k closest neighbors, include self
-          filter((!!sym(Ri)) > 0) %>%
+          filter((!!sym(Ri)) > 0) %>%  # top_n does not sort output, so make sure remove self
           pull(rowname) %>% # get the neighbors
           as.integer() # convert from string (rownames - not factors) to integers
         
@@ -186,12 +186,12 @@ nearestNeighbors <- function(attr.mat,
       sd.const <- sd(dist.mat[upper.tri(dist.mat)])  
       # bam: orignal surf does not subtract sd-frac but should for fair multisurf comparison
       Ri.radius <- rep(radius.surf - sd.frac*sd.const, num.samp) 
+      names(Ri.radius) <- as.character(1:num.samp)
     }
     if (nb.method == "multisurf"){
       if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp, function(x) sd(dist.mat[-x, x]))
       Ri.radius <- colSums(dist.mat)/(num.samp - 1) - sd.frac*sd.vec # use adaptive radius
     }
-    
     if (dopar.nn == TRUE){
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
