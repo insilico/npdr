@@ -175,7 +175,8 @@ nearestNeighbors <- function(attr.mat,
           # bind automatically repeated Ri, make sure to skip Ri self
           Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
         }
-      }     
+      } 
+      Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
     }
 
   } else {
