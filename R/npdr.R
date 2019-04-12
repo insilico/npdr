@@ -232,7 +232,7 @@ npdr <- function(outcome, dataset,
       parallel::stopCluster(cl)
       
       
-    } else {
+    } else { # non parallel version
       for (attr.idx in seq(1, num.attr)){
         attr.vals <- attr.mat[, attr.idx]
         Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
@@ -265,18 +265,34 @@ npdr <- function(outcome, dataset,
     
   } else { # Here we add an option npdrNET use.glmnet = TRUE
     # Run glmnet on the diff attribute columns
-    if (regression.type == "binomial"){
-      npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
-                                 alpha = glmnet.alpha, family = "binomial",
-                                 lower.limits = glmnet.lower, type.measure = "class")
-    } else { # "gaussian"
-      npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
-                                 alpha = glmnet.alpha, family = "gaussian",
-                                 lower.limits = glmnet.lower, type.measure = "mse")
+    # Need to create a data matrix with each column as a vector of diffs for each attribute.
+    # Need matrix because npdrNET operates on all attributes at once.
+    attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
+    for (attr.idx in seq(1, num.attr)){
+      attr.vals <- attr.mat[, attr.idx]
+      Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+      NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      attr.diff.mat[,attr.idx] <- attr.diff.vec
     }
-    npdrNET.coeffs <- as.matrix(predict(npdrNET.model, type = "coefficients"))
+    #
+    Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
+    NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
+    if (regression.type=="binomial"){
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+      pheno.diff.vec <- as.factor(pheno.diff.vec)
+      # Run glmnet on the diff attribute columns
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
+                               lower.limits=glmnet.lower, type.measure="class")
+    } else{ # "gaussian"
+      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+      # Run glmnet on the diff attribute columns
+      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
+                               lower.limits=glmnet.lower, type.measure="mse")
+    }
+    npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
     row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
-    glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T),], ncol = 1) # sort
+    glmnet.sorted<-as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs),decreasing = T),],ncol=1) # sort
     npdr.stats.df <- data.frame(scores = glmnet.sorted) 
     # %>%
       # tibble::rownames_to_column('att')
