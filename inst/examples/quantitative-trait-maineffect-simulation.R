@@ -46,12 +46,24 @@ univariate.05.fdr <- univariate.results[univariate.results[,"p.adj"]<.05,]
 univariate.05.fdr
 cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 
+### clustering
+npdr.cluster <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
+                              nbd.method="relieff", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                              neighbor.sampling = "unique", fast.reg = F, dopar.nn = F, use.glmnet = T, glmnet.alpha="cluster",
+                              padj.method="bonferroni", verbose=T)
+
+pheno.diff <- npdr.cluster$pheno.diff
+attr.diff.mat = as.matrix(npdr.cluster[,!(names(npdr.cluster) %in% "pheno.diff")])
+cormat <- cor(attr.diff.mat)
+distmat <- dist(t(attr.diff.mat))
+hc <- hclust(distmat)
+plot(hc)
+
 ##### Run npdr unique
 npdr.qtrait.unique.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                            neighbor.sampling = "unique", fast.reg = F, dopar.nn = F, use.glmnet = F,
+                            neighbor.sampling = "unique", fast.reg = F, dopar.nn = F,
                             padj.method="bonferroni", verbose=T)
-
 
 # attributes with npdr adjusted p-value less than .05 
 npdr.qtrait.unique.results[npdr.qtrait.unique.results$pval.adj<.05,] # pval.adj, first column

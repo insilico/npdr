@@ -278,24 +278,36 @@ npdr <- function(outcome, dataset,
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]
-    if (regression.type=="binomial"){
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
-      pheno.diff.vec <- as.factor(pheno.diff.vec)
-      # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
-                               lower.limits=glmnet.lower, type.measure="class")
-    } else{ # "gaussian"
-      pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
-      # Run glmnet on the diff attribute columns
-      npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
-                               lower.limits=glmnet.lower, type.measure="mse")
-    }
-    npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
-    row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
-    glmnet.sorted<-as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs),decreasing = T),],ncol=1) # sort
-    npdr.stats.df <- data.frame(scores = glmnet.sorted) 
-    # %>%
-      # tibble::rownames_to_column('att')
+    if (glmnet.alpha != "cluster"){ # temporary trick to cluster attributes by diff vector
+      if (regression.type=="binomial"){
+        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+        pheno.diff.vec <- as.factor(pheno.diff.vec)
+        # Run glmnet on the diff attribute columns
+        npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="binomial",
+                                 lower.limits=glmnet.lower, type.measure="class")
+      } else{ # "gaussian"
+        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+        # Run glmnet on the diff attribute columns
+        npdrNET.model<-cv.glmnet(attr.diff.mat, pheno.diff.vec,alpha=glmnet.alpha,family="gaussian",
+                                 lower.limits=glmnet.lower, type.measure="mse")
+      }
+      npdrNET.coeffs<-as.matrix(predict(npdrNET.model,type="coefficients"))
+      row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat))  # add variable names to results
+      glmnet.sorted<-as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs),decreasing = T),],ncol=1) # sort
+      npdr.stats.df <- data.frame(scores = glmnet.sorted) 
+      # %>%
+        # tibble::rownames_to_column('att')
+    } else{ # glmnet.alpha == "cluster", so don't do regression and return the attribute diff vectors
+      # might not need the phenotype diff for clustering, but add anyway.
+      if (regression.type=="binomial"){
+        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="match-mismatch")
+      } else{ # "gaussian"
+        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type="numeric-abs")
+      }
+      colnames(attr.diff.mat) <- colnames(attr.mat)
+      # not actually stats, contains a pairs x attr diff matrix 
+      npdr.stats.df <- data.frame(attr.diff.mat, pheno.diff=pheno.diff.vec)  
+    } # end cluster option
   } # end glmnetNPDR option
   return(npdr.stats.df)
 }
