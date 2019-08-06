@@ -49,7 +49,7 @@ univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
-                            neighbor.sampling="none",
+                            neighbor.sampling="none", dopar.nn = T,
                             padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column

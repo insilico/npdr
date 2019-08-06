@@ -47,8 +47,9 @@ univariate.05.fdr
 cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report)
 
 ### clustering
+library(glmnet)
 npdr.cluster <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
-                              nbd.method="relieff", nbd.metric = "manhattan", msurf.sd.frac=.5,
+                              nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
                               neighbor.sampling = "unique", fast.reg = F, dopar.nn = F, use.glmnet = T, glmnet.alpha="cluster",
                               padj.method="bonferroni", verbose=T)
 
@@ -62,7 +63,7 @@ plot(hc)
 ##### Run npdr unique
 npdr.qtrait.unique.results <- npdr("qtrait", qtrait.data, regression.type="lm", attr.diff.type="numeric-abs",  
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                            neighbor.sampling = "unique", fast.reg = F, dopar.nn = F,
+                            neighbor.sampling = "unique", fast.reg = F, dopar.nn = T,
                             padj.method="bonferroni", verbose=T)
 
 # attributes with npdr adjusted p-value less than .05 

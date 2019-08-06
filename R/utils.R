@@ -75,7 +75,9 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
       # 2 below means attribte stats (1 would be the intercept)
       model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x] + covars))$coeff[2,])}
     } else { # covar=="none"
-      model.func <- function(x) {as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,])}  
+      model.func <- function(x) {
+        # if nrow(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff) < 2 then there was an issue with the attribute
+        as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,])}  
     } 
     } else { # "binomial"
     if (length(covars)>1){
@@ -145,4 +147,27 @@ detectionStats <- function(functional, positives){
     sep="")
   return(list(TP=TP, FP=FP, FN=FN, TPR=TPR, FPR=FPR, 
               precision=precision, recall=recall, report=report))
+}
+
+#=========================================================================#
+#' geneLowVarianceFilter
+#'
+#' Low variance mask and filtered data for gene expression matrix.
+#'
+#' @param dataMatrix data matrix with predictors only, sample x gene
+#' @param pct percentile of low variance removed 
+#' @return mask and filtered data  
+#' @examples
+#' pct <- 0.7 # higher value more strict
+#' filter <- geneLowVarianceFilter(unfiltered.predictors.mat, pct)
+#' filtered.data.df <- data.frame(filter$fdata, class = rnaseq.mdd.phenotype)
+#' @export
+geneLowVarianceFilter <- function(dataMatrix, percentile=0.5) {
+  variances <- apply(as.matrix(dataMatrix), 2, var)
+  threshold <- quantile(variances, c(percentile))
+  # remove variable columns with lowest percentile variance
+  mask <- apply(dataMatrix, 2, function(x) var(x) > threshold)
+  fdata <- dataMatrix[, mask]
+  # return the row mask and filtered data
+  list(mask=mask, fdata=fdata)
 }
