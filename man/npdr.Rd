@@ -10,8 +10,9 @@ npdr(outcome, dataset, regression.type = "binomial",
   covars = "none", covar.diff.type = "match-mismatch",
   padj.method = "bonferroni", verbose = FALSE, use.glmnet = FALSE,
   glmnet.alpha = 1, glmnet.lower = 0, rm.attr.from.dist = c(),
-  neighbor.sampling = "none", fast.reg = FALSE, fast.dist = FALSE,
-  dopar.nn = FALSE, dopar.reg = FALSE)
+  neighbor.sampling = "none", separate.hitmiss.nbds = FALSE,
+  fast.reg = FALSE, fast.dist = FALSE, dopar.nn = FALSE,
+  dopar.reg = FALSE)
 }
 \arguments{
 \item{outcome}{character name or length-m numeric outcome vector for linear regression, factor for logistic regression}
@@ -44,9 +45,11 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{glmnet.lower}{lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default}
 
-\item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().}
+\item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c()}
 
 \item{neighbor.sampling}{"none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)}
+
+\item{separate.hitmiss.nbds}{for case/control data, find neighbors for same (hit) and opposite (miss) classes separately (TRUE) or find nearest neighborhoods before assigning hit/miss groups (FALSE). Uses nearestNeighborsSeparateHitMiss function}
 
 \item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
 

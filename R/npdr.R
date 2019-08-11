@@ -71,8 +71,9 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
 #' @param glmnet.alpha penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2) 
 #' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default 
 #' @param use.glmnet logical, whether glmnet is employed
-#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c().
+#' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c()
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
+#' @param separate.hitmiss.nbds for case/control data, find neighbors for same (hit) and opposite (miss) classes separately (TRUE) or find nearest neighborhoods before assigning hit/miss groups (FALSE). Uses nearestNeighborsSeparateHitMiss function
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @param dopar.nn logical, whether or not neighborhood is computed in parallel, default as F
@@ -105,6 +106,7 @@ npdr <- function(outcome, dataset,
                  padj.method = "bonferroni", verbose = FALSE, 
                  use.glmnet = FALSE, glmnet.alpha = 1, glmnet.lower = 0, 
                  rm.attr.from.dist = c(), neighbor.sampling = "none",
+                 separate.hitmiss.nbds = FALSE,
                  fast.reg = FALSE, fast.dist = FALSE,
                  dopar.nn = FALSE, dopar.reg = FALSE){
   ##### parse the commandline 
@@ -127,13 +129,24 @@ npdr <- function(outcome, dataset,
   if (verbose){
     cat("Finding nearest neighbor pairs.\n")
   }
-  start_time <- Sys.time()                 
-  neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method = nbd.method, 
+  start_time <- Sys.time() 
+  if (separate.hitmiss.nbds){ # separate hit and miss neighborhoods
+    neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(attr.mat, pheno.vec, 
+                                         nb.method = nbd.method,
                                          nb.metric = nbd.metric, 
                                          sd.frac = msurf.sd.frac, k = knn,
                                          att_to_remove = rm.attr.from.dist,
                                          fast.dist = fast.dist,
                                          dopar.nn = dopar.nn)
+  } else{ # allow neighborhoods to be imbalanced, often nearest hits are closer then misses, 
+          # which could dilute the effect of misses
+    neighbor.pairs.idx <- nearestNeighbors(attr.mat, nb.method = nbd.method, 
+                                           nb.metric = nbd.metric, 
+                                           sd.frac = msurf.sd.frac, k = knn,
+                                           att_to_remove = rm.attr.from.dist,
+                                           fast.dist = fast.dist,
+                                           dopar.nn = dopar.nn)
+  }
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
   if (neighbor.sampling == "unique"){

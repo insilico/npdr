@@ -47,12 +47,35 @@ univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 ##### Run npdr
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
-                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
-                        neighbor.sampling="none", dopar.nn = T,
+                        nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
+                        neighbor.sampling="none", dopar.nn = F,
                         padj.method="bonferroni", verbose=T)
+npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
+
+npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
+                        nbd.method="relieff", nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
+                        neighbor.sampling="none", separate.hitmiss.nbds=T,
+                        dopar.nn = F, padj.method="bonferroni", verbose=T)
 # attributes with npdr adjusted p-value less than .05 
 npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
 selected.features <- npdr.cc.results %>% filter(pval.adj<.05) %>% pull(att)
+
+## Neighbors
+cc.attrs <- case.control.data[,colnames(case.control.data)!="class"]
+cc.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
+cc.nbpairs.idx <- nearestNeighbors(cc.attrs, 
+                                          nb.method="multisurf", nb.metric="manhattan", 
+                                          sd.frac = .5, k=0)
+cc.nbpairs.idx <- nearestNeighborsSeparateHitMiss(cc.attrs, cc.pheno, 
+                                   nb.method="multisurf", nb.metric="manhattan", 
+                                   sd.frac = .5, k=0)
+Ri.phenos <- cc.pheno[cc.nbpairs.idx$Ri_idx]
+NN.phenos <- cc.pheno[cc.nbpairs.idx$NN_idx]
+hitmiss.vec <- npdrDiff(Ri.phenos, NN.phenos, diff.type="match-mismatch")
+pct.misses <- sum(hitmiss.vec)/length(hitmiss.vec)
+pct.hits <- 1-sum(hitmiss.vec)/length(hitmiss.vec)
+pct.misses
+pct.hits
 
 #================= Test Nearest Neighbor Classification ================================#
 

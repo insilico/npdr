@@ -79,37 +79,6 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE){
 }
 
 #=========================================================================#
-#' npdrDistances2
-#'
-#' Create m1 x m2 distance matrix between two dataasets, where m1 instances and p attributes in dataset1 and m2 instances 
-#' and p attributes in dataset2. Datasets should not include phenotype column. Uses function dist2 from flexclust.
-#' Used by nearestNeighbors2(). 
-#'
-#' @param attr.mat1 m1 x p matrix of m instances and p attributes 
-#' @param attr.mat2 m2 x p matrix of m instances and p attributes 
-#' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"},
-#' and for GWAS \code{"allele-sharing-manhattan"}).
-#' @return  distance.mat, matrix of m1 x m2 (instances x intances) pairwise distances.
-#' @examples
-#' dist.mat <- npdrDistances2(train.data, test.data, metric = "manhattan")
-#' @export
-npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan"){
-  # first mat is rows and second is columns
-  npdr.dist.fn <- flexclust::dist2
-  # Compute distance matrix between all samples (rows) between test and training data
-  # default is numeric manhattan ("manhattan"), max-min scaling is only needed for relief
-  if (metric == "allele-sharing-manhattan"){
-    # allele-sharing-manhattan, AM for SNPs
-    distance.mat <- npdr.dist.fn(attr.mat1/2, attr.mat2/2, method = "manhattan")
-  } else if (metric == "euclidean"){
-    distance.mat <- npdr.dist.fn(attr.mat1, attr.mat2, method = "euclidean")
-  } else {
-    distance.mat <- npdr.dist.fn(attr.mat1, attr.mat2, method = "manhattan")
-  }
-  as.matrix(distance.mat)
-}
-
-#=========================================================================#
 #' nearestNeighbors
 #'
 #' Find nearest neighbors of each instance using relief.method
@@ -273,146 +242,243 @@ nearestNeighbors <- function(attr.mat,
 }
 
 #=========================================================================#
-#' nearestNeighbors2
+#' nearestNeighborsSeparateHitMiss
 #'
-#' Find nearest neighbors of each instance in attr.mat2 (test) to instances in attr.mat1 (train) 
-#' using relief neighborhood methods. Used by npdrLearner, nearest neighbor classifier. Input data
-#' should not include phenotype column. 
+#' Find nearest neighbors of each instance using relief.method.
+#' Treat the hit and miss distributions separately to circument potential hit bias. 
+#' ReliefF version makes hit/miss neighborhoods balanced. Surf and MultiSurf are still imbalanced. 
+#' Used for npdr (no hits or misses specified in neighbor function).
 #'
-#' @param attr.mat1 m1 x p matrix of m instances and p attributes (training data) 
-#' @param attr.mat2 m2 x p matrix of m instances and p attributes (test data)
-#' @param nb.metric used in npdrDistances2 for distance matrix between instances, default: \code{"manhattan"} (numeric)
+#' @param attr.mat m x p matrix of m instances and p attributes 
+#' @param pheno.vec vector of class values for m instances
+#' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
 #' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2 
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k). 
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
+#' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
+#' @param att_to_remove attributes for removal (possible confounders) from the distance matrix calculation. 
+#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
 #' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
-#' @return  Ri.nearestNeighbors.list: list of Ri's (data2 test instances) NN's in data1 (train instances)
+#' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
 #' @examples
-#' test.neighbors <- nearestNeighbors2(train.data, test.data, # no phenotype column
-#'                                     nb.method = "relieff", 
-#'                                     nb.metric = "manhattan", 
-#'                                     sd.vec = NULL, sd.frac = 0.5, 
-#'                                     k=0, # uses multisurf k estimate 
-#'                                     dopar.nn = FALSE)
-#'
+#' # reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
+#' # One can change the theoretical value by changing sd.frac (default 0.5)
+#' neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(cc.attrs, cc.pheno, # need attributes and pheno
+#'                                        nb.method="relieff", nb.metric="manhattan", 
+#'                                        sd.frac = .5, k=0)
 #' @export
-nearestNeighbors2 <- function(attr.mat1, attr.mat2,
-                              nb.method = "multisurf", 
-                              nb.metric = "manhattan", 
-                              sd.vec = NULL, sd.frac = 0.5, dopar.nn=FALSE,
-                              k=0){
+nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec, 
+                             nb.method = "relieff", 
+                             nb.metric = "manhattan", 
+                             sd.vec = NULL, sd.frac = 0.5, k=0,
+                             neighbor.sampling = "none",
+                             att_to_remove=c(), fast.dist = FALSE, dopar.nn = FALSE){
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
-  num.samp1 <- nrow(attr.mat1)  # training set, rows of dist mat
-  num.samp2 <- nrow(attr.mat2)  # testing set, cols of dist mat
+  num.samp <- nrow(attr.mat)
+  pheno.vec <- as.numeric(as.character(pheno.vec))
+  majority.pheno <- which.min(table(pheno.vec)) %>% names %>% as.integer
+  majority.frac <- max(table(pheno.vec))/length(pheno.vec)
   
-  dist.mat <- npdrDistances2(as.matrix(attr.mat1), as.matrix(attr.mat2), metric = nb.metric) 
-  dist.df <- dist.mat %>% as.data.frame()
-  colnames(dist.df) <- seq.int(num.samp2)
-  rownames(dist.df) <- seq.int(num.samp1)
+  if (!is.null(att_to_remove)){ 
+    # remove attributes (possible confounders) from distance matrix calculation
+    tryCatch(
+      attr.mat <- attr.mat %>% data.frame() %>% 
+        select(- att_to_remove), 
+      error = function(c) 'The attribute to remove does not exist.'
+    )
+  }
+  
+  dist.mat <- attr.mat %>% as.matrix() %>% unname() %>%
+    npdrDistances(metric = nb.metric, fast.dist = fast.dist) %>%
+    as.data.frame()
+  colnames(dist.mat) <- seq.int(num.samp)
   
   if (nb.method == "relieff"){  
     if (k == 0){ # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-      k <- floor((num.samp1-1)*(1-erf(sd.frac/sqrt(2)))/2)  # uses sd.frac
+      k <- floor((num.samp-1)*(1-erf(sd.frac/sqrt(2)))/2)  # uses sd.frac
     }
     
     if (dopar.nn == TRUE){
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
-      Ri.nearestNeighbors.list <- vector("list", num.samp2)
-      Ri.nearestNeighbors.list <- 
-        foreach::foreach(Ri.int = seq.int(num.samp2), .packages=c('dplyr', 'tibble')) %dopar% {
-          Ri <- as.character(Ri.int)
-          Ri.nearest.idx <- dist.df %>%
-            dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-            tibble::rownames_to_column() %>% # push the neighbors from rownames to a column named rowname
-            top_n(-k, !!sym(Ri)) %>% # select the k closest neighbors in train data1, top_n does not sort output
-            pull(rowname) %>% # get the neighbors
-            as.integer() # convert from string (rownames - not factors) to integers
-          return(Ri.nearest.idx) # foreach return, makes Ri.nearestNeighbors.list
+      Ri.nearestPairs.list <- foreach::foreach(
+          Ri.int = seq.int(num.samp), .packages=c('dplyr', 'tibble')) %dopar% {
+          #Ri <- as.character(Ri.int)
+          #Ri.int <- as.integer(Ri)
+          Ri.distances <- dist.mat[Ri.int,] # all distances to sample Ri
+          Ri.nearest <- order(Ri.distances, decreasing = F) # closest to farthest
+          # consider distance distributions of hits and misses separately
+          Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]] 
+          Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]] 
+          # make hit and miss neighborhoods the same size
+          # depending on whether Ri is majority or minority class, the number of hits/misses changes
+          if (pheno.vec[Ri.int] == majority.pheno){
+            Ri.nearest.idx <- Ri.hits[2:floor(majority.frac*k+1)] # (2) skip Ri self
+            # concatenate misses
+            Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1-majority.frac)*k+1)])
+          } else{
+            Ri.nearest.idx <- Ri.hits[2:floor((1-majority.frac)*k+1)] # (2) skip Ri self
+            # concatenate misses
+            Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac*k+1)])
+          }
+          
+          if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
+            # bind automatically repeated Ri, make sure to skip Ri self
+            return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
+          }
         }
+      ## [1] 1.000000 1.414214 1.732051
       parallel::stopCluster(cl)
       
-    } else { # relieff, no parallel
-      Ri.nearestNeighbors.list <- vector("list", num.samp2)
-      # look down each column of dist.df for neighbors of Ri
-      for (Ri in colnames(dist.df)){ # for each instance/column Ri
-        Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.df %>%
-          dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>% # push the rowname indices to an extra column called rowname
-          dplyr::top_n(-k, !!sym(Ri)) %>% # select the k closest (-) neighbors of Ri in train data1
-          dplyr::pull(rowname) %>% # get the neighbors
-          as.integer() # convert from string (rownames - not factors) to integers
+    } else {
+      Ri.nearestPairs.list <- vector("list", num.samp)
+      for (Ri in colnames(dist.mat)){ # for each sample Ri
+          Ri.int <- as.integer(Ri)
+          Ri.distances <- dist.mat[Ri.int,] # all distances to sample Ri
+          Ri.nearest <- order(Ri.distances, decreasing = F) # closest to farthest
+          # consider distance distributions of hits and misses separately
+          Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]] 
+          Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]] 
+          # for misses, option to use farthest is not a good idea because it makes all variables appear
+          # different between groups, even null variables
+          #if (miss.ordering=="farthest"){ # choose misses that are farthest from Ri
+          #  Ri.misses <- rev(Ri.misses)
+          #    }
+          #
+          # make hit and miss neighborhoods the same size (balanced)
+          # depending on whether Ri is majority or minority class, the number of hits/misses changes
+          if (pheno.vec[Ri.int] == majority.pheno){
+            Ri.nearest.idx <- Ri.hits[2:floor(majority.frac*k+1)] # (2) skip Ri self
+            # concatenate misses
+            Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1-majority.frac)*k+1)])
+          } else{
+            Ri.nearest.idx <- Ri.hits[2:floor((1-majority.frac)*k+1)] # (2) skip Ri self
+            # concatenate misses
+            Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac*k+1)])
+          }
         
-        if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
-          Ri.nearestNeighbors.list[[Ri.int]] <- Ri.nearest.idx
-        }
+          if (!is.null(Ri.nearest.idx)){ # if neighborhood not empty
+           # bind automatically repeated Ri, make sure to skip Ri self
+           Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
+          }
       } # end for
-    }
+      # Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+    } # end else dopar.nn
     
-  } else {
+    Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
     
-    if (nb.method == "surf"){
-      radius.surf <- mean(dist.mat)  # const r = mean(all distances)
-      sd.const <- sd(dist.mat)  
-      # bam: orignal surf does not subtract sd-frac but should for fair multisurf comparison
-      Ri.radius <- rep(radius.surf - sd.frac*sd.const, num.samp2) 
-      names(Ri.radius) <- as.character(1:num.samp2)
-    }
-    if (nb.method == "multisurf"){
-      if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp2, function(i) sd(dist.mat[, i]))
-      Ri.radius <- colMeans(dist.mat) - sd.frac*sd.vec # use adaptive radius
-      names(Ri.radius) <- as.character(1:num.samp2)
-    }
+  } else { # surf or multisurf...
+    
+    
+    # For treating hit/miss distance distributions separately, compute separate hit and miss radii
+    # User might want to shrink alpha standard deviation fraction. Unlike relieff, the hit and miss
+    # neighborhoods are not balanced. 
+    if (nb.method == "surf"){ # compute surf radii
+      
+      hit.dist.rows <- vector("list", num.samp) 
+      for (i in seq(1,num.samp)){
+        hit.mask <- pheno.vec[i] == pheno.vec
+        hit.mask <- hit.mask[-i] # remove self 
+        hit.dist.rows[[i]] <- dist.mat[i, hit.mask] 
+      }
+      hit.dist.vec <- unlist(hit.dist.rows)
+      # average of all hit neighbors
+      Ri.hit.radii <- rep(mean(hit.dist.vec) - sd.frac*sd(hit.dist.vec), num.samp)
+      names(Ri.hit.radii) <- as.character(1:num.samp)
+
+      miss.dist.rows <- vector("list", num.samp) 
+      for (i in seq(1,num.samp)){
+        miss.mask <- pheno.vec[i] != pheno.vec
+        miss.dist.rows[[i]] <- dist.mat[i, miss.mask] 
+      }
+      miss.dist.vec <- unlist(miss.dist.rows)
+      # average of all miss neighbors
+      Ri.miss.radii <- rep(mean(miss.dist.vec) - sd.frac*sd(miss.dist.vec), num.samp)
+      names(Ri.miss.radii) <- as.character(1:num.samp)
+      
+    } # end surf radius calc
+    
+    if (nb.method == "multisurf"){ # compute multisurf radii
+      
+      Ri.hit.radii <- vector("numeric",num.samp)
+      Ri.miss.radii <- vector("numeric",num.samp)
+      for (i in seq(1,num.samp)){
+        # grab neighbors that are hits of Ri
+        hit.mask <- pheno.vec[i] == pheno.vec
+        hit.mask <- hit.mask[-i] # remove self 
+        hit.dist.row <- as.numeric(dist.mat[i, hit.mask]) 
+        Ri.hit.radii[i] <- mean(hit.dist.row) - sd.frac*sd(hit.dist.row)
+        
+        # grab neighbors that are misses of Ri
+        miss.mask <- pheno.vec[i] != pheno.vec
+        miss.dist.row <- as.numeric(dist.mat[i, miss.mask]) 
+        Ri.miss.radii[i] <- mean(miss.dist.row) - sd.frac*sd(miss.dist.row)
+      }
+      
+      names(Ri.hit.radii) <- as.character(1:num.samp)
+      names(Ri.miss.radii) <- as.character(1:num.samp)
+      
+    }  # end multisurf radii calc
+    
     if (dopar.nn == TRUE){
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
-      Ri.nearestNeighbors.list <- vector("list", num.samp2)
-      Ri.nearestNeighbors.list <- 
-        foreach::foreach(
-          Ri.int = seq.int(num.samp2), .packages=c('dplyr', 'tibble')) %dopar% {
-            Ri <- as.character(Ri.int)
-            Ri.nearest.idx <- dist.df %>%
-              dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-              tibble::rownames_to_column() %>% # push the neighbors from rownames to columns
-              dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-              dplyr::pull(rowname) %>% # get the neighbors
-              as.integer() # convert from string (rownames - not factors) to integers
-            return(Ri.nearest.idx)
+      Ri.nearestPairs.list <- foreach::foreach(
+        Ri.int = seq.int(num.samp), .packages=c('dplyr', 'tibble')) %dopar% {
+          
+          Ri.distances <- dist.mat[Ri.int,]
+          Ri.nearest.hits <- which((pheno.vec[Ri.int] == pheno.vec) & (Ri.distances < Ri.hit.radii[Ri.int]) &
+                                     (Ri.distances > 0)) # skip Ri self (dist=0)
+          Ri.nearest.misses <- which((pheno.vec[Ri.int] != pheno.vec) & (Ri.distances < Ri.miss.radii[Ri.int]))
+          # join hit and miss into one nbd
+          Ri.nearest.idx <- c(Ri.nearest.hits,Ri.nearest.misses)
+          
+          if (!is.null(Ri.nearest.idx)){ # similar to relieff
+            return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
           }
+        }
       parallel::stopCluster(cl)
       
     } else {
       # put each Ri's nbd in a list then rbind them at the end with bind_rows()
-      Ri.nearestNeighbors.list <- vector("list", num.samp2) # initialize list
+      Ri.nearestPairs.list <- vector("list", num.samp) # initialize list
       
-      for (Ri in colnames(dist.df)){ # for each sample Ri
+      for (Ri in colnames(dist.mat)){ # for each sample Ri
         Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.df %>%
-          dplyr::select(!!Ri) %>%
-          rownames_to_column() %>% 
-          filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-          pull(rowname) %>% as.integer()
+        Ri.distances <- dist.mat[Ri.int,]
+        Ri.nearest.hits <- which((pheno.vec[Ri.int] == pheno.vec) & (Ri.distances < Ri.hit.radii[Ri.int]) &
+                                   (Ri.distances > 0)) # skip Ri self (dist=0)
+        Ri.nearest.misses <- which((pheno.vec[Ri.int] != pheno.vec) & (Ri.distances < Ri.miss.radii[Ri.int]))
+        # join hit and miss into one nbd
+        Ri.nearest.idx <- c(Ri.nearest.hits,Ri.nearest.misses)
         
         if (!is.null(Ri.nearest.idx)){ # similar to relieff
-          Ri.nearestNeighbors.list[[Ri.int]] <- Ri.nearest.idx
+          Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
         }
-      }
-    }
+      
+      } # end for
+      
+    } # end else dopar.nn
+    Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
   }
   
-  # list of Ri's (data2 test instances) NN's in data1 (train instances)
-  return(Ri.nearestNeighbors.list)
+  
+  if (neighbor.sampling=="unique"){
+    # if you only want to return unique neighbors
+    Ri_NN.idxmat <- uniqueNeighbors(Ri_NN.idxmat)
+  }
+  
+  # matrix of Ri's (first column) and their NN's (second column)
+  return(Ri_NN.idxmat)
 }
-
 
 #=========================================================================#
 #' uniqueNeighbors
