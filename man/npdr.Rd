@@ -11,8 +11,8 @@ npdr(outcome, dataset, regression.type = "binomial",
   padj.method = "bonferroni", verbose = FALSE, use.glmnet = FALSE,
   glmnet.alpha = 1, glmnet.lower = 0, rm.attr.from.dist = c(),
   neighbor.sampling = "none", separate.hitmiss.nbds = FALSE,
-  fast.reg = FALSE, fast.dist = FALSE, dopar.nn = FALSE,
-  dopar.reg = FALSE)
+  corr.attr.names = NULL, fast.reg = FALSE, fast.dist = FALSE,
+  dopar.nn = FALSE, dopar.reg = FALSE)
 }
 \arguments{
 \item{outcome}{character name or length-m numeric outcome vector for linear regression, factor for logistic regression}
@@ -21,7 +21,7 @@ npdr(outcome, dataset, regression.type = "binomial",
 
 \item{regression.type}{(\code{"lm"} or \code{"binomial"})}
 
-\item{attr.diff.type}{diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"}.}
+\item{attr.diff.type}{diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs.}
 
 \item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().}
 
@@ -50,6 +50,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 \item{neighbor.sampling}{"none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)}
 
 \item{separate.hitmiss.nbds}{for case/control data, find neighbors for same (hit) and opposite (miss) classes separately (TRUE) or find nearest neighborhoods before assigning hit/miss groups (FALSE). Uses nearestNeighborsSeparateHitMiss function}
+
+\item{corr.attr.names}{character vector of p variable names that correspond to the variables used to create the p(p-1) correlation-data predictors. If not specified, integer (1...p) labels used.}
 
 \item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
 

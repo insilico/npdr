@@ -5,9 +5,9 @@
 #' It is used for attribute selection for attribute diffs and phenotype diffs.  
 #' This function is vectorized: input a and b can be two vectors of values for one attribute.   
 #'
-#' @param a value of attribute for first instance
-#' @param b value of attribute for second instance
-#' @param type diff rule for the given attribute data type, such as numeric or categorical.
+#' @param a value of attribute for first instance. Vector for correlation-data. 
+#' @param b value of attribute for second instance. Vector for correlation-data. 
+#' @param type diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.
 #' @return val diff or vector of diffs 
 #' @examples
 #' Example
@@ -22,6 +22,8 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1){
     # used automatically for case-control pheno, optional genotype mismatch diff for snps
     val <- ifelse(a==b,0,1)  # hit pairs are 0 and miss pairs are 1
     #val <- as.character(a==b) # convert this to factor in glmSTIR
+  } else if (diff.type=="correlation-data"){ # correlation data (e.g., fmri)      # corrdata
+    val <- rowSums(abs(a - b)/norm.fac)      # a and b are vectors in this case   # corrdata
   } else { # numeric abs difference
     val <- abs(a - b)/norm.fac
   }

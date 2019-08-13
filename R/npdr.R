@@ -59,7 +59,7 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression 
 #' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames. 
 #' @param regression.type (\code{"lm"} or \code{"binomial"})
-#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"}. 
+#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs. 
 #' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
@@ -74,6 +74,7 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c()
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param separate.hitmiss.nbds for case/control data, find neighbors for same (hit) and opposite (miss) classes separately (TRUE) or find nearest neighborhoods before assigning hit/miss groups (FALSE). Uses nearestNeighborsSeparateHitMiss function
+#' @param corr.attr.names character vector of p variable names that correspond to the variables used to create the p(p-1) correlation-data predictors. If not specified, integer (1...p) labels used.  
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @param dopar.nn logical, whether or not neighborhood is computed in parallel, default as F
@@ -101,12 +102,13 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
 npdr <- function(outcome, dataset, 
                  regression.type = "binomial", attr.diff.type = "numeric-abs",
                  nbd.method = "multisurf", nbd.metric = "manhattan", 
-                 knn = 0, msurf.sd.frac = 0.5, covars = "none", 
-                 covar.diff.type = "match-mismatch",
+                 knn = 0, msurf.sd.frac = 0.5, 
+                 covars = "none", covar.diff.type = "match-mismatch",
                  padj.method = "bonferroni", verbose = FALSE, 
                  use.glmnet = FALSE, glmnet.alpha = 1, glmnet.lower = 0, 
                  rm.attr.from.dist = c(), neighbor.sampling = "none",
                  separate.hitmiss.nbds = FALSE,
+                 corr.attr.names=NULL,
                  fast.reg = FALSE, fast.dist = FALSE,
                  dopar.nn = FALSE, dopar.reg = FALSE){
   ##### parse the commandline 
@@ -120,8 +122,31 @@ npdr <- function(outcome, dataset,
   }
   rm(dataset)  # cleanup memory
   
-  num.attr <- ncol(attr.mat)
+  if(attr.diff.type=="correlation-data"){   # corrdata
+    mynum <- dim(attr.mat)[2]               # corrdata
+    for(i in seq(1,mynum-1,by=1)){          # corrdata
+      mydiv <- i                            # corrdata
+      if((mydiv*(mydiv - 1)) == mynum){     # corrdata
+        my.dimension <- mydiv               # corrdata
+        break                               # corrdata
+      }                                     # corrdata
+    }                                       # corrdata
+    num.attr <- my.dimension                # corrdata
+  }else{
+    num.attr <- ncol(attr.mat)
+  }
   num.samp <- nrow(attr.mat)
+  
+  # create a list of attribute indices for selecting columns in stretched matrix
+  ###################################################################################################
+  if(attr.diff.type=="correlation-data"){    # corrdata
+    attr.idx.list <- list()                  # corrdata
+    for(i in 1:num.attr){                    # corrdata
+      lo.idx <- (i - 1)*(num.attr-1) + 1     # corrdata
+      hi.idx <- i*(num.attr-1)               # corrdata
+      attr.idx.list[[i]] <- c(lo.idx:hi.idx) # corrdata
+    }                                        # corrdata
+  }                                          # corrdata
   
   ##### get Neighbors (no phenotype used)
   # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) 
@@ -229,10 +254,17 @@ npdr <- function(outcome, dataset,
       
       npdr.stats.attr.mat <- foreach::foreach(
         attr.idx = seq.int(num.attr), .combine = 'rbind', .packages = c('dplyr')) %dopar% {
-        attr.vals <- attr.mat[, attr.idx]
-        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
-        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+          if(attr.diff.type=="correlation-data"){                                                 # corrdata
+            attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]                                    # corrdata
+            Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1], ]                                   # corrdata
+            NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2], ]                                   # corrdata
+            attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)     # corrdata
+          }else{  
+            attr.vals <- attr.mat[, attr.idx]
+            Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+            NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+            attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+          }
         attr.diff.mat[, attr.idx] <- attr.diff.vec
         design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
                                        pheno.diff.vec = pheno.diff.vec)
@@ -247,10 +279,17 @@ npdr <- function(outcome, dataset,
       
     } else { # non parallel version
       for (attr.idx in seq(1, num.attr)){
-        attr.vals <- attr.mat[, attr.idx]
-        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
-        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+        if(attr.diff.type=="correlation-data"){                                                 # corrdata
+          attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]                                    # corrdata
+          Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1], ]                                   # corrdata
+          NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2], ]                                   # corrdata
+          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)     # corrdata
+        } else{ 
+          attr.vals <- attr.mat[, attr.idx]
+          Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+          NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+        }
         attr.diff.mat[, attr.idx] <- attr.diff.vec
         # model data.frame to go into lm or glm-binomial
         design.matrix.df <- data.frame(attr.diff.vec = attr.diff.vec,
@@ -269,12 +308,26 @@ npdr <- function(outcome, dataset,
       npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
     }
 
-    npdr.stats.df <- npdr.stats.attr.mat %>% 
-      mutate(att = colnames(attr.mat), # add an attribute column
-             pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
-      ) %>% arrange(pval.att) %>% # order by attribute p-value 
-      dplyr::select(att, pval.adj, everything()) %>% # reorder columns
-      as.data.frame() # convert tibbles to df -- can we remove this step?
+    if(attr.diff.type=="correlation-data"){                                            # corrdata    
+      if(is.null(corr.attr.names)){                                                    # corrdata
+        att.names <- as.character(c(1:num.attr))                                       # corrdata
+      }else{                                                                           # corrdata
+        att.names <- as.character(corr.attr.names)                                     # corrdata
+      }                                                                                # corrdata
+      npdr.stats.df <- npdr.stats.attr.mat %>%                                         # corrdata
+        mutate(att = att.names, # add an attribute column                              # corrdata
+               pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values   # corrdata
+        ) %>% arrange(pval.att) %>% # order by attribute p-value                       # corrdata
+        dplyr::select(att, pval.adj, everything()) %>% # reorder columns               # corrdata
+        as.data.frame() # convert tibbles to df -- can we remove this step?            # corrdata
+    }else{
+      npdr.stats.df <- npdr.stats.attr.mat %>% 
+        mutate(att = colnames(attr.mat), # add an attribute column
+               pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
+        ) %>% arrange(pval.att) %>% # order by attribute p-value 
+        dplyr::select(att, pval.adj, everything()) %>% # reorder columns
+        as.data.frame() # convert tibbles to df -- can we remove this step?
+    }
     
   } else { # Here we add an option npdrNET use.glmnet = TRUE
     # Run glmnet on the diff attribute columns
@@ -282,12 +335,19 @@ npdr <- function(outcome, dataset,
     # Need matrix because npdrNET operates on all attributes at once.
     attr.diff.mat <- matrix(0,nrow=nrow(neighbor.pairs.idx),ncol=num.attr)
     for (attr.idx in seq(1, num.attr)){
-      attr.vals <- attr.mat[, attr.idx]
-      Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
-      NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
-      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      if(attr.diff.type=="correlation-data"){                                                 # corrdata
+        attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]                                    # corrdata
+        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1], ]                                   # corrdata
+        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2], ]                                   # corrdata
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)     # corrdata
+      }else{      
+        attr.vals <- attr.mat[, attr.idx]
+        Ri.attr.vals <- attr.vals[neighbor.pairs.idx[,1]]
+        NN.attr.vals <- attr.vals[neighbor.pairs.idx[,2]]
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type=attr.diff.type)
+      }
       attr.diff.mat[,attr.idx] <- attr.diff.vec
-    }
+    } # end for
     #
     Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[,1]]
     NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[,2]]

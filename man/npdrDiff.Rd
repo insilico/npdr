@@ -7,11 +7,11 @@
 npdrDiff(a, b, diff.type = "numeric-abs", norm.fac = 1)
 }
 \arguments{
-\item{a}{value of attribute for first instance}
+\item{a}{value of attribute for first instance. Vector for correlation-data.}
 
-\item{b}{value of attribute for second instance}
+\item{b}{value of attribute for second instance. Vector for correlation-data.}
 
-\item{type}{diff rule for the given attribute data type, such as numeric or categorical.}
+\item{type}{diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.}
 }
 \value{
 val diff or vector of diffs
