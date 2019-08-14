@@ -12,5 +12,6 @@ Suggests: knitr,
     rmarkdown,
     glmnet
 Imports: tidyverse
+LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 VignetteBuilder: knitr
 RoxygenNote: 6.1.0

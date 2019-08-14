@@ -1,6 +1,10 @@
 library(privateEC)
 library(broom)
 library(dplyr)
+library(igraph)
+#library(Rcpp)
+#library(RcppArmadillo)
+#library(RcppEigen)
 
 ## npdr install
 # library(devtools)
@@ -17,11 +21,11 @@ type <-"mainEffect"
 bias <- 0.6          # moderate effect size
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
-case.control.3sets <- createSimulation(num.samples = n.samples,
+case.control.3sets <- createSimulation2(num.samples = n.samples,
                                        num.variables = n.variables,
                                        pct.signals = pct.signals,
                                        label = label,
-                                       bias = bias,
+                                       main.bias = bias,
                                        pct.train = 1/3,
                                        pct.holdout = 1/3,
                                        pct.validation = 1/3,
