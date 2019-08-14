@@ -8,7 +8,7 @@ Rcpp::cppFunction(depends="RcppArmadillo",
 #' generate_structured_corrmat
 #'
 #' parameters:
-#'
+#' 
 #' @param g random graph
 #' @param num.variables number of independent variables in data matrix
 #' @param hi.cor upper baseline pairwise functional correlation in control group
@@ -16,7 +16,8 @@ Rcpp::cppFunction(depends="RcppArmadillo",
 #' @param graph.type either Erdos-Renyi or Scale-Free graph
 #' @param plot.graph logical indicating whether to plot graph or not
 #' @param make.diff.cors logical indicating whether case correlation matrix for differential correlation is being created or not
-#' @param nbias number of functional interaction variables 
+#' @param nbias number of functional interaction variables
+#' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
 #' @return A list containing:
 #' \describe{
 #'   \item{cor.mat}{structured correlation matrix}
@@ -27,7 +28,6 @@ Rcpp::cppFunction(depends="RcppArmadillo",
 #' @examples 
 #' 
 #' @export
-
 generate_structured_corrmat <- function(g=NULL,
                                         num.variables=100, 
                                         hi.cor.tmp=0.8, 

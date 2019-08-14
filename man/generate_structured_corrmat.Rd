@@ -21,8 +21,6 @@ generate_structured_corrmat(g = NULL, num.variables = 100,
 
 \item{nbias}{number of functional interaction variables}
 
-\item{use.Rcpp}{if true use Rcpp to correct negative eigenvalues}
-
 \item{hi.cor}{upper baseline pairwise functional correlation in control group}
 
 \item{lo.cor}{lower baseline pairwise functional correlation in control group}

@@ -2,9 +2,11 @@ library(privateEC)
 library(broom)
 library(dplyr)
 library(igraph)
-#library(Rcpp)
-#library(RcppArmadillo)
-#library(RcppEigen)
+library(Rcpp)
+library(RcppArmadillo)
+library(RcppEigen)
+library(mvtnorm)
+library(Rfast)
 
 ## npdr install
 # library(devtools)
@@ -16,8 +18,8 @@ library(npdr)
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
-#type <- "interactionErdos" # or mainEffect
-type <-"mainEffect"
+type <- "interactionErdos" # or mainEffect
+#type <-"mainEffect"
 bias <- 0.6          # moderate effect size
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
