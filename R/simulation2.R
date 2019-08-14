@@ -1,8 +1,9 @@
-Rcpp::sourceCpp('R/arma_getEigenValues.cpp')
-Rcpp::cppFunction(depends="RcppArmadillo",
-            'arma::vec getEigenValues(arma::mat M) {
-            return arma::eig_sym(M);
-            }')
+#Rcpp::sourceCpp('R/arma_getEigenValues.cpp')
+#Rcpp::cppFunction(depends="RcppArmadillo",
+#                    'arma::vec getEigenValues(arma::mat M) {
+#                    return arma::eig_sym(M);
+#}')
+
 
 #=========================================================================================#
 #' generate_structured_corrmat
@@ -36,7 +37,12 @@ generate_structured_corrmat <- function(g=NULL,
                                         plot.graph=F,
                                         make.diff.cors=F,
                                         nbias=1, use.Rcpp=F){
-  
+  if(use.Rcpp){
+    Rcpp::cppFunction(depends="RcppArmadillo",
+                      'arma::vec getEigenValues(arma::mat M) {
+                      return arma::eig_sym(M);
+    }')
+  }
   if(abs(as.integer(num.variables) - num.variables) > 1e-9){
     stop("generate_structured_corrmat: num.variables should be a positive integer")
   }
@@ -133,6 +139,7 @@ generate_structured_corrmat <- function(g=NULL,
   }else{ 
     R.d <- Matrix(diag(eigen(R)$values),sparse=T)
   }
+  
   tmp <- c(diag(R.d))                                      # vector of eigenvalues
   
   if (any(tmp<0)){                # if any eigenvalues are negative
@@ -234,6 +241,13 @@ createSimulation2 <- function(num.samples=100,
                               plot.graph=F, use.Rcpp=F){
   
   ptm <- proc.time() # start time
+  
+  if (use.Rcpp){
+    Rcpp::cppFunction(depends="RcppArmadillo",
+                      'arma::vec getEigenValues(arma::mat M) {
+                      return arma::eig_sym(M);
+    }')
+  }
   
   nbias <- pct.signals * num.variables # number of functional attributes
   

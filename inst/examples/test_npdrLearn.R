@@ -33,7 +33,7 @@ case.control.3sets <- createSimulation2(num.samples = n.samples,
                                        pct.validation = 1/3,
                                        sim.type = type,
                                        save.file = NULL,
-                                       verbose = verbose, use.Rcpp=F)
+                                       verbose = verbose, use.Rcpp=T)
 # combine train and holdout into 200 samples x 100 attributes
 # ignore validation set
 case.control.data <- rbind(case.control.3sets$train,case.control.3sets$holdout)
