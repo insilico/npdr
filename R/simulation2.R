@@ -129,14 +129,14 @@ generate_structured_corrmat <- function(g=NULL,
   # correct for negative eigenvalues to make matrix positive definite
   #
   if(use.Rcpp){ # compute eigenvalues and make diag matrix
-    R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+    R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T)
   }else{ 
-    R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+    R.d <- Matrix(diag(eigen(R)$values),sparse=T)
   }
   tmp <- c(diag(R.d))                                      # vector of eigenvalues
   
   if (any(tmp<0)){                # if any eigenvalues are negative
-    R.V <- Matrix(eigen(new.mat)$vectors,sparse=T) # compute eigenvectors,
+    R.V <- Matrix(eigen(R)$vectors,sparse=T) # compute eigenvectors,
     tmp[tmp<0] <- 1e-7            # make negative into small positive,
     diag(R.d) <- tmp              # replace in R.d,
     R.fix <- R.V%*%R.d%*%t(R.V)   # compute new correlation matrix, and
@@ -406,9 +406,9 @@ createSimulation2 <- function(num.samples=100,
     # correct for negative eigenvalues so R is positive definite
     #
     if(use.Rcpp){ # compute eigenvalues and make diag matrix
-      R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+      R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T)
     }else{ 
-      R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+      R.d <- Matrix(diag(eigen(R)$values),sparse=T)
     }
     tmp <- c(diag(R.d))                                # vector of eigenvalues
     
@@ -512,9 +512,9 @@ createSimulation2 <- function(num.samples=100,
     # correct for negative eigenvalues to make R positive definite
     #
     if(use.Rcpp){ # compute eigenvalues and make diag matrix
-      R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+      R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T)
     }else{ 
-      R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+      R.d <- Matrix(diag(eigen(R)$values),sparse=T)
     }
     tmp <- c(diag(R.d))                                # vector of eigenvalues
     
@@ -635,9 +635,9 @@ createSimulation2 <- function(num.samples=100,
       # correct for negative eigenvalues so R is positive definite
       #
       if(use.Rcpp){ # compute eigenvalues and make diag matrix
-        R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+        R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T)
       }else{ 
-        R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+        R.d <- Matrix(diag(eigen(R)$values),sparse=T)
       }
       tmp <- c(diag(R.d))                                # vector of eigenvalues
       
@@ -793,9 +793,9 @@ createSimulation2 <- function(num.samples=100,
       # correct for negative eigenvalues to make R positive definite
       #
       if(use.Rcpp){ # compute eigenvalues and make diag matrix
-        R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+        R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T)
       }else{ 
-        R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+        R.d <- Matrix(diag(eigen(R)$values),sparse=T)
       }
       tmp <- c(diag(R.d))                                # vector of eigenvalues
       

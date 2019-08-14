@@ -16,8 +16,8 @@ library(npdr)
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
-type <- "interactionErdos" # or mainEffect
-#type <-"mainEffect"
+#type <- "interactionErdos" # or mainEffect
+type <-"mainEffect"
 bias <- 0.6          # moderate effect size
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
@@ -31,7 +31,7 @@ case.control.3sets <- createSimulation2(num.samples = n.samples,
                                        pct.validation = 1/3,
                                        sim.type = type,
                                        save.file = NULL,
-                                       verbose = verbose)
+                                       verbose = verbose, use.Rcpp=F)
 # combine train and holdout into 200 samples x 100 attributes
 # ignore validation set
 case.control.data <- rbind(case.control.3sets$train,case.control.3sets$holdout)
