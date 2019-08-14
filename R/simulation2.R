@@ -1,9 +1,14 @@
+Rcpp::sourceCpp('R/arma_getEigenValues.cpp')
+Rcpp::cppFunction(depends="RcppArmadillo",
+            'arma::vec getEigenValues(arma::mat M) {
+            return arma::eig_sym(M);
+            }')
 
 #=========================================================================================#
 #' generate_structured_corrmat
 #'
 #' parameters:
-#'
+#' 
 #' @param g random graph
 #' @param num.variables number of independent variables in data matrix
 #' @param hi.cor upper baseline pairwise functional correlation in control group
@@ -11,7 +16,8 @@
 #' @param graph.type either Erdos-Renyi or Scale-Free graph
 #' @param plot.graph logical indicating whether to plot graph or not
 #' @param make.diff.cors logical indicating whether case correlation matrix for differential correlation is being created or not
-#' @param nbias number of functional interaction variables 
+#' @param nbias number of functional interaction variables
+#' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
 #' @return A list containing:
 #' \describe{
 #'   \item{cor.mat}{structured correlation matrix}
@@ -29,7 +35,7 @@ generate_structured_corrmat <- function(g=NULL,
                                         graph.type="Erdos-Renyi", 
                                         plot.graph=F,
                                         make.diff.cors=F,
-                                        nbias=1){
+                                        nbias=1, use.Rcpp=F){
   
   if(abs(as.integer(num.variables) - num.variables) > 1e-9){
     stop("generate_structured_corrmat: num.variables should be a positive integer")
@@ -122,7 +128,11 @@ generate_structured_corrmat <- function(g=NULL,
   
   # correct for negative eigenvalues to make matrix positive definite
   #
-  R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T) # compute eigenvalues and store in diagonal matrix
+  if(use.Rcpp){ # compute eigenvalues and make diag matrix
+    R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+  }else{ 
+    R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+  }
   tmp <- c(diag(R.d))                                      # vector of eigenvalues
   
   if (any(tmp<0)){                # if any eigenvalues are negative
@@ -169,6 +179,7 @@ generate_structured_corrmat <- function(g=NULL,
 #' @param pct.mixed fraction of functional variables with interaction effects
 #' @param verbose logical indicating whether to display time required to generate simulation
 #' @param plot.graph logical indicating whether to plot networks
+#' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
 #' @return A list with:
 #' \describe{
 #'   \item{train}{traing data set}
@@ -220,7 +231,7 @@ createSimulation2 <- function(num.samples=100,
                               mix.type=NULL,
                               pct.mixed=0.5,
                               verbose=FALSE,
-                              plot.graph=F){
+                              plot.graph=F, use.Rcpp=F){
   
   ptm <- proc.time() # start time
   
@@ -270,7 +281,7 @@ createSimulation2 <- function(num.samples=100,
                                                 lo.cor.tmp=lo.cor, 
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
-                                                nbias=nbias)
+                                                nbias=nbias, use.Rcpp=use.Rcpp)
     
     R <- as.matrix(network.atts$corrmat) # correlation matrix
     
@@ -312,7 +323,7 @@ createSimulation2 <- function(num.samples=100,
                                                 lo.cor.tmp=lo.cor, 
                                                 graph.type="Scalefree",
                                                 plot.graph=plot.graph,
-                                                nbias=nbias)
+                                                nbias=nbias, use.Rcpp=use.Rcpp)
     R <- as.matrix(network.atts$corrmat) # correlation matrix
     
     A.mat <- network.atts$A.mat          # adjacency from graph
@@ -354,7 +365,7 @@ createSimulation2 <- function(num.samples=100,
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
                                                 make.diff.cors=T,
-                                                nbias=nbias)
+                                                nbias=nbias, use.Rcpp=use.Rcpp)
     
     R <- as.matrix(network.atts$corrmat) # correlation matrix for cases
     
@@ -394,7 +405,11 @@ createSimulation2 <- function(num.samples=100,
     
     # correct for negative eigenvalues so R is positive definite
     #
-    R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T) # compute eigenvalues and make diag matrix
+    if(use.Rcpp){ # compute eigenvalues and make diag matrix
+      R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+    }else{ 
+      R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+    }
     tmp <- c(diag(R.d))                                # vector of eigenvalues
     
     if (any(tmp<0)){              # if any eigenvalues are negative
@@ -455,7 +470,7 @@ createSimulation2 <- function(num.samples=100,
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
                                                 make.diff.cors=T,
-                                                nbias=nbias)
+                                                nbias=nbias, use.Rcpp=use.Rcpp)
     
     R <- as.matrix(network.atts$corrmat)
     
@@ -496,7 +511,11 @@ createSimulation2 <- function(num.samples=100,
     
     # correct for negative eigenvalues to make R positive definite
     #
-    R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T) # compute eigenvalues and store in diag matrix
+    if(use.Rcpp){ # compute eigenvalues and make diag matrix
+      R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+    }else{ 
+      R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+    }
     tmp <- c(diag(R.d))                                # vector of eigenvalues
     
     if (any(tmp<0)){              # if any eigenvalues are negative
@@ -564,7 +583,7 @@ createSimulation2 <- function(num.samples=100,
                                                   graph.type="Erdos-Renyi",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
-                                                  nbias=num.int)
+                                                  nbias=num.int, use.Rcpp=use.Rcpp)
       
       R <- as.matrix(network.atts$corrmat) # case correlation matrix
       
@@ -615,7 +634,11 @@ createSimulation2 <- function(num.samples=100,
       
       # correct for negative eigenvalues so R is positive definite
       #
-      R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T) # compute eigenvalues and store in diag matrix
+      if(use.Rcpp){ # compute eigenvalues and make diag matrix
+        R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+      }else{ 
+        R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+      }
       tmp <- c(diag(R.d))                                # vector of eigenvalues
       
       if (any(tmp<0)){              # if any eigenvalues are negative
@@ -718,7 +741,7 @@ createSimulation2 <- function(num.samples=100,
                                                   graph.type="Scalefree",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
-                                                  nbias=num.int)
+                                                  nbias=num.int, use.Rcpp=use.Rcpp)
       
       R <- as.matrix(network.atts$corrmat) # cases correlation matrix
       
@@ -769,7 +792,11 @@ createSimulation2 <- function(num.samples=100,
       
       # correct for negative eigenvalues to make R positive definite
       #
-      R.d <- Matrix(diag(sort(c(getEigenValues(R)),decreasing=T)),sparse=T) # compute eigenvalues and store in diag matrix
+      if(use.Rcpp){ # compute eigenvalues and make diag matrix
+        R.d <- Matrix(diag(sort(c(getEigenValues(new.mat)),decreasing=T)),sparse=T)
+      }else{ 
+        R.d <- Matrix(diag(eigen(new.mat)$values),sparse=T)
+      }
       tmp <- c(diag(R.d))                                # vector of eigenvalues
       
       if (any(tmp<0)){              # if any eigenvalues are negative

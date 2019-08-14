@@ -10,7 +10,7 @@ createSimulation2(num.samples = 100, num.variables = 100,
   label = "class", sim.type = "mainEffect", pct.train = 0.5,
   pct.holdout = 0.5, pct.validation = 0, save.file = NULL,
   mix.type = NULL, pct.mixed = 0.5, verbose = FALSE,
-  plot.graph = F)
+  plot.graph = F, use.Rcpp = F)
 }
 \arguments{
 \item{num.samples}{number of samples}
@@ -50,6 +50,8 @@ main-interactionErdos/main-interactionScalefree}
 \item{verbose}{logical indicating whether to display time required to generate simulation}
 
 \item{plot.graph}{logical indicating whether to plot networks}
+
+\item{use.Rcpp}{if true use Rcpp to correct negative eigenvalues}
 }
 \value{
 A list with:

@@ -6,7 +6,7 @@
 \usage{
 generate_structured_corrmat(g = NULL, num.variables = 100,
   hi.cor.tmp = 0.8, lo.cor.tmp = 0.2, graph.type = "Erdos-Renyi",
-  plot.graph = F, make.diff.cors = F, nbias = 1)
+  plot.graph = F, make.diff.cors = F, nbias = 1, use.Rcpp = F)
 }
 \arguments{
 \item{g}{random graph}
@@ -20,6 +20,8 @@ generate_structured_corrmat(g = NULL, num.variables = 100,
 \item{make.diff.cors}{logical indicating whether case correlation matrix for differential correlation is being created or not}
 
 \item{nbias}{number of functional interaction variables}
+
+\item{use.Rcpp}{if true use Rcpp to correct negative eigenvalues}
 
 \item{hi.cor}{upper baseline pairwise functional correlation in control group}
 

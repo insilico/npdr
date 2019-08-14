@@ -16,8 +16,8 @@ library(npdr)
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
-#type <- "interactionErdos" # or mainEffect
-type <-"mainEffect"
+type <- "interactionErdos" # or mainEffect
+#type <-"mainEffect"
 bias <- 0.6          # moderate effect size
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
@@ -25,7 +25,7 @@ case.control.3sets <- createSimulation2(num.samples = n.samples,
                                        num.variables = n.variables,
                                        pct.signals = pct.signals,
                                        label = label,
-                                       main.bias = bias,
+                                       interaction.bias = bias,
                                        pct.train = 1/3,
                                        pct.holdout = 1/3,
                                        pct.validation = 1/3,
