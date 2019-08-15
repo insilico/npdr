@@ -4,6 +4,7 @@
 #                    return arma::eig_sym(M);
 #}')
 
+
 #=========================================================================================#
 #' generate_structured_corrmat
 #'
@@ -17,7 +18,6 @@
 #' @param plot.graph logical indicating whether to plot graph or not
 #' @param make.diff.cors logical indicating whether case correlation matrix for differential correlation is being created or not
 #' @param nbias number of functional interaction variables 
-#' @param hi.cor.fixed high correlation for network connected/non-functional features
 #' @return A list containing:
 #' \describe{
 #'   \item{cor.mat}{structured correlation matrix}
@@ -33,7 +33,6 @@ generate_structured_corrmat <- function(g=NULL,
                                         num.variables=100, 
                                         hi.cor.tmp=0.8, 
                                         lo.cor.tmp=0.2, 
-                                        hi.cor.fixed=0.8,
                                         graph.type="Erdos-Renyi", 
                                         plot.graph=F,
                                         make.diff.cors=F,
@@ -42,7 +41,7 @@ generate_structured_corrmat <- function(g=NULL,
     Rcpp::cppFunction(depends="RcppArmadillo",
                       'arma::vec getEigenValues(arma::mat M) {
                       return arma::eig_sym(M);
-  }')
+    }')
   }
   if(abs(as.integer(num.variables) - num.variables) > 1e-9){
     stop("generate_structured_corrmat: num.variables should be a positive integer")
@@ -116,7 +115,7 @@ generate_structured_corrmat <- function(g=NULL,
     tmp <- adj.tmp1[upper.tri(adj.tmp1)] # functional connections only (upper triangle)
     tmp2 <- (hi.cor.tmp + rnorm(length(tmp),sd=.1))*tmp # functional connections correlations matrix  
     tmp3 <- (lo.cor.tmp + rnorm(length(adj.tmp3[upper.tri(adj.tmp3)]),sd=.1))*adj.tmp3[upper.tri(adj.tmp3)] # non-connections correlations matrix
-    tmp4 <- (hi.cor.fixed + rnorm(length(adj.tmp2[upper.tri(adj.tmp2)]),sd=.1))*adj.tmp2[upper.tri(adj.tmp2)] # non-functional connections correlations matrix
+    tmp4 <- (hi.cor.tmp + rnorm(length(adj.tmp2[upper.tri(adj.tmp2)]),sd=.1))*adj.tmp2[upper.tri(adj.tmp2)] # non-functional connections correlations matrix
     
     mat1 <- matrix(0, nrow=dim(Adj)[1], ncol=dim(Adj)[1]) # initialize functional correlation matrix
     mat2 <- matrix(0, nrow=dim(Adj)[1], ncol=dim(Adj)[1]) # initialize non-connection correlation matrix
@@ -188,8 +187,6 @@ generate_structured_corrmat <- function(g=NULL,
 #' @param verbose logical indicating whether to display time required to generate simulation
 #' @param plot.graph logical indicating whether to plot networks
 #' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
-#' @param prob.connected probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph
-#' @param out.degree out-degree of vertices in Scale-free graph
 #' @return A list with:
 #' \describe{
 #'   \item{train}{traing data set}
@@ -241,9 +238,7 @@ createSimulation2 <- function(num.samples=100,
                               mix.type=NULL,
                               pct.mixed=0.5,
                               verbose=FALSE,
-                              plot.graph=F, use.Rcpp=F,
-                              prob.connected=NULL,
-                              out.degree=NULL){
+                              plot.graph=F, use.Rcpp=F){
   
   ptm <- proc.time() # start time
   
@@ -251,7 +246,7 @@ createSimulation2 <- function(num.samples=100,
     Rcpp::cppFunction(depends="RcppArmadillo",
                       'arma::vec getEigenValues(arma::mat M) {
                       return arma::eig_sym(M);
-  }')
+    }')
   }
   
   nbias <- pct.signals * num.variables # number of functional attributes
@@ -289,11 +284,8 @@ createSimulation2 <- function(num.samples=100,
     dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
     
     e <- 1    # fudge factor to the number of nodes to avoid giant component
-    if(is.null(prob.connected)){
-      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    }else{
-      prob <- prob.connected
-    }
+    prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+    
     g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
     
     # generate correlation matrix from g
@@ -301,7 +293,6 @@ createSimulation2 <- function(num.samples=100,
                                                 num.variables=num.variables, 
                                                 hi.cor.tmp=hi.cor, 
                                                 lo.cor.tmp=lo.cor, 
-                                                hi.cor.fixed=hi.cor,
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
                                                 nbias=nbias, use.Rcpp=use.Rcpp)
@@ -337,18 +328,13 @@ createSimulation2 <- function(num.samples=100,
     e <- 1    # fudge factor to the number of nodes to avoid giant component
     prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
     
-    if(is.null(out.degree)){
-      g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
-    }else{
-      g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
-    }
+    g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
     
     # generate correlation matrix from g
     network.atts <- generate_structured_corrmat(g=g,
                                                 num.variables=num.variables, 
                                                 hi.cor.tmp=hi.cor, 
                                                 lo.cor.tmp=lo.cor, 
-                                                hi.cor.fixed=hi.cor,
                                                 graph.type="Scalefree",
                                                 plot.graph=plot.graph,
                                                 nbias=nbias, use.Rcpp=use.Rcpp)
@@ -381,11 +367,8 @@ createSimulation2 <- function(num.samples=100,
     case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
     
     e <- 1    # fudge factor to the number of nodes to avoid giant component
-    if(is.null(prob.connected)){
-      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    }else{
-      prob <- prob.connected
-    }
+    prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+    
     g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
     
     # generate correlation matrix from g
@@ -393,7 +376,6 @@ createSimulation2 <- function(num.samples=100,
                                                 num.variables=num.variables, 
                                                 hi.cor.tmp=case.hi.cor,
                                                 lo.cor.tmp=lo.cor,
-                                                hi.cor.fixed=hi.cor,
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
                                                 make.diff.cors=T,
@@ -492,18 +474,13 @@ createSimulation2 <- function(num.samples=100,
     e <- 1    # fudge factor to the number of nodes to avoid giant component
     prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
     
-    if(is.null(out.degree)){
-      g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
-    }else{
-      g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
-    }
+    g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
     
     # generate correlation matrix from g
     network.atts <- generate_structured_corrmat(g=g,
                                                 num.variables=num.variables, 
                                                 hi.cor.tmp=case.hi.cor,
                                                 lo.cor.tmp=lo.cor,
-                                                hi.cor.fixed=hi.cor,
                                                 graph.type="Erdos-Renyi",
                                                 plot.graph=plot.graph,
                                                 make.diff.cors=T,
@@ -607,11 +584,7 @@ createSimulation2 <- function(num.samples=100,
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
       
       e <- 1    # fudge factor to the number of nodes to avoid giant component
-      if(is.null(prob.connected)){
-        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-      }else{
-        prob <- prob.connected
-      }
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
       
       # generate random Erdos-Renyi network
       g <- igraph::erdos.renyi.game(num.variables, prob)
@@ -621,7 +594,6 @@ createSimulation2 <- function(num.samples=100,
                                                   num.variables=num.variables, 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
-                                                  hi.cor.fixed=hi.cor,
                                                   graph.type="Erdos-Renyi",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
@@ -773,18 +745,13 @@ createSimulation2 <- function(num.samples=100,
       prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
       
       # generate random Scale-Free network
-      if(is.null(out.degree)){
-        g <- igraph::barabasi.game(num.variables, directed=F)
-      }else{
-        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
-      }
+      g <- igraph::barabasi.game(num.variables, directed=F)
       
       # generate case group correlation matrix
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
-                                                  hi.cor.fixed=hi.cor,
                                                   graph.type="Scalefree",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
@@ -892,7 +859,7 @@ createSimulation2 <- function(num.samples=100,
       # determine indices of main effect variables
       nonsig.vars <- seq(1,num.variables,by=1)[-sig.vars]
       alternate.vars <- seq(1,num.variables,by=1)[-unique(c(unlist(sig.connected.list),sig.vars))]
-      if(length(na.omit(unconnected.vars)) >= num.main){    # if there are enough non-connected variables
+      if(length(na.omit(unconnected.vars)) >= num.main){                         # if there are enough non-connected variables
         main.vars <- sample(c(na.omit(unconnected.vars)), size=num.main, replace=F) # randomly sample from non-connected variables
       }else{ # if there are not enough non-connected variables
         main.vars <- sample(unique(c(c(na.omit(unconnected.vars)), alternate.vars)), size=num.main, replace=F) # randomly sample from non-connected and non-functional variables

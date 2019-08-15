@@ -5,13 +5,16 @@
 \title{generate_structured_corrmat}
 \usage{
 generate_structured_corrmat(g = NULL, num.variables = 100,
-  hi.cor.tmp = 0.8, lo.cor.tmp = 0.2, graph.type = "Erdos-Renyi",
-  plot.graph = F, make.diff.cors = F, nbias = 1, use.Rcpp = F)
+  hi.cor.tmp = 0.8, lo.cor.tmp = 0.2, hi.cor.fixed = 0.8,
+  graph.type = "Erdos-Renyi", plot.graph = F, make.diff.cors = F,
+  nbias = 1, use.Rcpp = F)
 }
 \arguments{
 \item{g}{random graph}
 
 \item{num.variables}{number of independent variables in data matrix}
+
+\item{hi.cor.fixed}{high correlation for network connected/non-functional features}
 
 \item{graph.type}{either Erdos-Renyi or Scale-Free graph}
 

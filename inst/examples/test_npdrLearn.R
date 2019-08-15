@@ -23,18 +23,20 @@ type <-"mainEffect"
 bias <- .8        # .8 strong main effect, 2 strong interaction effect
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
+
 case.control.3sets <- createSimulation2(num.samples=n.samples,
                              num.variables=n.variables,
-                             pct.imbalance=0.5,
+                             pct.imbalance=0.5, #default
                              pct.signals=pct.signals,
-                             main.bias=5,
+                             main.bias=bias,
                              interaction.bias=bias,
-                             hi.cor=0.9,
-                             lo.cor=0.1,
+                             hi.cor=0.8, #default
+                             lo.cor=0.2, #default
                              mix.type=NULL,
+                             save.file=NULL,
                              label="class",
                              sim.type=type,
-                             pct.mixed=0.5,
+                             pct.mixed=0.5, # if mix.type not null
                              pct.train=1/3,
                              pct.holdout=1/3,
                              pct.validation=1/3,

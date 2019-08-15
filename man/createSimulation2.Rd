@@ -10,7 +10,8 @@ createSimulation2(num.samples = 100, num.variables = 100,
   label = "class", sim.type = "mainEffect", pct.train = 0.5,
   pct.holdout = 0.5, pct.validation = 0, save.file = NULL,
   mix.type = NULL, pct.mixed = 0.5, verbose = FALSE,
-  plot.graph = F, use.Rcpp = F)
+  plot.graph = F, use.Rcpp = F, prob.connected = NULL,
+  out.degree = NULL)
 }
 \arguments{
 \item{num.samples}{number of samples}
@@ -52,6 +53,10 @@ main-interactionErdos/main-interactionScalefree}
 \item{plot.graph}{logical indicating whether to plot networks}
 
 \item{use.Rcpp}{if true use Rcpp to correct negative eigenvalues}
+
+\item{prob.connected}{probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph}
+
+\item{out.degree}{out-degree of vertices in Scale-free graph}
 }
 \value{
 A list with:
