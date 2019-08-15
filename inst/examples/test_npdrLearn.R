@@ -18,22 +18,41 @@ library(npdr)
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
-type <- "interactionErdos" # or mainEffect
-#type <-"mainEffect"
-bias <- 0.6          # moderate effect size
+#type <- "interactionErdos" # or mainEffect
+type <-"mainEffect"
+bias <- .8        # .8 strong main effect, 2 strong interaction effect
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
-case.control.3sets <- createSimulation2(num.samples = n.samples,
-                                       num.variables = n.variables,
-                                       pct.signals = pct.signals,
-                                       label = label,
-                                       interaction.bias = bias,
-                                       pct.train = 1/3,
-                                       pct.holdout = 1/3,
-                                       pct.validation = 1/3,
-                                       sim.type = type,
-                                       save.file = NULL,
-                                       verbose = verbose, use.Rcpp=T)
+case.control.3sets <- createSimulation2(num.samples=n.samples,
+                             num.variables=n.variables,
+                             pct.imbalance=0.5,
+                             pct.signals=pct.signals,
+                             main.bias=5,
+                             interaction.bias=bias,
+                             hi.cor=0.9,
+                             lo.cor=0.1,
+                             mix.type=NULL,
+                             label="class",
+                             sim.type=type,
+                             pct.mixed=0.5,
+                             pct.train=1/3,
+                             pct.holdout=1/3,
+                             pct.validation=1/3,
+                             plot.graph=F,
+                             verbose=verbose,
+                             use.Rcpp=F)
+#case.control.3sets <- createSimulation2(num.samples = n.samples,
+#                                       num.variables = n.variables,
+#                                       pct.signals = pct.signals,
+#                                       label = label,
+#                                       interaction.bias = bias,
+#                                       pct.train = 1/3,
+#                                       pct.holdout = 1/3,
+#                                       pct.validation = 1/3,
+#                                       sim.type = type,
+#                                       save.file = NULL,
+#                                       verbose = verbose, use.Rcpp=F)
+
 # combine train and holdout into 200 samples x 100 attributes
 # ignore validation set
 case.control.data <- rbind(case.control.3sets$train,case.control.3sets$holdout)
@@ -58,6 +77,7 @@ npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", 
                         padj.method="bonferroni", verbose=T)
 npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
 
+# separate hit/miss neighborhoods
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
                         nbd.method="relieff", nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
                         neighbor.sampling="none", separate.hitmiss.nbds=T,
