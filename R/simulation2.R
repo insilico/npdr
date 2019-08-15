@@ -601,24 +601,24 @@ createSimulation2 <- function(num.samples=100,
       num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
       
       # make cases data set
-      X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
+      X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
       
       # approximate effect size for pairwise correlations between functional attributes in case group
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
       
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       if(is.null(prob.connected)){
-        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+        prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
       }else{
         prob <- prob.connected
       }
       
       # generate random Erdos-Renyi network
-      g <- igraph::erdos.renyi.game(num.variables, prob)
+      g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
       
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
-                                                  num.variables=num.variables, 
+                                                  num.variables=(num.variables - num.main), 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
                                                   hi.cor.fixed=hi.cor,
@@ -633,21 +633,12 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph
       
-      # determine which variables are not connected in graph
-      degs <- degree(g)
-      n.unconnected.vars <- length(which(degs==0))
-      if(n.unconnected.vars > 0){
-        unconnected.vars <- which(degs==0)
-      }else{
-        unconnected.vars <- NA
-      }
-      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
       X.case <- tmp             # store in X.case
       
       # make controls data set
-      X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
+      X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
       
       # find connections for functional attributes
       #
@@ -726,20 +717,8 @@ createSimulation2 <- function(num.samples=100,
       }
       dataset.tmp <- cbind(main.cols, my.sim.data$S)
       
-      # determine indices of main effect variables in full data set
-      nonsig.vars <- seq(1,num.variables,by=1)[-sig.vars]
-      alternate.vars <- seq(1,num.variables,by=1)[-unique(c(unlist(sig.connected.list),sig.vars))]
-      if(length(na.omit(unconnected.vars)) >= num.main){                         # if there are enough non-connected to choose from
-        main.vars <- sample(c(na.omit(unconnected.vars)), size=num.main, replace=F) # sample randomly from non-connected
-      }else{ # if there are too few non-connected to choose from
-        main.vars <- sample(unique(c(c(na.omit(unconnected.vars)), alternate.vars)), size=num.main, replace=F) # sample randomly from unconnected and non-interaction variables
-      }
-      
-      # insert main effects into data set
-      main.idx <- sample(c(1:num.main),size=num.main,replace=F)
-      for(i in 1:length(main.vars)){
-        dataset[, main.vars[i]] <- dataset.tmp[,main.idx[i]]
-      }
+      dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
+      main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
       
       main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
       int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
@@ -764,24 +743,24 @@ createSimulation2 <- function(num.samples=100,
       num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
       
       # make cases data set
-      X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
+      X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
       
       # approximate effect size for pairwise correlations between functional attributes in case group
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
       
       e <- 1    # fudge factor to the number of nodes to avoid giant component
-      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
       
       # generate random Scale-Free network
       if(is.null(out.degree)){
-        g <- igraph::barabasi.game(num.variables, directed=F)
+        g <- igraph::barabasi.game((num.variables - num.main), directed=F)
       }else{
-        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+        g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
       }
       
       # generate case group correlation matrix
       network.atts <- generate_structured_corrmat(g=g,
-                                                  num.variables=num.variables, 
+                                                  num.variables=(num.variables - num.main), 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
                                                   hi.cor.fixed=hi.cor,
@@ -796,21 +775,12 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph
       
-      # find non-connected variables from graph
-      degs <- degree(g)
-      n.unconnected.vars <- length(which(degs==0))
-      if(n.unconnected.vars > 0){
-        unconnected.vars <- which(degs==0)
-      }else{
-        unconnected.vars <- NA
-      }
-      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
       X.case <- tmp             # store in X.case
       
       # make controls data set
-      X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
+      X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
       
       # find all functional connections
       # 
@@ -889,20 +859,8 @@ createSimulation2 <- function(num.samples=100,
       }
       dataset.tmp <- cbind(main.cols, my.sim.data$S)
       
-      # determine indices of main effect variables
-      nonsig.vars <- seq(1,num.variables,by=1)[-sig.vars]
-      alternate.vars <- seq(1,num.variables,by=1)[-unique(c(unlist(sig.connected.list),sig.vars))]
-      if(length(na.omit(unconnected.vars)) >= num.main){    # if there are enough non-connected variables
-        main.vars <- sample(c(na.omit(unconnected.vars)), size=num.main, replace=F) # randomly sample from non-connected variables
-      }else{ # if there are not enough non-connected variables
-        main.vars <- sample(unique(c(c(na.omit(unconnected.vars)), alternate.vars)), size=num.main, replace=F) # randomly sample from non-connected and non-functional variables
-      }
-      
-      # insert main effects into data set
-      main.idx <- sample(c(1:num.main),size=num.main,replace=F)
-      for(i in 1:length(main.vars)){
-        dataset[, main.vars[i]] <- dataset.tmp[,main.idx[i]]
-      }
+      dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
+      main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
       
       main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
       int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
