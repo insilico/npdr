@@ -2,11 +2,6 @@ library(privateEC)
 library(broom)
 library(dplyr)
 library(igraph)
-#library(Rcpp)
-#library(RcppArmadillo)
-#library(RcppEigen)
-#library(mvtnorm)
-#library(Rfast)
 
 ## npdr install
 # library(devtools)
@@ -18,9 +13,10 @@ library(npdr)
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
-#type <- "interactionErdos" # or mainEffect
-type <-"mainEffect"
-bias <- .8        # .8 strong main effect, 2 strong interaction effect
+type <- "interactionErdos" # or mainEffect
+#type <-"mainEffect"
+bias <- .8           # .8 strong main effect, also used for interactions 
+prob.connect <- .25  # increase this probability for stronger interaction effect
 pct.signals <- 0.1   # pct functional features
 verbose <- FALSE
 
@@ -32,6 +28,8 @@ case.control.3sets <- createSimulation2(num.samples=n.samples,
                              interaction.bias=bias,
                              hi.cor=0.8, #default
                              lo.cor=0.2, #default
+                             prob.connected = prob.connect,
+                             out.degree = NULL,  # use for scalefree
                              mix.type=NULL,
                              save.file=NULL,
                              label="class",
