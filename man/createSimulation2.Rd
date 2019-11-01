@@ -11,7 +11,7 @@ createSimulation2(num.samples = 100, num.variables = 100,
   pct.holdout = 0.5, pct.validation = 0, save.file = NULL,
   mix.type = NULL, pct.mixed = 0.5, verbose = FALSE,
   plot.graph = F, use.Rcpp = F, prob.connected = NULL,
-  out.degree = NULL)
+  out.degree = NULL, data.type = "continuous")
 }
 \arguments{
 \item{num.samples}{number of samples}
@@ -57,6 +57,8 @@ main-interactionErdos/main-interactionScalefree}
 \item{prob.connected}{probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph}
 
 \item{out.degree}{out-degree of vertices in Scale-free graph}
+
+\item{data.type}{character indicating if data is from a "continuous" or "discrete" distribution}
 }
 \value{
 A list with:
@@ -76,6 +78,9 @@ A list with:
 createSimulation2
 }
 \examples{
+
+main effects with correlation from Erdos-Renyi network (continuous)
+
 num.samples <- 100
 num.variables <- 10
 
@@ -85,7 +90,7 @@ dataset <- createSimulation2(num.samples=num.samples,
                             pct.signals=0.2,
                             main.bias=0.4,
                             interaction.bias=1,
-                            hi.cor=10,
+                            hi.cor=0.8,
                             lo.cor=0.2,
                             mix.type="main-interactionErdos",
                             label="class",
@@ -95,5 +100,30 @@ dataset <- createSimulation2(num.samples=num.samples,
                             pct.holdout=0.5,
                             pct.validation=0,
                             plot.graph=F,
-                            verbose=T)
+                            verbose=T,
+                            data.type="continuous")
+                            
+main effects with correlation from Erdos-Renyi network
+
+num.samples <- 100
+num.variables <- 10
+                            
+dataset <- createSimulation2(num.samples=num.samples,
+                            num.variables=num.variables,
+                            pct.imbalance=0.5,
+                            pct.signals=0.2,
+                            main.bias=0.4,
+                            interaction.bias=1,
+                            hi.cor=0.8,
+                            lo.cor=0.2,
+                            mix.type="main-interactionErdos",
+                            label="class",
+                            sim.type="mainEffect_Erdos-Renyi",
+                            pct.mixed=0.5,
+                            pct.train=0.5,
+                            pct.holdout=0.5,
+                            pct.validation=0,
+                            plot.graph=F,
+                            verbose=T,
+                            data.type="discrete")
 }

@@ -190,6 +190,7 @@ generate_structured_corrmat <- function(g=NULL,
 #' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
 #' @param prob.connected probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph
 #' @param out.degree out-degree of vertices in Scale-free graph
+#' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
 #' @return A list with:
 #' \describe{
 #'   \item{train}{traing data set}
@@ -203,6 +204,9 @@ generate_structured_corrmat <- function(g=NULL,
 #'   \item{int.vars}{indices of interaction effect variables (for mixed simulations)}
 #' }
 #' @examples
+#' 
+#' main effects with correlation from Erdos-Renyi network (continuous)
+#' 
 #' num.samples <- 100
 #' num.variables <- 10
 #'
@@ -212,7 +216,7 @@ generate_structured_corrmat <- function(g=NULL,
 #'                             pct.signals=0.2,
 #'                             main.bias=0.4,
 #'                             interaction.bias=1,
-#'                             hi.cor=10,
+#'                             hi.cor=0.8,
 #'                             lo.cor=0.2,
 #'                             mix.type="main-interactionErdos",
 #'                             label="class",
@@ -222,7 +226,32 @@ generate_structured_corrmat <- function(g=NULL,
 #'                             pct.holdout=0.5,
 #'                             pct.validation=0,
 #'                             plot.graph=F,
-#'                             verbose=T)
+#'                             verbose=T,
+#'                             data.type="continuous")
+#'                             
+#' main effects with correlation from Erdos-Renyi network
+#' 
+#' num.samples <- 100
+#' num.variables <- 10
+#'                             
+#' dataset <- createSimulation2(num.samples=num.samples,
+#'                             num.variables=num.variables,
+#'                             pct.imbalance=0.5,
+#'                             pct.signals=0.2,
+#'                             main.bias=0.4,
+#'                             interaction.bias=1,
+#'                             hi.cor=0.8,
+#'                             lo.cor=0.2,
+#'                             mix.type="main-interactionErdos",
+#'                             label="class",
+#'                             sim.type="mainEffect_Erdos-Renyi",
+#'                             pct.mixed=0.5,
+#'                             pct.train=0.5,
+#'                             pct.holdout=0.5,
+#'                             pct.validation=0,
+#'                             plot.graph=F,
+#'                             verbose=T,
+#'                             data.type="discrete")
 #' @export
 createSimulation2 <- function(num.samples=100,
                               num.variables=100,
@@ -243,7 +272,8 @@ createSimulation2 <- function(num.samples=100,
                               verbose=FALSE,
                               plot.graph=F, use.Rcpp=F,
                               prob.connected=NULL,
-                              out.degree=NULL){
+                              out.degree=NULL,
+                              data.type="continuous"){
   
   ptm <- proc.time() # start time
   
@@ -258,412 +288,542 @@ createSimulation2 <- function(num.samples=100,
   
   if(sim.type=="mainEffect"){ # simple main effect simulation
     
-    # new simulation:
-    # sd.b sort of determines how large the signals are
-    # p.b=0.1 makes 10% of the variables signal, bias <- 0.5
-    my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
-                                                n.db=num.samples,              
-                                                pct.imbalance=pct.imbalance,
-                                                label = label,
-                                                sd.b=main.bias,
-                                                p.b=pct.signals)$db
-    dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
+    if(data.type=="continuous"){
+      
+      # new simulation:
+      # sd.b sort of determines how large the signals are
+      # p.b=0.1 makes 10% of the variables signal, bias <- 0.5
+      my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
+                                                  n.db=num.samples,              
+                                                  pct.imbalance=pct.imbalance,
+                                                  label = label,
+                                                  sd.b=main.bias,
+                                                  p.b=pct.signals)$db
+      dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
     
-    # make numeric matrix into a data frame for splitting and subsequent ML algorithms
-    dataset <- as.data.frame(dataset)
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
     
-    signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
-    background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
-    var.names <- c(signal.names, background.names, label)                 # all variable names
-    colnames(dataset) <- var.names                                        # replace column names with variable names
-    
-  }else if(sim.type=="mainEffect_Erdos-Renyi"){ # main + Erdos-Renyi network
-    
-    # create main-effect simulation
-    my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
-                                                n.db=num.samples,              
-                                                pct.imbalance=pct.imbalance,
-                                                label = label,
-                                                sd.b=main.bias,
-                                                p.b=pct.signals)$db
-    dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
-    
-    e <- 1    # fudge factor to the number of nodes to avoid giant component
-    if(is.null(prob.connected)){
-      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    }else{
-      prob <- prob.connected
-    }
-    g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
-    
-    # generate correlation matrix from g
-    network.atts <- generate_structured_corrmat(g=g,
-                                                num.variables=num.variables, 
-                                                hi.cor.tmp=hi.cor, 
-                                                lo.cor.tmp=lo.cor, 
-                                                hi.cor.fixed=hi.cor,
-                                                graph.type="Erdos-Renyi",
-                                                plot.graph=plot.graph,
-                                                nbias=nbias, use.Rcpp=use.Rcpp)
-    
-    R <- as.matrix(network.atts$corrmat) # correlation matrix
-    
-    A.mat <- network.atts$A.mat          # adjacency from graph
-    
-    U <- t(chol(R))                             # upper tri cholesky
-    tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
-    tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
-    dataset <- tmp                              # main-effect data with correlation
-    
-    # make numeric matrix into a data frame for splitting and subsequent ML algorithms
-    dataset <- as.data.frame(dataset)
-    
-    signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
-    background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
-    var.names <- c(signal.names, background.names, label)                 # all variable names
-    colnames(dataset) <- var.names                                        # replace column names with variable names
-    
-  }else if(sim.type=="mainEffect_Scalefree"){ # main + Scale-Free network
-    
-    # create main-effect simulation
-    my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
-                                                n.db=num.samples,              
-                                                pct.imbalance=pct.imbalance,
-                                                label = label,
-                                                sd.b=main.bias,
-                                                p.b=pct.signals)$db
-    dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
-    
-    e <- 1    # fudge factor to the number of nodes to avoid giant component
-    prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    
-    if(is.null(out.degree)){
-      g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
-    }else{
-      g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
-    }
-    
-    # generate correlation matrix from g
-    network.atts <- generate_structured_corrmat(g=g,
-                                                num.variables=num.variables, 
-                                                hi.cor.tmp=hi.cor, 
-                                                lo.cor.tmp=lo.cor, 
-                                                hi.cor.fixed=hi.cor,
-                                                graph.type="Scalefree",
-                                                plot.graph=plot.graph,
-                                                nbias=nbias, use.Rcpp=use.Rcpp)
-    R <- as.matrix(network.atts$corrmat) # correlation matrix
-    
-    A.mat <- network.atts$A.mat          # adjacency from graph
-    
-    U <- t(chol(R))                             # upper tri cholesky
-    tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
-    tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
-    dataset <- tmp                              # main-effect data with correlation
-    
-    # make numeric matrix into a data frame for splitting and subsequent ML algorithms
-    dataset <- as.data.frame(dataset)
-    
-    signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
-    background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names  
-    var.names <- c(signal.names, background.names, label)                 # all variable names
-    colnames(dataset) <- var.names                                        # replace column names with variable names
-    
-  }else if(sim.type=="interactionErdos"){ # simple interaction with Erdos-Renyi network
-    
-    m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
-    m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
-    
-    # random cases data set
-    X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
-    
-    # approximate effect size for pairwise correlations between functional attributes in case group
-    case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-    
-    e <- 1    # fudge factor to the number of nodes to avoid giant component
-    if(is.null(prob.connected)){
-      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    }else{
-      prob <- prob.connected
-    }
-    g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
-    
-    # generate correlation matrix from g
-    network.atts <- generate_structured_corrmat(g=g,
-                                                num.variables=num.variables, 
-                                                hi.cor.tmp=case.hi.cor,
-                                                lo.cor.tmp=lo.cor,
-                                                hi.cor.fixed=hi.cor,
-                                                graph.type="Erdos-Renyi",
-                                                plot.graph=plot.graph,
-                                                make.diff.cors=T,
-                                                nbias=nbias, use.Rcpp=use.Rcpp)
-    
-    R <- as.matrix(network.atts$corrmat) # correlation matrix for cases
-    
-    sig.vars <- network.atts$sig.vars    # column indices of functional features
-    
-    A.mat <- network.atts$A.mat          # adjacency from graph object
-    
-    U <- t(chol(R))           # upper tri cholesky
-    tmp <- t(U %*% t(X.case)) # correlated case data
-    X.case <- tmp
-    
-    # random controls data set
-    X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
-    
-    # for each functional variable, find connected variables
-    sig.connected.list <- list()  # list for storing connected variable indices
-    for(i in 1:length(sig.vars)){                                           # for each functional feature
-      sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
-    }
-    
-    # create control group correlation matrix
-    for(i in 1:length(sig.vars)){                                               # for each functional feature
-      n.connected <- length(sig.connected.list[[i]])                            # how many connections
-      for(j in 1:n.connected){                                                   # for each connection
-        R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+      
+    }else if(data.type=="discrete"){
+      
+      if (main.bias >= 1) {
+        stop("Please choose main.bias in (0,1)")
       }
-    }
-    
-    # ensure that R is symmetric
-    #
-    tmp <- diag(R)       # diag of R
-    diag(R) <- 0         # replace diag of R with 0's
-    R[lower.tri(R)] <- 0 # make lower triangle zeros
-    
-    R <- R + t(R)        # make symmetric
-    diag(R) <- tmp       # original diag of R
-    
-    # correct for negative eigenvalues so R is positive definite
-    #
-    if(use.Rcpp){ # compute eigenvalues and make diag matrix
-      R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
-    }else{ 
-      R.d <- diag(eigen(R)$values)
-    }
-    tmp <- diag(R.d)                                # vector of eigenvalues
-    
-    if (any(tmp<0)){              # if any eigenvalues are negative
-      R.V <- eigen(R)$vectors     # compute eigenvectors,
-      tmp[tmp<0] <- 1e-7          # make negative into small positive,
-      diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
-      R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
-      R <- R.fix                  # store in R
-    }
-    R <- as.matrix(R)
-    
-    # make 1's on diag of R
-    inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
-    mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
-    diag(mydiag) <- inv.diag         # swap 1's for inv.diag
-    mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
-    R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-    
-    U <- t(chol(R))           # upper tri cholesky
-    tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
-    X.ctrl <- tmp             # store in X.ctrl
-    
-    X.all <- rbind(X.case, X.ctrl) # case/ctrl data
-    X.all <- as.data.frame(X.all)  # make data.frame
-    
-    dataset <- X.all
-    
-    signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
-    background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
-    var.names <- c(signal.names, background.names, label)                 # all variable names
-    colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
-    colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional colnames
-    
-    dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
-    colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
-    
-  }else if(sim.type=="interactionScalefree"){ # simple interaction with Scale-Free network
-    
-    m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
-    m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
-    
-    # random cases data set
-    X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
-    
-    # approximate effect size for pairwise correlations between functional attributes in case group 
-    case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-    
-    e <- 1    # fudge factor to the number of nodes to avoid giant component
-    prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    
-    if(is.null(out.degree)){
-      g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
-    }else{
-      g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
-    }
-    
-    # generate correlation matrix from g
-    network.atts <- generate_structured_corrmat(g=g,
-                                                num.variables=num.variables, 
-                                                hi.cor.tmp=case.hi.cor,
-                                                lo.cor.tmp=lo.cor,
-                                                hi.cor.fixed=hi.cor,
-                                                graph.type="Erdos-Renyi",
-                                                plot.graph=plot.graph,
-                                                make.diff.cors=T,
-                                                nbias=nbias, use.Rcpp=use.Rcpp)
-    
-    R <- as.matrix(network.atts$corrmat)
-    
-    sig.vars <- network.atts$sig.vars # functional variable indices
-    
-    A.mat <- network.atts$A.mat       # adjacency from graph
-    
-    U <- t(chol(R))           # upper tri cholesky
-    tmp <- t(U %*% t(X.case)) # correlated case data
-    X.case <- tmp             # store in X.case
-    
-    # random controls data set
-    X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
-    
-    # for each functional variable, find connected variables
-    #
-    sig.connected.list <- list() # list for functional connections
-    for(i in 1:length(sig.vars)){                                           # for each functional variable
-      sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find connections and store in list
-    }
-    
-    # create control group correlation matrix
-    for(i in 1:length(sig.vars)){                                                # for each functional variable 
-      n.connected <- length(sig.connected.list[[i]])                             # how many connections
-      for(j in 1:n.connected){                                                    # for each connection
-        R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlations with high for ctrls
+      
+      if (main.bias >= 0.9 && main.bias < 1){
+        warning("main.bias is very large. Main effect sizes may be undesirable.")
       }
-    }
-    
-    # make sure R is symmetric
-    #
-    tmp <- diag(R)       # diag of R
-    diag(R) <- 0         # make diag(R) 0
-    R[lower.tri(R)] <- 0 # make lower triangle of R 0
-    
-    R <- R + t(R)        # make symmetric
-    diag(R) <- tmp       # replace diag(R) with original diag
-    
-    # correct for negative eigenvalues to make R positive definite
-    #
-    if(use.Rcpp){ # compute eigenvalues and make diag matrix
-      R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
-    }else{ 
-      R.d <- diag(eigen(R)$values)
-    }
-    tmp <- diag(R.d)                                # vector of eigenvalues
-    
-    if (any(tmp<0)){              # if any eigenvalues are negative
-      R.V <- eigen(R)$vectors     # compute eigenvectors
-      tmp[tmp<0] <- 1e-7          # make negative into small positive
-      diag(R.d) <- tmp            # swap negative for positive eigenvalues
-      R.fix <- R.V%*%R.d%*%t(R.V) # compute corrected correlation matrix
-      R <- R.fix                  # store in R
-    }
-    R <- as.matrix(R)
-    
-    # make 1's on diagonal
-    # 
-    inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
-    mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
-    diag(mydiag) <- inv.diag         # swap 1's for inv.diag
-    mydiag <- sqrt(mydiag)           # sqrt of inv.diag
-    R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-    
-    U <- t(chol(R))           # upper tri cholesky
-    tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
-    X.ctrl <- tmp             # store in X.ctrl
-    
-    X.all <- rbind(X.case, X.ctrl) # case/ctrl data
-    X.all <- as.data.frame(X.all)  # make data.frame
-    
-    dataset <- X.all
-    
-    signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
-    background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
-    var.names <- c(signal.names, background.names, label)                 # all variable names
-    colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
-    colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional variable names
-    
-    dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # case/ctrl data with phenotype
-    colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
-    
-  }else if(sim.type=="mixed"){ # main + interaction effect simulation
-    
-    if(mix.type=="main-interactionErdos"){ # main + interaction with Erdos-Renyi network
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
       
-      num.main <- round(pct.mixed*nbias)      # number of main effect attributes
-      num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+      prob.case <- (1 + main.bias)/2
+      prob.ctrl <- (1 - main.bias)/2
       
-      # make cases data set
-      X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
+      main.case <- matrix(0,nrow=m.case,ncol=nbias)
+      for(j in 1:m.case){
+        
+        tmp <- rbinom(n=nbias, size=2, prob=prob.case)
+
+        main.case[j,] <- tmp
+        
+      }
       
-      # approximate effect size for pairwise correlations between functional attributes in case group
-      case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+      main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
+      for(j in 1:m.ctrl){
+        
+        tmp <- rbinom(n=nbias, size=2, prob=prob.ctrl)
+        
+        main.ctrl[j,] <- tmp
+        
+      }
       
+      main.effects <- rbind(main.case,main.ctrl)
+      
+      background.data <- matrix(rbinom(n=(num.variables-nbias)*num.samples, size=2, prob=mean(c(prob.case,prob.ctrl))),
+                                nrow=num.samples)
+      
+      class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
+      dataset <- cbind(main.effects,background.data)
+      dataset <- cbind(dataset,class.vec)
+      
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
+      
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+      
+    }
+    
+  }else if(sim.type=="mainEffect_Erdos-Renyi"){ # main + Erdos-Renyi network
+    
+    if(data.type=="continuous"){
+      
+      # create main-effect simulation
+      my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
+                                                  n.db=num.samples,              
+                                                  pct.imbalance=pct.imbalance,
+                                                  label = label,
+                                                  sd.b=main.bias,
+                                                  p.b=pct.signals)$db
+      dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
+    
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       if(is.null(prob.connected)){
-        prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
       }else{
         prob <- prob.connected
       }
+      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+    
+      # generate correlation matrix from g
+      network.atts <- generate_structured_corrmat(g=g,
+                                                  num.variables=num.variables, 
+                                                  hi.cor.tmp=hi.cor, 
+                                                  lo.cor.tmp=lo.cor, 
+                                                  hi.cor.fixed=hi.cor,
+                                                  graph.type="Erdos-Renyi",
+                                                  plot.graph=plot.graph,
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+    
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+    
+      A.mat <- network.atts$A.mat          # adjacency from graph
+    
+      U <- t(chol(R))                             # upper tri cholesky
+      tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
+      tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
+      dataset <- tmp                              # main-effect data with correlation
+    
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
+    
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+    }else if(data.type=="discrete"){
       
-      # generate random Erdos-Renyi network
-      g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+      if (main.bias >= 1) {
+        stop("Please choose main.bias in (0,1)")
+      }
+      
+      if (main.bias >= 0.9 && main.bias < 1){
+        warning("main.bias is very large. Main effect sizes may be undesirable.")
+      }
+      
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+      
+      
+      null.dats <- matrix(rnorm(num.samples*num.variables),nrow=num.samples,ncol=num.variables)
+      
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      if(is.null(prob.connected)){
+        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      }else{
+        prob <- prob.connected
+      }
+      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
       
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
-                                                  num.variables=(num.variables - num.main), 
+                                                  num.variables=num.variables, 
+                                                  hi.cor.tmp=hi.cor, 
+                                                  lo.cor.tmp=lo.cor, 
+                                                  hi.cor.fixed=hi.cor,
+                                                  graph.type="Erdos-Renyi",
+                                                  plot.graph=plot.graph,
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+      
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+      
+      A.mat <- network.atts$A.mat          # adjacency from graph
+      
+      U <- t(chol(R))                             # upper tri cholesky
+      tmp <- t(U %*% t(null.dats)) # correlated data
+      tmp <- cbind(tmp,class=c(rep(1,length=50),rep(0,length=50)))   # combine with phenotype
+      dataset <- tmp                              # main-effect data with correlation
+      
+      trans.dats <- pnorm(dataset[,-ncol(dataset)])
+      case.dats <- trans.dats[c(1:m.case),]
+      ctrl.dats <- trans.dats[c((m.case+1):nrow(trans.dats)),]
+
+      prob.case <- (1 + main.bias)/2
+      prob.ctrl <- (1 - main.bias)/2
+      
+      main.case <- matrix(0,nrow=m.case,ncol=nbias)
+      background.case <- matrix(0,nrow=m.case,ncol=length(c((nbias+1):num.variables)))
+      for(j in 1:m.case){
+        
+        tmp <- qbinom(case.dats[j,c(1:nbias)], size=2, prob=prob.case)
+        
+        main.case[j,] <- tmp
+        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        
+      }
+      
+      main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
+      background.ctrl <- matrix(0,nrow=m.ctrl,ncol=length(c((nbias+1):num.variables)))
+      for(j in 1:m.ctrl){
+        
+        tmp <- qbinom(ctrl.dats[j,c(1:nbias)], size=2, prob=prob.ctrl)
+        
+        main.ctrl[j,] <- tmp
+        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        
+      }
+      
+      main.effects <- rbind(main.case,main.ctrl)
+      
+      background.data <- rbind(background.case,background.ctrl)
+      
+      class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
+      dataset <- cbind(main.effects,background.data)
+      dataset <- cbind(dataset,class.vec)
+      
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
+      
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+      
+    }
+    
+  }else if(sim.type=="mainEffect_Scalefree"){ # main + Scale-Free network
+    
+    if(data.type=="continuous"){
+      
+      # create main-effect simulation
+      my.sim.data <- privateEC::createMainEffects(n.e=num.variables,                   
+                                                  n.db=num.samples,              
+                                                  pct.imbalance=pct.imbalance,
+                                                  label = label,
+                                                  sd.b=main.bias,
+                                                  p.b=pct.signals)$db
+      dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
+    
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+    
+      if(is.null(out.degree)){
+        g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
+      }else{
+        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+      }
+    
+      # generate correlation matrix from g
+      network.atts <- generate_structured_corrmat(g=g,
+                                                  num.variables=num.variables, 
+                                                  hi.cor.tmp=hi.cor, 
+                                                  lo.cor.tmp=lo.cor, 
+                                                  hi.cor.fixed=hi.cor,
+                                                  graph.type="Scalefree",
+                                                  plot.graph=plot.graph,
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+    
+      A.mat <- network.atts$A.mat          # adjacency from graph
+    
+      U <- t(chol(R))                             # upper tri cholesky
+      tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
+      tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
+      dataset <- tmp                              # main-effect data with correlation
+    
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
+    
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names  
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+    
+    }else if(data.type=="discrete"){
+      
+      if (main.bias >= 1) {
+        stop("Please choose main.bias in (0,1)")
+      }
+      
+      if (main.bias >= 0.9 && main.bias < 1){
+        warning("main.bias is very large. Main effect sizes may be undesirable.")
+      }
+      
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+      
+      
+      null.dats <- matrix(rnorm(num.samples*num.variables),nrow=num.samples,ncol=num.variables)
+      
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      
+      if(is.null(out.degree)){
+        g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
+      }else{
+        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+      }
+      
+      # generate correlation matrix from g
+      network.atts <- generate_structured_corrmat(g=g,
+                                                  num.variables=num.variables, 
+                                                  hi.cor.tmp=hi.cor, 
+                                                  lo.cor.tmp=lo.cor, 
+                                                  hi.cor.fixed=hi.cor,
+                                                  graph.type="Scalefree",
+                                                  plot.graph=plot.graph,
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+      
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+      
+      A.mat <- network.atts$A.mat          # adjacency from graph
+      
+      U <- t(chol(R))                             # upper tri cholesky
+      tmp <- t(U %*% t(null.dats)) # correlated data
+      tmp <- cbind(tmp,class=c(rep(1,length=50),rep(0,length=50)))   # combine with phenotype
+      dataset <- tmp                              # main-effect data with correlation
+      
+      trans.dats <- pnorm(dataset[,-ncol(dataset)])
+      case.dats <- trans.dats[c(1:m.case),]
+      ctrl.dats <- trans.dats[c((m.case+1):nrow(trans.dats)),]
+      
+      prob.case <- (1 + main.bias)/2
+      prob.ctrl <- (1 - main.bias)/2
+      
+      main.case <- matrix(0,nrow=m.case,ncol=nbias)
+      background.case <- matrix(0,nrow=m.case,ncol=length(c((nbias+1):num.variables)))
+      for(j in 1:m.case){
+        
+        tmp <- qbinom(case.dats[j,c(1:nbias)], size=2, prob=prob.case)
+        
+        main.case[j,] <- tmp
+        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        
+      }
+      
+      main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
+      background.ctrl <- matrix(0,nrow=m.ctrl,ncol=length(c((nbias+1):num.variables)))
+      for(j in 1:m.ctrl){
+        
+        tmp <- qbinom(ctrl.dats[j,c(1:nbias)], size=2, prob=prob.ctrl)
+        
+        main.ctrl[j,] <- tmp
+        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        
+      }
+      
+      main.effects <- rbind(main.case,main.ctrl)
+      
+      background.data <- rbind(background.case,background.ctrl)
+      
+      class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
+      dataset <- cbind(main.effects,background.data)
+      dataset <- cbind(dataset,class.vec)
+      
+      # make numeric matrix into a data frame for splitting and subsequent ML algorithms
+      dataset <- as.data.frame(dataset)
+      
+      signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset) <- var.names                                        # replace column names with variable names
+      
+      
+    }
+    
+  }else if(sim.type=="interactionErdos"){ # simple interaction with Erdos-Renyi network
+    
+    if(data.type=="continuous"){
+      
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+    
+      # random cases data set
+      X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
+    
+      # approximate effect size for pairwise correlations between functional attributes in case group
+      case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+    
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      if(is.null(prob.connected)){
+        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      }else{
+        prob <- prob.connected
+      }
+      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+    
+      # generate correlation matrix from g
+      network.atts <- generate_structured_corrmat(g=g,
+                                                  num.variables=num.variables, 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
                                                   hi.cor.fixed=hi.cor,
                                                   graph.type="Erdos-Renyi",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
-                                                  nbias=num.int, use.Rcpp=use.Rcpp)
-      
-      R <- as.matrix(network.atts$corrmat) # case correlation matrix
-      
-      sig.vars <- network.atts$sig.vars    # functional attribute indices
-      
-      A.mat <- network.atts$A.mat          # adjacency from graph
-      
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+    
+      R <- as.matrix(network.atts$corrmat) # correlation matrix for cases
+    
+      sig.vars <- network.atts$sig.vars    # column indices of functional features
+    
+      A.mat <- network.atts$A.mat          # adjacency from graph object
+    
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
-      X.case <- tmp             # store in X.case
-      
-      # make controls data set
-      X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
-      
-      # find connections for functional attributes
-      #
-      sig.connected.list <- list()  # list for functional attribute connections
+      X.case <- tmp
+    
+      # random controls data set
+      X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
+    
+      # for each functional variable, find connected variables
+      sig.connected.list <- list()  # list for storing connected variable indices
       for(i in 1:length(sig.vars)){                                           # for each functional feature
-        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
+        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
+      }
+    
+      # create control group correlation matrix
+      for(i in 1:length(sig.vars)){                                               # for each functional feature
+        n.connected <- length(sig.connected.list[[i]])                            # how many connections
+        for(j in 1:n.connected){                                                   # for each connection
+          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
+        }
+      }
+    
+      # ensure that R is symmetric
+      #
+      tmp <- diag(R)       # diag of R
+      diag(R) <- 0         # replace diag of R with 0's
+      R[lower.tri(R)] <- 0 # make lower triangle zeros
+    
+      R <- R + t(R)        # make symmetric
+      diag(R) <- tmp       # original diag of R
+    
+      # correct for negative eigenvalues so R is positive definite
+      #
+      if(use.Rcpp){ # compute eigenvalues and make diag matrix
+        R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+      }else{ 
+        R.d <- diag(eigen(R)$values)
+      }
+      tmp <- diag(R.d)                                # vector of eigenvalues
+    
+      if (any(tmp<0)){              # if any eigenvalues are negative
+        R.V <- eigen(R)$vectors     # compute eigenvectors,
+        tmp[tmp<0] <- 1e-7          # make negative into small positive,
+        diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
+        R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
+        R <- R.fix                  # store in R
+      }
+      R <- as.matrix(R)
+    
+      # make 1's on diag of R
+      inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+      mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
+      diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+      mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
+      R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+    
+      U <- t(chol(R))           # upper tri cholesky
+      tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
+      X.ctrl <- tmp             # store in X.ctrl
+    
+      X.all <- rbind(X.case, X.ctrl) # case/ctrl data
+      X.all <- as.data.frame(X.all)  # make data.frame
+    
+      dataset <- X.all
+    
+      signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
+      colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional colnames
+    
+      dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
+      colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
+    
+    }else if(data.type=="discrete"){
+      
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+      
+      # approximate effect size for pairwise correlations between functional attributes in case group
+      case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+      
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      if(is.null(prob.connected)){
+        prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      }else{
+        prob <- prob.connected
+      }
+      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      
+      # generate correlation matrix from g
+      network.atts <- npdr::generate_structured_corrmat(g=g,
+                                                        num.variables=num.variables, 
+                                                        hi.cor.tmp=case.hi.cor,
+                                                        lo.cor.tmp=lo.cor,
+                                                        hi.cor.fixed=hi.cor,
+                                                        graph.type="Erdos-Renyi",
+                                                        plot.graph=plot.graph,
+                                                        make.diff.cors=T,
+                                                        nbias=nbias, use.Rcpp=use.Rcpp)
+      
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+      R.case <- R
+      
+      null.dats <- matrix(rnorm(num.variables*m.case),nrow=m.case,ncol=num.variables)
+      
+      U <- t(chol(R.case))                        # upper tri cholesky
+      null.dats <- t(U %*% t(null.dats))          # correlated data
+      
+      sig.vars <- network.atts$sig.vars    # column indices of functional features
+      
+      A.mat <- network.atts$A.mat          # adjacency from graph object
+      
+      f.a <- runif(num.variables,min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+      
+      trans.dats <- pnorm(null.dats)
+      
+      bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+      for(j in 1:ncol(trans.dats)){
+        
+        tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+        
+        bin.data[,j] <- tmp
+      }
+      X.case <- bin.data
+      
+      # for each functional variable, find connected variables
+      sig.connected.list <- list()  # list for storing connected variable indices
+      for(i in 1:length(sig.vars)){                                           # for each functional feature
+        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
       }
       
-      # make high correlations for ctrls
-      #
-      for(i in 1:length(sig.vars)){                                                # for each functional variable
-        n.connected <- length(sig.connected.list[[i]])                             # how many connections
-        for(j in 1:n.connected){                                                    # for each connection
-          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace with high correlation
+      # create control group correlation matrix
+      for(i in 1:length(sig.vars)){                                               # for each functional feature
+        n.connected <- length(sig.connected.list[[i]])                            # how many connections
+        for(j in 1:n.connected){                                                   # for each connection
+          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
         }
       }
       
       # ensure that R is symmetric
       #
       tmp <- diag(R)       # diag of R
-      diag(R) <- 0         # make diag(R) 0
-      R[lower.tri(R)] <- 0 # make lower triangle of R 0
+      diag(R) <- 0         # replace diag of R with 0's
+      R[lower.tri(R)] <- 0 # make lower triangle zeros
       
-      R <- R + t(R)  # make symmetric
-      diag(R) <- tmp # swap for original diag
+      R <- R + t(R)        # make symmetric
+      diag(R) <- tmp       # original diag of R
       
       # correct for negative eigenvalues so R is positive definite
       #
@@ -677,137 +837,244 @@ createSimulation2 <- function(num.samples=100,
       if (any(tmp<0)){              # if any eigenvalues are negative
         R.V <- eigen(R)$vectors     # compute eigenvectors,
         tmp[tmp<0] <- 1e-7          # make negative into small positive,
-        diag(R.d) <- tmp            # swap diag of R.d with positive eigenvalues,
-        R.fix <- R.V%*%R.d%*%t(R.V) # compute new correlation matrix, and 
+        diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
+        R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
         R <- R.fix                  # store in R
       }
       R <- as.matrix(R)
       
-      # make 1's on diagonal
-      #
+      # make 1's on diag of R
       inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
-      mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
+      mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
       diag(mydiag) <- inv.diag         # swap 1's for inv.diag
-      mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag
+      mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
       R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+      R.ctrl <- R
       
-      U <- t(chol(R))           # upper tri cholesky
-      tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
-      X.ctrl <- tmp             # store in X.ctrl
+      null.dats <- matrix(rnorm(num.variables*m.ctrl),nrow=m.ctrl,ncol=num.variables)
+      
+      U <- t(chol(R.ctrl))                             # upper tri cholesky
+      null.dats <- t(U %*% t(null.dats))          # correlated data
+      
+      trans.dats <- pnorm(null.dats)
+      
+      bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+      for(j in 1:ncol(trans.dats)){
+        
+        tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+        
+        bin.data[,j] <- tmp
+      }
+      X.ctrl <- bin.data
       
       X.all <- rbind(X.case, X.ctrl) # case/ctrl data
       X.all <- as.data.frame(X.all)  # make data.frame
       
       dataset <- X.all
       
-      # create main-effect simulation for num.main attributes
-      my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
-                                                  n.db=num.samples,              
-                                                  pct.imbalance=pct.imbalance,
-                                                  label = label,
-                                                  sd.b=main.bias,
-                                                  p.b=1)$db
-      
-      # check dimensions to see if my.sim.data is a matrix or just a vector
-      check.dim <- is.null(dim(my.sim.data$datnobatch))
-      if(check.dim){
-        main.cols <- my.sim.data$datnobatch
-      }else{
-        main.cols <- t(my.sim.data$datnobatch)
-      }
-      dataset.tmp <- cbind(main.cols, my.sim.data$S)
-      
-      dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
-      main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
-      
-      main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
-      int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
-      
-      signal.names <- c(main.names, int.names)           # all functional variable names
-      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # all non-functional variable names
-      var.names <- c(signal.names, background.names, label) # all variable names
-      
-      colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
-      colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
-      colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+      label <- "class"
+      signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
+      colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional colnames
       
       dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
-      colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+      colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
       
-    }else if(mix.type=="main-interactionScalefree"){ # main + interaction with Scale-Free network
+    }
+    
+  }else if(sim.type=="interactionScalefree"){ # simple interaction with Scale-Free network
+    
+      if(data.type=="continuous"){
       
-      m.case <- round((1 - pct.imbalance)*num.samples) # number of cases
-      m.ctrl <- round(pct.imbalance*num.samples)       # number of ctrls
-      
-      num.main <- round(pct.mixed*nbias)      # number of main effect attributes
-      num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
-      
-      # make cases data set
-      X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
-      
-      # approximate effect size for pairwise correlations between functional attributes in case group
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+    
+      # random cases data set
+      X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
+    
+      # approximate effect size for pairwise correlations between functional attributes in case group 
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-      
+    
       e <- 1    # fudge factor to the number of nodes to avoid giant component
-      prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-      
-      # generate random Scale-Free network
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+    
       if(is.null(out.degree)){
-        g <- igraph::barabasi.game((num.variables - num.main), directed=F)
+        g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
       }else{
-        g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
+        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
-      
-      # generate case group correlation matrix
+    
+      # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
-                                                  num.variables=(num.variables - num.main), 
+                                                  num.variables=num.variables, 
                                                   hi.cor.tmp=case.hi.cor,
                                                   lo.cor.tmp=lo.cor,
                                                   hi.cor.fixed=hi.cor,
                                                   graph.type="Scalefree",
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
-                                                  nbias=num.int, use.Rcpp=use.Rcpp)
-      
-      R <- as.matrix(network.atts$corrmat) # cases correlation matrix
-      
-      sig.vars <- network.atts$sig.vars    # functional attribute indices
-      
-      A.mat <- network.atts$A.mat          # adjacency from graph
-      
+                                                  nbias=nbias, use.Rcpp=use.Rcpp)
+    
+      R <- as.matrix(network.atts$corrmat)
+    
+      sig.vars <- network.atts$sig.vars # functional variable indices
+    
+      A.mat <- network.atts$A.mat       # adjacency from graph
+    
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
       X.case <- tmp             # store in X.case
-      
-      # make controls data set
-      X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
-      
-      # find all functional connections
-      # 
-      sig.connected.list <- list()  # list for storing functional connections
-      for(i in 1:length(sig.vars)){                                           # for each functional variable
-        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
-      }
-      
-      # make high correlations matrix for ctrls
+    
+      # random controls data set
+      X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
+    
+      # for each functional variable, find connected variables
       #
-      for(i in 1:length(sig.vars)){                                                # for each functional variable
+      sig.connected.list <- list() # list for functional connections
+      for(i in 1:length(sig.vars)){                                           # for each functional variable
+        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find connections and store in list
+      }
+    
+      # create control group correlation matrix
+      for(i in 1:length(sig.vars)){                                                # for each functional variable 
         n.connected <- length(sig.connected.list[[i]])                             # how many connections
         for(j in 1:n.connected){                                                    # for each connection
-          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlation with high correlation
+          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlations with high for ctrls
+        }
+      }
+    
+      # make sure R is symmetric
+      #
+      tmp <- diag(R)       # diag of R
+      diag(R) <- 0         # make diag(R) 0
+      R[lower.tri(R)] <- 0 # make lower triangle of R 0
+    
+      R <- R + t(R)        # make symmetric
+      diag(R) <- tmp       # replace diag(R) with original diag
+    
+      # correct for negative eigenvalues to make R positive definite
+      #
+      if(use.Rcpp){ # compute eigenvalues and make diag matrix
+        R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+      }else{ 
+        R.d <- diag(eigen(R)$values)
+      }
+      tmp <- diag(R.d)                                # vector of eigenvalues
+    
+      if (any(tmp<0)){              # if any eigenvalues are negative
+        R.V <- eigen(R)$vectors     # compute eigenvectors
+        tmp[tmp<0] <- 1e-7          # make negative into small positive
+        diag(R.d) <- tmp            # swap negative for positive eigenvalues
+        R.fix <- R.V%*%R.d%*%t(R.V) # compute corrected correlation matrix
+        R <- R.fix                  # store in R
+      }
+      R <- as.matrix(R)
+    
+      # make 1's on diagonal
+      # 
+      inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+      mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
+      diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+      mydiag <- sqrt(mydiag)           # sqrt of inv.diag
+      R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+    
+      U <- t(chol(R))           # upper tri cholesky
+      tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
+      X.ctrl <- tmp             # store in X.ctrl
+    
+      X.all <- rbind(X.case, X.ctrl) # case/ctrl data
+      X.all <- as.data.frame(X.all)  # make data.frame
+    
+      dataset <- X.all
+    
+      signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
+      background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
+      colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional variable names
+    
+      dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # case/ctrl data with phenotype
+      colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
+    
+    }else if(data.type=="discrete"){
+      
+      m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+      m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+      
+      # approximate effect size for pairwise correlations between functional attributes in case group
+      case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+      
+      e <- 1    # fudge factor to the number of nodes to avoid giant component
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      
+      if(is.null(out.degree)){
+        g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
+      }else{
+        g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+      }
+      
+      # generate correlation matrix from g
+      network.atts <- npdr::generate_structured_corrmat(g=g,
+                                                        num.variables=num.variables, 
+                                                        hi.cor.tmp=case.hi.cor,
+                                                        lo.cor.tmp=lo.cor,
+                                                        hi.cor.fixed=hi.cor,
+                                                        graph.type="Scalefree",
+                                                        plot.graph=plot.graph,
+                                                        make.diff.cors=T,
+                                                        nbias=nbias, use.Rcpp=use.Rcpp)
+      
+      R <- as.matrix(network.atts$corrmat) # correlation matrix
+      R.case <- R
+      
+      null.dats <- matrix(rnorm(num.variables*m.case),nrow=m.case,ncol=num.variables)
+      
+      U <- t(chol(R.case))                        # upper tri cholesky
+      null.dats <- t(U %*% t(null.dats))          # correlated data
+      
+      sig.vars <- network.atts$sig.vars    # column indices of functional features
+      
+      A.mat <- network.atts$A.mat          # adjacency from graph object
+      
+      f.a <- runif(num.variables,min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+      
+      trans.dats <- pnorm(null.dats)
+      
+      bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+      for(j in 1:ncol(trans.dats)){
+        
+        tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+        
+        bin.data[,j] <- tmp
+      }
+      X.case <- bin.data
+      
+      # for each functional variable, find connected variables
+      sig.connected.list <- list()  # list for storing connected variable indices
+      for(i in 1:length(sig.vars)){                                           # for each functional feature
+        sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
+      }
+      
+      # create control group correlation matrix
+      for(i in 1:length(sig.vars)){                                               # for each functional feature
+        n.connected <- length(sig.connected.list[[i]])                            # how many connections
+        for(j in 1:n.connected){                                                   # for each connection
+          R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
         }
       }
       
       # ensure that R is symmetric
       #
       tmp <- diag(R)       # diag of R
-      diag(R) <- 0         # make diag(R) 0
-      R[lower.tri(R)] <- 0 # make lower triangle of R 0
+      diag(R) <- 0         # replace diag of R with 0's
+      R[lower.tri(R)] <- 0 # make lower triangle zeros
       
-      R <- R + t(R)  # make symmetric
-      diag(R) <- tmp # swap for original diag
+      R <- R + t(R)        # make symmetric
+      diag(R) <- tmp       # original diag of R
       
-      # correct for negative eigenvalues to make R positive definite
+      # correct for negative eigenvalues so R is positive definite
       #
       if(use.Rcpp){ # compute eigenvalues and make diag matrix
         R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
@@ -817,64 +1084,709 @@ createSimulation2 <- function(num.samples=100,
       tmp <- diag(R.d)                                # vector of eigenvalues
       
       if (any(tmp<0)){              # if any eigenvalues are negative
-        R.V <- eigen(R)$vectors     # compute eigenvectores,
+        R.V <- eigen(R)$vectors     # compute eigenvectors,
         tmp[tmp<0] <- 1e-7          # make negative into small positive,
-        diag(R.d) <- tmp            # replace diag R.d with positive eigenvalues
-        R.fix <- R.V%*%R.d%*%t(R.V) # compute new correlation matrix, and 
+        diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
+        R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
         R <- R.fix                  # store in R
       }
       R <- as.matrix(R)
       
-      # make 1's on diagonal
-      #
+      # make 1's on diag of R
       inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
-      mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
+      mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
       diag(mydiag) <- inv.diag         # swap 1's for inv.diag
-      mydiag <- sqrt(mydiag)           # sqrt of inv.diag
+      mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
       R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+      R.ctrl <- R
       
-      U <- t(chol(R))                  # upper tri cholesky
-      tmp <- t(U %*% t(X.ctrl))        # correlated ctrl data
-      X.ctrl <- tmp                    # store in X.ctrl
+      null.dats <- matrix(rnorm(num.variables*m.ctrl),nrow=m.ctrl,ncol=num.variables)
       
-      X.all <- rbind(X.case, X.ctrl)   # case/ctrl data
-      X.all <- as.data.frame(X.all)    # make data.frame
+      U <- t(chol(R.ctrl))                             # upper tri cholesky
+      null.dats <- t(U %*% t(null.dats))          # correlated data
+      
+      trans.dats <- pnorm(null.dats)
+      
+      bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+      for(j in 1:ncol(trans.dats)){
+        
+        tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+        
+        bin.data[,j] <- tmp
+      }
+      X.ctrl <- bin.data
+      
+      X.all <- rbind(X.case, X.ctrl) # case/ctrl data
+      X.all <- as.data.frame(X.all)  # make data.frame
       
       dataset <- X.all
       
-      # create main effect simulation with num.main features
-      my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
-                                                  n.db=num.samples,              
-                                                  pct.imbalance=pct.imbalance,
-                                                  label = label,
-                                                  sd.b=main.bias,
-                                                  p.b=1)$db
-      
-      # check dimensions to determine if my.dim.data is a matrix or vector
-      check.dim <- is.null(dim(my.sim.data$datnobatch))
-      if(check.dim){
-        main.cols <- my.sim.data$datnobatch
-      }else{
-        main.cols <- t(my.sim.data$datnobatch)
-      }
-      dataset.tmp <- cbind(main.cols, my.sim.data$S)
-      
-      dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
-      main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
-      
-      main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
-      int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
-      
-      signal.names <- c(main.names, int.names) # all functional variable names
+      label <- "class"
+      signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
-      var.names <- c(signal.names, background.names, label) # all variable names
-      
-      colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
-      colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
-      colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+      var.names <- c(signal.names, background.names, label)                 # all variable names
+      colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
+      colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional colnames
       
       dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
-      colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+      colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
+      
+      
+    }
+    
+  }else if(sim.type=="mixed"){ # main + interaction effect simulation
+    
+    if(mix.type=="main-interactionErdos"){ # main + interaction with Erdos-Renyi network
+      
+      if(data.type=="continuous"){
+        
+        m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+        m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+      
+        num.main <- round(pct.mixed*nbias)      # number of main effect attributes
+        num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+      
+        # make cases data set
+        X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
+      
+        # approximate effect size for pairwise correlations between functional attributes in case group
+        case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+      
+        e <- 1    # fudge factor to the number of nodes to avoid giant component
+        if(is.null(prob.connected)){
+          prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+        }else{
+          prob <- prob.connected
+        }
+      
+        # generate random Erdos-Renyi network
+        g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+      
+        # generate correlation matrix from g
+        network.atts <- generate_structured_corrmat(g=g,
+                                                    num.variables=(num.variables - num.main), 
+                                                    hi.cor.tmp=case.hi.cor,
+                                                    lo.cor.tmp=lo.cor,
+                                                    hi.cor.fixed=hi.cor,
+                                                    graph.type="Erdos-Renyi",
+                                                    plot.graph=plot.graph,
+                                                    make.diff.cors=T,
+                                                    nbias=num.int, use.Rcpp=use.Rcpp)
+      
+        R <- as.matrix(network.atts$corrmat) # case correlation matrix
+      
+        sig.vars <- network.atts$sig.vars    # functional attribute indices
+      
+        A.mat <- network.atts$A.mat          # adjacency from graph
+      
+        U <- t(chol(R))           # upper tri cholesky
+        tmp <- t(U %*% t(X.case)) # correlated case data
+        X.case <- tmp             # store in X.case
+      
+        # make controls data set
+        X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
+      
+        # find connections for functional attributes
+        #
+        sig.connected.list <- list()  # list for functional attribute connections
+        for(i in 1:length(sig.vars)){                                           # for each functional feature
+          sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
+        }
+      
+        # make high correlations for ctrls
+        #
+        for(i in 1:length(sig.vars)){                                                # for each functional variable
+          n.connected <- length(sig.connected.list[[i]])                             # how many connections
+          for(j in 1:n.connected){                                                    # for each connection
+            R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace with high correlation
+          }
+        }
+      
+        # ensure that R is symmetric
+        #
+        tmp <- diag(R)       # diag of R
+        diag(R) <- 0         # make diag(R) 0
+        R[lower.tri(R)] <- 0 # make lower triangle of R 0
+      
+        R <- R + t(R)  # make symmetric
+        diag(R) <- tmp # swap for original diag
+      
+        # correct for negative eigenvalues so R is positive definite
+        #
+        if(use.Rcpp){ # compute eigenvalues and make diag matrix
+          R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+        }else{ 
+          R.d <- diag(eigen(R)$values)
+        }
+        tmp <- diag(R.d)                                # vector of eigenvalues
+      
+        if (any(tmp<0)){              # if any eigenvalues are negative
+          R.V <- eigen(R)$vectors     # compute eigenvectors,
+          tmp[tmp<0] <- 1e-7          # make negative into small positive,
+          diag(R.d) <- tmp            # swap diag of R.d with positive eigenvalues,
+          R.fix <- R.V%*%R.d%*%t(R.V) # compute new correlation matrix, and 
+          R <- R.fix                  # store in R
+        }
+        R <- as.matrix(R)
+      
+        # make 1's on diagonal
+        #
+        inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+        mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
+        diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+        mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag
+        R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+      
+        U <- t(chol(R))           # upper tri cholesky
+        tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
+        X.ctrl <- tmp             # store in X.ctrl
+      
+        X.all <- rbind(X.case, X.ctrl) # case/ctrl data
+        X.all <- as.data.frame(X.all)  # make data.frame
+      
+        dataset <- X.all
+      
+        # create main-effect simulation for num.main attributes
+        my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
+                                                    n.db=num.samples,              
+                                                    pct.imbalance=pct.imbalance,
+                                                    label = label,
+                                                    sd.b=main.bias,
+                                                    p.b=1)$db
+      
+        # check dimensions to see if my.sim.data is a matrix or just a vector
+        check.dim <- is.null(dim(my.sim.data$datnobatch))
+        if(check.dim){
+          main.cols <- my.sim.data$datnobatch
+        }else{
+        main.cols <- t(my.sim.data$datnobatch)
+        }
+        dataset.tmp <- cbind(main.cols, my.sim.data$S)
+      
+        dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
+        main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
+      
+        main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
+        int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
+      
+        signal.names <- c(main.names, int.names)           # all functional variable names
+        background.names <- paste("var", 1:(num.variables - nbias), sep = "") # all non-functional variable names
+        var.names <- c(signal.names, background.names, label) # all variable names
+      
+        colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
+        colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
+        colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+      
+        dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
+        colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+        
+      }else if(data.type=="discrete"){
+        
+        if (main.bias >= 1) {
+          stop("Please choose main.bias in (0,1)")
+        }
+        
+        if (main.bias >= 0.9 && main.bias < 1){
+          warning("main.bias is very large. Main effect sizes may be undesirable.")
+        }
+        
+        m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+        m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+        
+        num.main <- round(pct.mixed*nbias)      # number of main effect attributes
+        num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+        
+        # make cases data set
+        X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
+        
+        # approximate effect size for pairwise correlations between functional attributes in case group
+        case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+        
+        e <- 1    # fudge factor to the number of nodes to avoid giant component
+        if(is.null(prob.connected)){
+          prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+        }else{
+          prob <- prob.connected
+        }
+        
+        # generate random Erdos-Renyi network
+        g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+        
+        # generate correlation matrix from g
+        network.atts <- generate_structured_corrmat(g=g,
+                                                    num.variables=(num.variables - num.main), 
+                                                    hi.cor.tmp=case.hi.cor,
+                                                    lo.cor.tmp=lo.cor,
+                                                    hi.cor.fixed=hi.cor,
+                                                    graph.type="Erdos-Renyi",
+                                                    plot.graph=plot.graph,
+                                                    make.diff.cors=T,
+                                                    nbias=num.int, use.Rcpp=use.Rcpp)
+        
+        R <- as.matrix(network.atts$corrmat) # case correlation matrix
+        
+        sig.vars <- network.atts$sig.vars    # functional attribute indices
+        
+        A.mat <- network.atts$A.mat          # adjacency from graph
+        
+        U <- t(chol(R))           # upper tri cholesky
+        
+        null.dats <- matrix(rnorm((num.variables-num.main)*m.case),nrow=m.case,ncol=(num.variables-num.main))
+  
+        null.dats <- t(U %*% t(null.dats))          # correlated data
+        
+        A.mat <- network.atts$A.mat          # adjacency from graph object
+        
+        f.a <- runif((num.variables-num.main),min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+        
+        trans.dats <- pnorm(null.dats)
+        
+        bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+        for(j in 1:ncol(trans.dats)){
+          
+          tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+          
+          bin.data[,j] <- tmp
+        }
+        X.case <- bin.data
+        
+        # for each functional variable, find connected variables
+        sig.connected.list <- list()  # list for storing connected variable indices
+        for(i in 1:length(sig.vars)){                                           # for each functional feature
+          sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
+        }
+        
+        # create control group correlation matrix
+        for(i in 1:length(sig.vars)){                                               # for each functional feature
+          n.connected <- length(sig.connected.list[[i]])                            # how many connections
+          for(j in 1:n.connected){                                                   # for each connection
+            R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
+          }
+        }
+        
+        # ensure that R is symmetric
+        #
+        tmp <- diag(R)       # diag of R
+        diag(R) <- 0         # replace diag of R with 0's
+        R[lower.tri(R)] <- 0 # make lower triangle zeros
+        
+        R <- R + t(R)        # make symmetric
+        diag(R) <- tmp       # original diag of R
+        
+        # correct for negative eigenvalues so R is positive definite
+        #
+        if(use.Rcpp){ # compute eigenvalues and make diag matrix
+          R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+        }else{ 
+          R.d <- diag(eigen(R)$values)
+        }
+        tmp <- diag(R.d)                                # vector of eigenvalues
+        
+        if (any(tmp<0)){              # if any eigenvalues are negative
+          R.V <- eigen(R)$vectors     # compute eigenvectors,
+          tmp[tmp<0] <- 1e-7          # make negative into small positive,
+          diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
+          R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
+          R <- R.fix                  # store in R
+        }
+        R <- as.matrix(R)
+        
+        # make 1's on diag of R
+        inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+        mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
+        diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+        mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
+        R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+        R.ctrl <- R
+        
+        null.dats <- matrix(rnorm((num.variables-num.main)*m.ctrl),nrow=m.ctrl,ncol=(num.variables-num.main))
+        
+        U <- t(chol(R.ctrl))                             # upper tri cholesky
+        null.dats <- t(U %*% t(null.dats))          # correlated data
+        
+        trans.dats <- pnorm(null.dats)
+        
+        bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+        for(j in 1:ncol(trans.dats)){
+          
+          tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+          
+          bin.data[,j] <- tmp
+        }
+        X.ctrl <- bin.data
+        
+        dataset <- rbind(X.case,X.ctrl)
+        
+        prob.case <- (1 + main.bias)/2
+        prob.ctrl <- (1 - main.bias)/2
+        
+        main.case <- matrix(0,nrow=m.case,ncol=num.main)
+        for(j in 1:m.case){
+          
+          tmp <- rbinom(n=num.main, size=2, prob=prob.case)
+          
+          main.case[j,] <- tmp
+          
+        }
+        
+        main.ctrl <- matrix(0,nrow=m.ctrl,ncol=num.main)
+        for(j in 1:m.ctrl){
+          
+          tmp <- rbinom(n=num.main, size=2, prob=prob.ctrl)
+          
+          main.ctrl[j,] <- tmp
+          
+        }
+        
+        main.effects <- rbind(main.case,main.ctrl)
+        
+        dataset <- cbind(dataset, main.effects)
+        colnames(dataset) <- paste("var",1:num.variables,sep="")
+
+        main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
+
+        main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
+        int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
+        
+        signal.names <- c(main.names, int.names)           # all functional variable names
+        background.names <- paste("var", 1:(num.variables - nbias), sep = "") # all non-functional variable names
+        var.names <- c(signal.names, background.names, label) # all variable names
+        
+        colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
+        colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
+        colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+ 
+        dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
+        colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+        dataset <- as.data.frame(dataset)
+        
+      }
+      
+    }else if(mix.type=="main-interactionScalefree"){ # main + interaction with Scale-Free network
+      
+      if(data.type=="continuous"){
+      
+        m.case <- round((1 - pct.imbalance)*num.samples) # number of cases
+        m.ctrl <- round(pct.imbalance*num.samples)       # number of ctrls
+      
+        num.main <- round(pct.mixed*nbias)      # number of main effect attributes
+        num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+      
+        # make cases data set
+        X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
+      
+        # approximate effect size for pairwise correlations between functional attributes in case group
+        case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+      
+        e <- 1    # fudge factor to the number of nodes to avoid giant component
+        prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+      
+        # generate random Scale-Free network
+        if(is.null(out.degree)){
+          g <- igraph::barabasi.game((num.variables - num.main), directed=F)
+        }else{
+          g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
+        }
+      
+        # generate case group correlation matrix
+        network.atts <- generate_structured_corrmat(g=g,
+                                                    num.variables=(num.variables - num.main), 
+                                                    hi.cor.tmp=case.hi.cor,
+                                                    lo.cor.tmp=lo.cor,
+                                                    hi.cor.fixed=hi.cor,
+                                                    graph.type="Scalefree",
+                                                    plot.graph=plot.graph,
+                                                    make.diff.cors=T,
+                                                    nbias=num.int, use.Rcpp=use.Rcpp)
+      
+        R <- as.matrix(network.atts$corrmat) # cases correlation matrix
+      
+        sig.vars <- network.atts$sig.vars    # functional attribute indices
+      
+        A.mat <- network.atts$A.mat          # adjacency from graph
+      
+        U <- t(chol(R))           # upper tri cholesky
+        tmp <- t(U %*% t(X.case)) # correlated case data
+        X.case <- tmp             # store in X.case
+      
+        # make controls data set
+        X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
+      
+        # find all functional connections
+        # 
+        sig.connected.list <- list()  # list for storing functional connections
+        for(i in 1:length(sig.vars)){                                           # for each functional variable
+          sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
+        }
+      
+        # make high correlations matrix for ctrls
+        #
+        for(i in 1:length(sig.vars)){                                                # for each functional variable
+          n.connected <- length(sig.connected.list[[i]])                             # how many connections
+          for(j in 1:n.connected){                                                    # for each connection
+            R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlation with high correlation
+          }
+        }
+      
+        # ensure that R is symmetric
+        #
+        tmp <- diag(R)       # diag of R
+        diag(R) <- 0         # make diag(R) 0
+        R[lower.tri(R)] <- 0 # make lower triangle of R 0
+      
+        R <- R + t(R)  # make symmetric
+        diag(R) <- tmp # swap for original diag
+      
+        # correct for negative eigenvalues to make R positive definite
+        #
+        if(use.Rcpp){ # compute eigenvalues and make diag matrix
+          R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+        }else{ 
+          R.d <- diag(eigen(R)$values)
+        }
+        tmp <- diag(R.d)                                # vector of eigenvalues
+      
+        if (any(tmp<0)){              # if any eigenvalues are negative
+          R.V <- eigen(R)$vectors     # compute eigenvectores,
+          tmp[tmp<0] <- 1e-7          # make negative into small positive,
+          diag(R.d) <- tmp            # replace diag R.d with positive eigenvalues
+          R.fix <- R.V%*%R.d%*%t(R.V) # compute new correlation matrix, and 
+          R <- R.fix                  # store in R
+        }
+        R <- as.matrix(R)
+      
+        # make 1's on diagonal
+        #
+        inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+        mydiag <- diag(length(inv.diag)) # initialize diag matrix for inv.diag
+        diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+        mydiag <- sqrt(mydiag)           # sqrt of inv.diag
+        R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+      
+        U <- t(chol(R))                  # upper tri cholesky
+        tmp <- t(U %*% t(X.ctrl))        # correlated ctrl data
+        X.ctrl <- tmp                    # store in X.ctrl
+      
+        X.all <- rbind(X.case, X.ctrl)   # case/ctrl data
+        X.all <- as.data.frame(X.all)    # make data.frame
+      
+        dataset <- X.all
+      
+        # create main effect simulation with num.main features
+        my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
+                                                    n.db=num.samples,              
+                                                    pct.imbalance=pct.imbalance,
+                                                    label = label,
+                                                    sd.b=main.bias,
+                                                    p.b=1)$db
+      
+        # check dimensions to determine if my.dim.data is a matrix or vector
+        check.dim <- is.null(dim(my.sim.data$datnobatch))
+        if(check.dim){
+          main.cols <- my.sim.data$datnobatch
+        }else{
+          main.cols <- t(my.sim.data$datnobatch)
+        }
+        dataset.tmp <- cbind(main.cols, my.sim.data$S)
+      
+        dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
+        main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
+      
+        main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
+        int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
+      
+        signal.names <- c(main.names, int.names) # all functional variable names
+        background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
+        var.names <- c(signal.names, background.names, label) # all variable names
+      
+        colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
+        colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
+        colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+      
+        dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
+        colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+      
+      }else if(data.type=="discrete"){
+        
+        if (main.bias >= 1) {
+          stop("Please choose main.bias in (0,1)")
+        }
+        
+        if (main.bias >= 0.9 && main.bias < 1){
+          warning("main.bias is very large. Main effect sizes may be undesirable.")
+        }
+        
+        m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+        m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+        
+        num.main <- round(pct.mixed*nbias)      # number of main effect attributes
+        num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+        
+        # make cases data set
+        X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
+        
+        # approximate effect size for pairwise correlations between functional attributes in case group
+        case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
+        
+        e <- 1    # fudge factor to the number of nodes to avoid giant component
+        prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+        
+        # generate random Scale-Free network
+        if(is.null(out.degree)){
+          g <- igraph::barabasi.game((num.variables - num.main), directed=F)
+        }else{
+          g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
+        }
+        
+        # generate correlation matrix from g
+        network.atts <- generate_structured_corrmat(g=g,
+                                                    num.variables=(num.variables - num.main), 
+                                                    hi.cor.tmp=case.hi.cor,
+                                                    lo.cor.tmp=lo.cor,
+                                                    hi.cor.fixed=hi.cor,
+                                                    graph.type="Scalefree",
+                                                    plot.graph=plot.graph,
+                                                    make.diff.cors=T,
+                                                    nbias=num.int, use.Rcpp=use.Rcpp)
+        
+        R <- as.matrix(network.atts$corrmat) # case correlation matrix
+        
+        sig.vars <- network.atts$sig.vars    # functional attribute indices
+        
+        A.mat <- network.atts$A.mat          # adjacency from graph
+        
+        U <- t(chol(R))           # upper tri cholesky
+        
+        null.dats <- matrix(rnorm((num.variables-num.main)*m.case),nrow=m.case,ncol=(num.variables-num.main))
+        
+        null.dats <- t(U %*% t(null.dats))          # correlated data
+        
+        A.mat <- network.atts$A.mat          # adjacency from graph object
+        
+        f.a <- runif((num.variables-num.main),min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+        
+        trans.dats <- pnorm(null.dats)
+        
+        bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+        for(j in 1:ncol(trans.dats)){
+          
+          tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+          
+          bin.data[,j] <- tmp
+        }
+        X.case <- bin.data
+        
+        # for each functional variable, find connected variables
+        sig.connected.list <- list()  # list for storing connected variable indices
+        for(i in 1:length(sig.vars)){                                           # for each functional feature
+          sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
+        }
+        
+        # create control group correlation matrix
+        for(i in 1:length(sig.vars)){                                               # for each functional feature
+          n.connected <- length(sig.connected.list[[i]])                            # how many connections
+          for(j in 1:n.connected){                                                   # for each connection
+            R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
+          }
+        }
+        
+        # ensure that R is symmetric
+        #
+        tmp <- diag(R)       # diag of R
+        diag(R) <- 0         # replace diag of R with 0's
+        R[lower.tri(R)] <- 0 # make lower triangle zeros
+        
+        R <- R + t(R)        # make symmetric
+        diag(R) <- tmp       # original diag of R
+        
+        # correct for negative eigenvalues so R is positive definite
+        #
+        if(use.Rcpp){ # compute eigenvalues and make diag matrix
+          R.d <- diag(sort(c(getEigenValues(R)),decreasing=T))
+        }else{ 
+          R.d <- diag(eigen(R)$values)
+        }
+        tmp <- diag(R.d)                                # vector of eigenvalues
+        
+        if (any(tmp<0)){              # if any eigenvalues are negative
+          R.V <- eigen(R)$vectors     # compute eigenvectors,
+          tmp[tmp<0] <- 1e-7          # make negative into small positive,
+          diag(R.d) <- tmp            # replace diag of R.d with positive eigenvalues,
+          R.fix <- R.V%*%R.d%*%t(R.V) # compute new R, and
+          R <- R.fix                  # store in R
+        }
+        R <- as.matrix(R)
+        
+        # make 1's on diag of R
+        inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
+        mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
+        diag(mydiag) <- inv.diag         # swap 1's for inv.diag
+        mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
+        R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
+        R.ctrl <- R
+        
+        null.dats <- matrix(rnorm((num.variables-num.main)*m.ctrl),nrow=m.ctrl,ncol=(num.variables-num.main))
+        
+        U <- t(chol(R.ctrl))                             # upper tri cholesky
+        null.dats <- t(U %*% t(null.dats))          # correlated data
+        
+        trans.dats <- pnorm(null.dats)
+        
+        bin.data <- matrix(0,nrow=nrow(trans.dats),ncol=ncol(trans.dats))
+        for(j in 1:ncol(trans.dats)){
+          
+          tmp <- qbinom(trans.dats[,j], size=2, prob = f.a[j])
+          
+          bin.data[,j] <- tmp
+        }
+        X.ctrl <- bin.data
+        
+        dataset <- rbind(X.case,X.ctrl)
+        
+        prob.case <- (1 + main.bias)/2
+        prob.ctrl <- (1 - main.bias)/2
+        
+        main.case <- matrix(0,nrow=m.case,ncol=num.main)
+        for(j in 1:m.case){
+          
+          tmp <- rbinom(n=num.main, size=2, prob=prob.case)
+          
+          main.case[j,] <- tmp
+          
+        }
+        
+        main.ctrl <- matrix(0,nrow=m.ctrl,ncol=num.main)
+        for(j in 1:m.ctrl){
+          
+          tmp <- rbinom(n=num.main, size=2, prob=prob.ctrl)
+          
+          main.ctrl[j,] <- tmp
+          
+        }
+        
+        main.effects <- rbind(main.case,main.ctrl)
+        
+        dataset <- cbind(dataset, main.effects)
+        colnames(dataset) <- paste("var",1:num.variables,sep="")
+        
+        main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
+        
+        main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
+        int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
+        
+        signal.names <- c(main.names, int.names)           # all functional variable names
+        background.names <- paste("var", 1:(num.variables - nbias), sep = "") # all non-functional variable names
+        var.names <- c(signal.names, background.names, label) # all variable names
+        
+        colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
+        colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
+        colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
+        
+        dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
+        colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
+        dataset <- as.data.frame(dataset)
+        
+      }
       
     }
     
