@@ -134,7 +134,7 @@ detectionStats <- function(functional, positives){
   precision <- TP/(TP+FP)
   recall <- TP/(TP+FN)
   num.positives <- length(positives)
-  TPR <- TP/num.positives #rate
+  TPR <- TP/num.positives #rate, aka power or sensitivity
   FPR <- FP/num.positives #rate
   # summary message
   report <- paste(

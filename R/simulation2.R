@@ -191,6 +191,7 @@ generate_structured_corrmat <- function(g=NULL,
 #' @param prob.connected probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph
 #' @param out.degree out-degree of vertices in Scale-free graph
 #' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
+#' @param avg.maf numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations
 #' @return A list with:
 #' \describe{
 #'   \item{train}{traing data set}
@@ -273,7 +274,8 @@ createSimulation2 <- function(num.samples=100,
                               plot.graph=F, use.Rcpp=F,
                               prob.connected=NULL,
                               out.degree=NULL,
-                              data.type="continuous"){
+                              data.type="continuous",
+                              avg.maf=0.2){
   
   ptm <- proc.time() # start time
   
@@ -300,10 +302,10 @@ createSimulation2 <- function(num.samples=100,
                                                   sd.b=main.bias,
                                                   p.b=pct.signals)$db
       dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
-    
+      
       # make numeric matrix into a data frame for splitting and subsequent ML algorithms
       dataset <- as.data.frame(dataset)
-    
+      
       signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional names
       var.names <- c(signal.names, background.names, label)                 # all variable names
@@ -311,29 +313,53 @@ createSimulation2 <- function(num.samples=100,
       
     }else if(data.type=="discrete"){
       
-      if (main.bias >= 1) {
+      if (main.bias >= 1 || main.bias <= 0) {
         stop("Please choose main.bias in (0,1)")
       }
       
-      if (main.bias >= 0.9 && main.bias < 1){
-        warning("main.bias is very large. Main effect sizes may be undesirable.")
+      if (avg.maf <= 0 || avg.maf >= 0.5){
+        stop("Please choose avg.maf in (0,0.5)")
       }
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
       
-      prob.case <- (1 + main.bias)/2
-      prob.ctrl <- (1 - main.bias)/2
+      lb <- avg.maf - 0.5*main.bias # potentially the average maf for control group
+      ub <- avg.maf + 0.5*main.bias # potentially the average maf for the case group
       
+      if(lb <= 0){ # check to see if lower maf is possible, if not just make it small positive number
+        
+        eps <- 0.01
+        
+        lb <- eps
+        
+        ub <- 2*avg.maf - eps # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }else if(ub >= 1){ # check to see if upper maf is possible, if not just make it a number slightly less than 1
+        
+        eps <- 0.01
+        
+        ub <- 1 - eps
+        
+        lb <- 2*avg.maf - (1 - eps) # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }
+      
+      prob.case <- ub # case group mean
+      prob.ctrl <- lb # ctrl group mean
+      prob.noise <- runif((num.variables-nbias),min=prob.ctrl,max=prob.case) # background mafs
+      
+      # case group functional attributes
       main.case <- matrix(0,nrow=m.case,ncol=nbias)
       for(j in 1:m.case){
         
         tmp <- rbinom(n=nbias, size=2, prob=prob.case)
-
+        
         main.case[j,] <- tmp
         
       }
       
+      # ctrl group functional attributes
       main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
       for(j in 1:m.ctrl){
         
@@ -343,9 +369,11 @@ createSimulation2 <- function(num.samples=100,
         
       }
       
+      # main effect attributes
       main.effects <- rbind(main.case,main.ctrl)
       
-      background.data <- matrix(rbinom(n=(num.variables-nbias)*num.samples, size=2, prob=mean(c(prob.case,prob.ctrl))),
+      # background attributes
+      background.data <- matrix(rbinom(n=(num.variables-nbias)*num.samples, size=2, prob=prob.noise),
                                 nrow=num.samples)
       
       class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
@@ -374,7 +402,7 @@ createSimulation2 <- function(num.samples=100,
                                                   sd.b=main.bias,
                                                   p.b=pct.signals)$db
       dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
-    
+      
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       if(is.null(prob.connected)){
         prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
@@ -382,7 +410,7 @@ createSimulation2 <- function(num.samples=100,
         prob <- prob.connected
       }
       g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
-    
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -392,19 +420,19 @@ createSimulation2 <- function(num.samples=100,
                                                   graph.type="Erdos-Renyi",
                                                   plot.graph=plot.graph,
                                                   nbias=nbias, use.Rcpp=use.Rcpp)
-    
+      
       R <- as.matrix(network.atts$corrmat) # correlation matrix
-    
+      
       A.mat <- network.atts$A.mat          # adjacency from graph
-    
+      
       U <- t(chol(R))                             # upper tri cholesky
       tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
       tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
       dataset <- tmp                              # main-effect data with correlation
-    
+      
       # make numeric matrix into a data frame for splitting and subsequent ML algorithms
       dataset <- as.data.frame(dataset)
-    
+      
       signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
       var.names <- c(signal.names, background.names, label)                 # all variable names
@@ -415,8 +443,8 @@ createSimulation2 <- function(num.samples=100,
         stop("Please choose main.bias in (0,1)")
       }
       
-      if (main.bias >= 0.9 && main.bias < 1){
-        warning("main.bias is very large. Main effect sizes may be undesirable.")
+      if (avg.maf <= 0 || avg.maf >= 0.5){
+        stop("Please choose avg.maf in (0,0.5)")
       }
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
@@ -455,10 +483,33 @@ createSimulation2 <- function(num.samples=100,
       trans.dats <- pnorm(dataset[,-ncol(dataset)])
       case.dats <- trans.dats[c(1:m.case),]
       ctrl.dats <- trans.dats[c((m.case+1):nrow(trans.dats)),]
-
-      prob.case <- (1 + main.bias)/2
-      prob.ctrl <- (1 - main.bias)/2
       
+      lb <- avg.maf - 0.5*main.bias # potentially the average maf for control group
+      ub <- avg.maf + 0.5*main.bias # potentially the average maf for the case group
+      
+      if(lb <= 0){ # check to see if lower maf is possible, if not just make it small positive number
+        
+        eps <- 0.01
+        
+        lb <- eps
+        
+        ub <- 2*avg.maf - eps # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }else if(ub >= 1){ # check to see if upper maf is possible, if not just make it a number slightly less than 1
+        
+        eps <- 0.01
+        
+        ub <- 1 - eps
+        
+        lb <- 2*avg.maf - (1 - eps) # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }
+      
+      prob.case <- ub # case group mean
+      prob.ctrl <- lb # ctrl group mean
+      prob.noise <- runif((num.variables-nbias),min=prob.ctrl,max=prob.case) # background mafs
+      
+      # functional and background features for cases
       main.case <- matrix(0,nrow=m.case,ncol=nbias)
       background.case <- matrix(0,nrow=m.case,ncol=length(c((nbias+1):num.variables)))
       for(j in 1:m.case){
@@ -466,10 +517,11 @@ createSimulation2 <- function(num.samples=100,
         tmp <- qbinom(case.dats[j,c(1:nbias)], size=2, prob=prob.case)
         
         main.case[j,] <- tmp
-        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=prob.noise)
         
       }
       
+      # functional and background features for ctrls
       main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
       background.ctrl <- matrix(0,nrow=m.ctrl,ncol=length(c((nbias+1):num.variables)))
       for(j in 1:m.ctrl){
@@ -477,12 +529,14 @@ createSimulation2 <- function(num.samples=100,
         tmp <- qbinom(ctrl.dats[j,c(1:nbias)], size=2, prob=prob.ctrl)
         
         main.ctrl[j,] <- tmp
-        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=prob.noise)
         
       }
       
+      # main effect features
       main.effects <- rbind(main.case,main.ctrl)
       
+      # background features
       background.data <- rbind(background.case,background.ctrl)
       
       class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
@@ -511,16 +565,16 @@ createSimulation2 <- function(num.samples=100,
                                                   sd.b=main.bias,
                                                   p.b=pct.signals)$db
       dataset <- cbind(t(my.sim.data$datnobatch), my.sim.data$S)
-    
+      
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    
+      
       if(is.null(out.degree)){
         g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
       }else{
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
-    
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -531,30 +585,30 @@ createSimulation2 <- function(num.samples=100,
                                                   plot.graph=plot.graph,
                                                   nbias=nbias, use.Rcpp=use.Rcpp)
       R <- as.matrix(network.atts$corrmat) # correlation matrix
-    
+      
       A.mat <- network.atts$A.mat          # adjacency from graph
-    
+      
       U <- t(chol(R))                             # upper tri cholesky
       tmp <- t(U %*% t(dataset[,-ncol(dataset)])) # correlated data
       tmp <- cbind(tmp,dataset[,ncol(dataset)])   # combine with phenotype
       dataset <- tmp                              # main-effect data with correlation
-    
+      
       # make numeric matrix into a data frame for splitting and subsequent ML algorithms
       dataset <- as.data.frame(dataset)
-    
+      
       signal.names <- paste("mainvar", 1:nbias, sep = "")                   # functional variable names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names  
       var.names <- c(signal.names, background.names, label)                 # all variable names
       colnames(dataset) <- var.names                                        # replace column names with variable names
-    
+      
     }else if(data.type=="discrete"){
       
       if (main.bias >= 1) {
         stop("Please choose main.bias in (0,1)")
       }
       
-      if (main.bias >= 0.9 && main.bias < 1){
-        warning("main.bias is very large. Main effect sizes may be undesirable.")
+      if (avg.maf <= 0 || avg.maf >= 0.5){
+        stop("Please choose avg.maf in (0,0.5)")
       }
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
@@ -595,9 +649,32 @@ createSimulation2 <- function(num.samples=100,
       case.dats <- trans.dats[c(1:m.case),]
       ctrl.dats <- trans.dats[c((m.case+1):nrow(trans.dats)),]
       
-      prob.case <- (1 + main.bias)/2
-      prob.ctrl <- (1 - main.bias)/2
+      lb <- avg.maf - 0.5*main.bias # potentially the average maf for control group
+      ub <- avg.maf + 0.5*main.bias # potentially the average maf for the case group
       
+      if(lb <= 0){ # check to see if lower maf is possible, if not just make it small positive number
+        
+        eps <- 0.01
+        
+        lb <- eps
+        
+        ub <- 2*avg.maf - eps # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }else if(ub >= 1){ # check to see if upper maf is possible, if not just make it a number slightly less than 1
+        
+        eps <- 0.01
+        
+        ub <- 1 - eps
+        
+        lb <- 2*avg.maf - (1 - eps) # chosen so that 0.5*(lb + ub) = avg.maf
+        
+      }
+      
+      prob.case <- ub # case group mean
+      prob.ctrl <- lb # ctrl group mean
+      prob.noise <- runif((num.variables-nbias),min=prob.ctrl,max=prob.case) # background mafs
+      
+      # functional and background features for cases
       main.case <- matrix(0,nrow=m.case,ncol=nbias)
       background.case <- matrix(0,nrow=m.case,ncol=length(c((nbias+1):num.variables)))
       for(j in 1:m.case){
@@ -605,10 +682,11 @@ createSimulation2 <- function(num.samples=100,
         tmp <- qbinom(case.dats[j,c(1:nbias)], size=2, prob=prob.case)
         
         main.case[j,] <- tmp
-        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        background.case[j,] <- qbinom(case.dats[j,c((nbias+1):num.variables)], size=2, prob=prob.noise)
         
       }
       
+      # functional and background features for ctrls
       main.ctrl <- matrix(0,nrow=m.ctrl,ncol=nbias)
       background.ctrl <- matrix(0,nrow=m.ctrl,ncol=length(c((nbias+1):num.variables)))
       for(j in 1:m.ctrl){
@@ -616,12 +694,14 @@ createSimulation2 <- function(num.samples=100,
         tmp <- qbinom(ctrl.dats[j,c(1:nbias)], size=2, prob=prob.ctrl)
         
         main.ctrl[j,] <- tmp
-        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=mean(c(prob.case,prob.ctrl)))
+        background.ctrl[j,] <- qbinom(ctrl.dats[j,c((nbias+1):num.variables)], size=2, prob=prob.noise)
         
       }
       
+      # main effect features
       main.effects <- rbind(main.case,main.ctrl)
       
+      # background features
       background.data <- rbind(background.case,background.ctrl)
       
       class.vec <- c(rep(1,length=m.case),rep(0,length=m.ctrl))
@@ -636,7 +716,6 @@ createSimulation2 <- function(num.samples=100,
       var.names <- c(signal.names, background.names, label)                 # all variable names
       colnames(dataset) <- var.names                                        # replace column names with variable names
       
-      
     }
     
   }else if(sim.type=="interactionErdos"){ # simple interaction with Erdos-Renyi network
@@ -645,13 +724,13 @@ createSimulation2 <- function(num.samples=100,
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
-    
+      
       # random cases data set
       X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
-    
+      
       # approximate effect size for pairwise correlations between functional attributes in case group
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-    
+      
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       if(is.null(prob.connected)){
         prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
@@ -659,7 +738,7 @@ createSimulation2 <- function(num.samples=100,
         prob <- prob.connected
       }
       g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
-    
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -670,26 +749,26 @@ createSimulation2 <- function(num.samples=100,
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
                                                   nbias=nbias, use.Rcpp=use.Rcpp)
-    
+      
       R <- as.matrix(network.atts$corrmat) # correlation matrix for cases
-    
+      
       sig.vars <- network.atts$sig.vars    # column indices of functional features
-    
+      
       A.mat <- network.atts$A.mat          # adjacency from graph object
-    
+      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
       X.case <- tmp
-    
+      
       # random controls data set
       X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
-    
+      
       # for each functional variable, find connected variables
       sig.connected.list <- list()  # list for storing connected variable indices
       for(i in 1:length(sig.vars)){                                           # for each functional feature
         sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find and store connected features
       }
-    
+      
       # create control group correlation matrix
       for(i in 1:length(sig.vars)){                                               # for each functional feature
         n.connected <- length(sig.connected.list[[i]])                            # how many connections
@@ -697,16 +776,16 @@ createSimulation2 <- function(num.samples=100,
           R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1) # replace low correlation by high for ctrls
         }
       }
-    
+      
       # ensure that R is symmetric
       #
       tmp <- diag(R)       # diag of R
       diag(R) <- 0         # replace diag of R with 0's
       R[lower.tri(R)] <- 0 # make lower triangle zeros
-    
+      
       R <- R + t(R)        # make symmetric
       diag(R) <- tmp       # original diag of R
-    
+      
       # correct for negative eigenvalues so R is positive definite
       #
       if(use.Rcpp){ # compute eigenvalues and make diag matrix
@@ -715,7 +794,7 @@ createSimulation2 <- function(num.samples=100,
         R.d <- diag(eigen(R)$values)
       }
       tmp <- diag(R.d)                                # vector of eigenvalues
-    
+      
       if (any(tmp<0)){              # if any eigenvalues are negative
         R.V <- eigen(R)$vectors     # compute eigenvectors,
         tmp[tmp<0] <- 1e-7          # make negative into small positive,
@@ -724,33 +803,37 @@ createSimulation2 <- function(num.samples=100,
         R <- R.fix                  # store in R
       }
       R <- as.matrix(R)
-    
+      
       # make 1's on diag of R
       inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
       mydiag <- diag(length(inv.diag)) # initialize diagonal matrix for inv.diag
       diag(mydiag) <- inv.diag         # swap 1's for inv.diag
       mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag 
       R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-    
+      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
       X.ctrl <- tmp             # store in X.ctrl
-    
+      
       X.all <- rbind(X.case, X.ctrl) # case/ctrl data
       X.all <- as.data.frame(X.all)  # make data.frame
-    
+      
       dataset <- X.all
-    
+      
       signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
       var.names <- c(signal.names, background.names, label)                 # all variable names
       colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
       colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional colnames
-    
+      
       dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
       colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
-    
+      
     }else if(data.type=="discrete"){
+      
+      if (avg.maf <= 0 || avg.maf >= 0.5){
+        stop("Please choose avg.maf in (0,0.5)")
+      }
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
@@ -789,7 +872,10 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph object
       
-      f.a <- runif(num.variables,min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+      eps <- 0.01
+      lb <- eps
+      ub <- 2*avg.maf - eps
+      f.a <- runif(num.variables,min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
       
       trans.dats <- pnorm(null.dats)
       
@@ -886,26 +972,26 @@ createSimulation2 <- function(num.samples=100,
     
   }else if(sim.type=="interactionScalefree"){ # simple interaction with Scale-Free network
     
-      if(data.type=="continuous"){
+    if(data.type=="continuous"){
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
-    
+      
       # random cases data set
       X.case <- matrix(rnorm(m.case*num.variables), nrow=m.case, ncol=num.variables)
-    
+      
       # approximate effect size for pairwise correlations between functional attributes in case group 
       case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-    
+      
       e <- 1    # fudge factor to the number of nodes to avoid giant component
       prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-    
+      
       if(is.null(out.degree)){
         g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
       }else{
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
-    
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -916,27 +1002,27 @@ createSimulation2 <- function(num.samples=100,
                                                   plot.graph=plot.graph,
                                                   make.diff.cors=T,
                                                   nbias=nbias, use.Rcpp=use.Rcpp)
-    
+      
       R <- as.matrix(network.atts$corrmat)
-    
+      
       sig.vars <- network.atts$sig.vars # functional variable indices
-    
+      
       A.mat <- network.atts$A.mat       # adjacency from graph
-    
+      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.case)) # correlated case data
       X.case <- tmp             # store in X.case
-    
+      
       # random controls data set
       X.ctrl <- matrix(rnorm(m.ctrl*num.variables), nrow=m.ctrl, ncol=num.variables)
-    
+      
       # for each functional variable, find connected variables
       #
       sig.connected.list <- list() # list for functional connections
       for(i in 1:length(sig.vars)){                                           # for each functional variable
         sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find connections and store in list
       }
-    
+      
       # create control group correlation matrix
       for(i in 1:length(sig.vars)){                                                # for each functional variable 
         n.connected <- length(sig.connected.list[[i]])                             # how many connections
@@ -944,16 +1030,16 @@ createSimulation2 <- function(num.samples=100,
           R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlations with high for ctrls
         }
       }
-    
+      
       # make sure R is symmetric
       #
       tmp <- diag(R)       # diag of R
       diag(R) <- 0         # make diag(R) 0
       R[lower.tri(R)] <- 0 # make lower triangle of R 0
-    
+      
       R <- R + t(R)        # make symmetric
       diag(R) <- tmp       # replace diag(R) with original diag
-    
+      
       # correct for negative eigenvalues to make R positive definite
       #
       if(use.Rcpp){ # compute eigenvalues and make diag matrix
@@ -962,7 +1048,7 @@ createSimulation2 <- function(num.samples=100,
         R.d <- diag(eigen(R)$values)
       }
       tmp <- diag(R.d)                                # vector of eigenvalues
-    
+      
       if (any(tmp<0)){              # if any eigenvalues are negative
         R.V <- eigen(R)$vectors     # compute eigenvectors
         tmp[tmp<0] <- 1e-7          # make negative into small positive
@@ -971,7 +1057,7 @@ createSimulation2 <- function(num.samples=100,
         R <- R.fix                  # store in R
       }
       R <- as.matrix(R)
-    
+      
       # make 1's on diagonal
       # 
       inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
@@ -979,26 +1065,30 @@ createSimulation2 <- function(num.samples=100,
       diag(mydiag) <- inv.diag         # swap 1's for inv.diag
       mydiag <- sqrt(mydiag)           # sqrt of inv.diag
       R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-    
+      
       U <- t(chol(R))           # upper tri cholesky
       tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
       X.ctrl <- tmp             # store in X.ctrl
-    
+      
       X.all <- rbind(X.case, X.ctrl) # case/ctrl data
       X.all <- as.data.frame(X.all)  # make data.frame
-    
+      
       dataset <- X.all
-    
+      
       signal.names <- paste("intvar", 1:nbias, sep = "")                    # interaction variable names
       background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
       var.names <- c(signal.names, background.names, label)                 # all variable names
       colnames(dataset)[sig.vars] <- signal.names                           # replace functional colnames with interaction variable names
       colnames(dataset)[-sig.vars] <- background.names                      # replace non-functional colnames with non-functional variable names
-    
+      
       dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # case/ctrl data with phenotype
       colnames(dataset)[ncol(dataset)] <- "class"                               # replace last colname with "class"
-    
+      
     }else if(data.type=="discrete"){
+      
+      if (avg.maf <= 0 || avg.maf >= 0.5){
+        stop("Please choose avg.maf in (0,0.5)")
+      }
       
       m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
       m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
@@ -1038,7 +1128,10 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph object
       
-      f.a <- runif(num.variables,min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+      eps <- 0.01
+      lb <- eps
+      ub <- 2*avg.maf - eps
+      f.a <- runif(num.variables,min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
       
       trans.dats <- pnorm(null.dats)
       
@@ -1142,26 +1235,26 @@ createSimulation2 <- function(num.samples=100,
         
         m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
         m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
-      
+        
         num.main <- round(pct.mixed*nbias)      # number of main effect attributes
         num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
-      
+        
         # make cases data set
         X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
-      
+        
         # approximate effect size for pairwise correlations between functional attributes in case group
         case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-      
+        
         e <- 1    # fudge factor to the number of nodes to avoid giant component
         if(is.null(prob.connected)){
           prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
         }else{
           prob <- prob.connected
         }
-      
+        
         # generate random Erdos-Renyi network
         g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
-      
+        
         # generate correlation matrix from g
         network.atts <- generate_structured_corrmat(g=g,
                                                     num.variables=(num.variables - num.main), 
@@ -1172,27 +1265,27 @@ createSimulation2 <- function(num.samples=100,
                                                     plot.graph=plot.graph,
                                                     make.diff.cors=T,
                                                     nbias=num.int, use.Rcpp=use.Rcpp)
-      
+        
         R <- as.matrix(network.atts$corrmat) # case correlation matrix
-      
+        
         sig.vars <- network.atts$sig.vars    # functional attribute indices
-      
+        
         A.mat <- network.atts$A.mat          # adjacency from graph
-      
+        
         U <- t(chol(R))           # upper tri cholesky
         tmp <- t(U %*% t(X.case)) # correlated case data
         X.case <- tmp             # store in X.case
-      
+        
         # make controls data set
         X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
-      
+        
         # find connections for functional attributes
         #
         sig.connected.list <- list()  # list for functional attribute connections
         for(i in 1:length(sig.vars)){                                           # for each functional feature
           sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
         }
-      
+        
         # make high correlations for ctrls
         #
         for(i in 1:length(sig.vars)){                                                # for each functional variable
@@ -1201,16 +1294,16 @@ createSimulation2 <- function(num.samples=100,
             R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace with high correlation
           }
         }
-      
+        
         # ensure that R is symmetric
         #
         tmp <- diag(R)       # diag of R
         diag(R) <- 0         # make diag(R) 0
         R[lower.tri(R)] <- 0 # make lower triangle of R 0
-      
+        
         R <- R + t(R)  # make symmetric
         diag(R) <- tmp # swap for original diag
-      
+        
         # correct for negative eigenvalues so R is positive definite
         #
         if(use.Rcpp){ # compute eigenvalues and make diag matrix
@@ -1219,7 +1312,7 @@ createSimulation2 <- function(num.samples=100,
           R.d <- diag(eigen(R)$values)
         }
         tmp <- diag(R.d)                                # vector of eigenvalues
-      
+        
         if (any(tmp<0)){              # if any eigenvalues are negative
           R.V <- eigen(R)$vectors     # compute eigenvectors,
           tmp[tmp<0] <- 1e-7          # make negative into small positive,
@@ -1228,7 +1321,7 @@ createSimulation2 <- function(num.samples=100,
           R <- R.fix                  # store in R
         }
         R <- as.matrix(R)
-      
+        
         # make 1's on diagonal
         #
         inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
@@ -1236,16 +1329,16 @@ createSimulation2 <- function(num.samples=100,
         diag(mydiag) <- inv.diag         # swap 1's for inv.diag
         mydiag <- sqrt(mydiag)           # compute sqrt of inv.diag
         R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-      
+        
         U <- t(chol(R))           # upper tri cholesky
         tmp <- t(U %*% t(X.ctrl)) # correlated ctrl data
         X.ctrl <- tmp             # store in X.ctrl
-      
+        
         X.all <- rbind(X.case, X.ctrl) # case/ctrl data
         X.all <- as.data.frame(X.all)  # make data.frame
-      
+        
         dataset <- X.all
-      
+        
         # create main-effect simulation for num.main attributes
         my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
                                                     n.db=num.samples,              
@@ -1253,30 +1346,30 @@ createSimulation2 <- function(num.samples=100,
                                                     label = label,
                                                     sd.b=main.bias,
                                                     p.b=1)$db
-      
+        
         # check dimensions to see if my.sim.data is a matrix or just a vector
         check.dim <- is.null(dim(my.sim.data$datnobatch))
         if(check.dim){
           main.cols <- my.sim.data$datnobatch
         }else{
-        main.cols <- t(my.sim.data$datnobatch)
+          main.cols <- t(my.sim.data$datnobatch)
         }
         dataset.tmp <- cbind(main.cols, my.sim.data$S)
-      
+        
         dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
         main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
-      
+        
         main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
         int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
-      
+        
         signal.names <- c(main.names, int.names)           # all functional variable names
         background.names <- paste("var", 1:(num.variables - nbias), sep = "") # all non-functional variable names
         var.names <- c(signal.names, background.names, label) # all variable names
-      
+        
         colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
         colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
         colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
-      
+        
         dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
         colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
         
@@ -1286,8 +1379,8 @@ createSimulation2 <- function(num.samples=100,
           stop("Please choose main.bias in (0,1)")
         }
         
-        if (main.bias >= 0.9 && main.bias < 1){
-          warning("main.bias is very large. Main effect sizes may be undesirable.")
+        if (avg.maf <= 0 || avg.maf >= 0.5){
+          stop("Please choose avg.maf in (0,0.5)")
         }
         
         m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
@@ -1332,12 +1425,15 @@ createSimulation2 <- function(num.samples=100,
         U <- t(chol(R))           # upper tri cholesky
         
         null.dats <- matrix(rnorm((num.variables-num.main)*m.case),nrow=m.case,ncol=(num.variables-num.main))
-  
+        
         null.dats <- t(U %*% t(null.dats))          # correlated data
         
         A.mat <- network.atts$A.mat          # adjacency from graph object
         
-        f.a <- runif((num.variables-num.main),min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+        eps <- 0.01
+        lb <- eps
+        ub <- 2*avg.maf - eps
+        f.a <- runif((num.variables-num.main),min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
         
         trans.dats <- pnorm(null.dats)
         
@@ -1417,9 +1513,31 @@ createSimulation2 <- function(num.samples=100,
         
         dataset <- rbind(X.case,X.ctrl)
         
-        prob.case <- (1 + main.bias)/2
-        prob.ctrl <- (1 - main.bias)/2
+        lb <- avg.maf - 0.5*main.bias # potentially the average maf for control group
+        ub <- avg.maf + 0.5*main.bias # potentially the average maf for the case group
         
+        if(lb <= 0){ # check to see if lower maf is possible, if not just make it small positive number
+          
+          eps <- 0.01
+          
+          lb <- eps
+          
+          ub <- 2*avg.maf - eps # chosen so that 0.5*(lb + ub) = avg.maf
+          
+        }else if(ub >= 1){ # check to see if upper maf is possible, if not just make it a number slightly less than 1
+          
+          eps <- 0.01
+          
+          ub <- 1 - eps
+          
+          lb <- 2*avg.maf - (1 - eps) # chosen so that 0.5*(lb + ub) = avg.maf
+          
+        }
+        
+        prob.case <- ub # case group mean
+        prob.ctrl <- lb # ctrl group mean
+        
+        # main effects for cases
         main.case <- matrix(0,nrow=m.case,ncol=num.main)
         for(j in 1:m.case){
           
@@ -1429,6 +1547,7 @@ createSimulation2 <- function(num.samples=100,
           
         }
         
+        # main effects for ctrls
         main.ctrl <- matrix(0,nrow=m.ctrl,ncol=num.main)
         for(j in 1:m.ctrl){
           
@@ -1438,13 +1557,15 @@ createSimulation2 <- function(num.samples=100,
           
         }
         
+        # main effect features
         main.effects <- rbind(main.case,main.ctrl)
         
+        # interactions + main effects
         dataset <- cbind(dataset, main.effects)
         colnames(dataset) <- paste("var",1:num.variables,sep="")
-
+        
         main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
-
+        
         main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
         int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
         
@@ -1455,7 +1576,7 @@ createSimulation2 <- function(num.samples=100,
         colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
         colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
         colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
- 
+        
         dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
         colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
         dataset <- as.data.frame(dataset)
@@ -1465,29 +1586,29 @@ createSimulation2 <- function(num.samples=100,
     }else if(mix.type=="main-interactionScalefree"){ # main + interaction with Scale-Free network
       
       if(data.type=="continuous"){
-      
+        
         m.case <- round((1 - pct.imbalance)*num.samples) # number of cases
         m.ctrl <- round(pct.imbalance*num.samples)       # number of ctrls
-      
+        
         num.main <- round(pct.mixed*nbias)      # number of main effect attributes
         num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
-      
+        
         # make cases data set
         X.case <- matrix(rnorm(m.case*(num.variables - num.main)), nrow=m.case, ncol=(num.variables - num.main))
-      
+        
         # approximate effect size for pairwise correlations between functional attributes in case group
         case.hi.cor <- -hi.cor*interaction.bias + (1 - interaction.bias)*hi.cor
-      
+        
         e <- 1    # fudge factor to the number of nodes to avoid giant component
         prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
-      
+        
         # generate random Scale-Free network
         if(is.null(out.degree)){
           g <- igraph::barabasi.game((num.variables - num.main), directed=F)
         }else{
           g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
         }
-      
+        
         # generate case group correlation matrix
         network.atts <- generate_structured_corrmat(g=g,
                                                     num.variables=(num.variables - num.main), 
@@ -1498,27 +1619,27 @@ createSimulation2 <- function(num.samples=100,
                                                     plot.graph=plot.graph,
                                                     make.diff.cors=T,
                                                     nbias=num.int, use.Rcpp=use.Rcpp)
-      
+        
         R <- as.matrix(network.atts$corrmat) # cases correlation matrix
-      
+        
         sig.vars <- network.atts$sig.vars    # functional attribute indices
-      
+        
         A.mat <- network.atts$A.mat          # adjacency from graph
-      
+        
         U <- t(chol(R))           # upper tri cholesky
         tmp <- t(U %*% t(X.case)) # correlated case data
         X.case <- tmp             # store in X.case
-      
+        
         # make controls data set
         X.ctrl <- matrix(rnorm(m.ctrl*(num.variables - num.main)), nrow=m.ctrl, ncol=(num.variables - num.main))
-      
+        
         # find all functional connections
         # 
         sig.connected.list <- list()  # list for storing functional connections
         for(i in 1:length(sig.vars)){                                           # for each functional variable
           sig.connected.list[[i]] <- which(abs(A.mat[sig.vars[i],] - 1) < 1e-9) # find all connections
         }
-      
+        
         # make high correlations matrix for ctrls
         #
         for(i in 1:length(sig.vars)){                                                # for each functional variable
@@ -1527,16 +1648,16 @@ createSimulation2 <- function(num.samples=100,
             R[sig.vars[i],sig.connected.list[[i]][j]] <- min(hi.cor+rnorm(1,0,.1),1)  # replace low correlation with high correlation
           }
         }
-      
+        
         # ensure that R is symmetric
         #
         tmp <- diag(R)       # diag of R
         diag(R) <- 0         # make diag(R) 0
         R[lower.tri(R)] <- 0 # make lower triangle of R 0
-      
+        
         R <- R + t(R)  # make symmetric
         diag(R) <- tmp # swap for original diag
-      
+        
         # correct for negative eigenvalues to make R positive definite
         #
         if(use.Rcpp){ # compute eigenvalues and make diag matrix
@@ -1545,7 +1666,7 @@ createSimulation2 <- function(num.samples=100,
           R.d <- diag(eigen(R)$values)
         }
         tmp <- diag(R.d)                                # vector of eigenvalues
-      
+        
         if (any(tmp<0)){              # if any eigenvalues are negative
           R.V <- eigen(R)$vectors     # compute eigenvectores,
           tmp[tmp<0] <- 1e-7          # make negative into small positive,
@@ -1554,7 +1675,7 @@ createSimulation2 <- function(num.samples=100,
           R <- R.fix                  # store in R
         }
         R <- as.matrix(R)
-      
+        
         # make 1's on diagonal
         #
         inv.diag <- 1/diag(R)            # multiplicative inverse of diag(R)
@@ -1562,16 +1683,16 @@ createSimulation2 <- function(num.samples=100,
         diag(mydiag) <- inv.diag         # swap 1's for inv.diag
         mydiag <- sqrt(mydiag)           # sqrt of inv.diag
         R <- mydiag %*% R %*% mydiag     # compute corrected R with 1's on diagonal (Still Pos. Def.)
-      
+        
         U <- t(chol(R))                  # upper tri cholesky
         tmp <- t(U %*% t(X.ctrl))        # correlated ctrl data
         X.ctrl <- tmp                    # store in X.ctrl
-      
+        
         X.all <- rbind(X.case, X.ctrl)   # case/ctrl data
         X.all <- as.data.frame(X.all)    # make data.frame
-      
+        
         dataset <- X.all
-      
+        
         # create main effect simulation with num.main features
         my.sim.data <- privateEC::createMainEffects(n.e=num.main,                   
                                                     n.db=num.samples,              
@@ -1579,7 +1700,7 @@ createSimulation2 <- function(num.samples=100,
                                                     label = label,
                                                     sd.b=main.bias,
                                                     p.b=1)$db
-      
+        
         # check dimensions to determine if my.dim.data is a matrix or vector
         check.dim <- is.null(dim(my.sim.data$datnobatch))
         if(check.dim){
@@ -1588,32 +1709,32 @@ createSimulation2 <- function(num.samples=100,
           main.cols <- t(my.sim.data$datnobatch)
         }
         dataset.tmp <- cbind(main.cols, my.sim.data$S)
-      
+        
         dataset <- cbind(dataset, dataset.tmp[,-ncol(dataset.tmp)])
         main.vars <- (dim(dataset)[2]- num.main + 1):(dim(dataset)[2])
-      
+        
         main.names <- paste("mainvar", 1:num.main, sep="") # main effect variable names
         int.names <- paste("intvar", 1:num.int, sep="")    # interaction effect variable names
-      
+        
         signal.names <- c(main.names, int.names) # all functional variable names
         background.names <- paste("var", 1:(num.variables - nbias), sep = "") # non-functional variable names
         var.names <- c(signal.names, background.names, label) # all variable names
-      
+        
         colnames(dataset)[sig.vars] <- int.names   # replace interaction colnames with interaction variable names
         colnames(dataset)[main.vars] <- main.names # replace main colnames with main variable names
         colnames(dataset)[-c(sig.vars, main.vars)] <- background.names # replace non-functional colnames with non-functional variable names
-      
+        
         dataset <- cbind(dataset, c(rep(1,length=m.case), rep(-1,length=m.ctrl))) # full data set with phenotype
         colnames(dataset)[ncol(dataset)] <- "class" # replace last colname with "class"
-      
+        
       }else if(data.type=="discrete"){
         
         if (main.bias >= 1) {
           stop("Please choose main.bias in (0,1)")
         }
         
-        if (main.bias >= 0.9 && main.bias < 1){
-          warning("main.bias is very large. Main effect sizes may be undesirable.")
+        if (avg.maf <= 0 || avg.maf >= 0.5){
+          stop("Please choose avg.maf in (0,0.5)")
         }
         
         m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
@@ -1663,7 +1784,10 @@ createSimulation2 <- function(num.samples=100,
         
         A.mat <- network.atts$A.mat          # adjacency from graph object
         
-        f.a <- runif((num.variables-num.main),min=0.1,max=0.4) # minor allele frequencies (success probabilities for bernoulli trials)
+        eps <- 0.01
+        lb <- eps
+        ub <- 2*avg.maf - eps
+        f.a <- runif((num.variables-num.main),min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
         
         trans.dats <- pnorm(null.dats)
         
@@ -1743,9 +1867,31 @@ createSimulation2 <- function(num.samples=100,
         
         dataset <- rbind(X.case,X.ctrl)
         
-        prob.case <- (1 + main.bias)/2
-        prob.ctrl <- (1 - main.bias)/2
+        lb <- avg.maf - 0.5*main.bias # potentially the average maf for control group
+        ub <- avg.maf + 0.5*main.bias # potentially the average maf for the case group
         
+        if(lb <= 0){ # check to see if lower maf is possible, if not just make it small positive number
+          
+          eps <- 0.01
+          
+          lb <- eps
+          
+          ub <- 2*avg.maf - eps # chosen so that 0.5*(lb + ub) = avg.maf
+          
+        }else if(ub >= 1){ # check to see if upper maf is possible, if not just make it a number slightly less than 1
+          
+          eps <- 0.01
+          
+          ub <- 1 - eps
+          
+          lb <- 2*avg.maf - (1 - eps) # chosen so that 0.5*(lb + ub) = avg.maf
+          
+        }
+        
+        prob.case <- ub # case group mean
+        prob.ctrl <- lb # ctrl group mean
+        
+        # main effects for cases
         main.case <- matrix(0,nrow=m.case,ncol=num.main)
         for(j in 1:m.case){
           
@@ -1755,6 +1901,7 @@ createSimulation2 <- function(num.samples=100,
           
         }
         
+        # main effects for ctrls
         main.ctrl <- matrix(0,nrow=m.ctrl,ncol=num.main)
         for(j in 1:m.ctrl){
           
@@ -1764,8 +1911,10 @@ createSimulation2 <- function(num.samples=100,
           
         }
         
+        # main effect features
         main.effects <- rbind(main.case,main.ctrl)
         
+        # interactions + main effects
         dataset <- cbind(dataset, main.effects)
         colnames(dataset) <- paste("var",1:num.variables,sep="")
         

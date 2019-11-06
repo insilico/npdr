@@ -11,7 +11,7 @@ createSimulation2(num.samples = 100, num.variables = 100,
   pct.holdout = 0.5, pct.validation = 0, save.file = NULL,
   mix.type = NULL, pct.mixed = 0.5, verbose = FALSE,
   plot.graph = F, use.Rcpp = F, prob.connected = NULL,
-  out.degree = NULL, data.type = "continuous")
+  out.degree = NULL, data.type = "continuous", avg.maf = 0.2)
 }
 \arguments{
 \item{num.samples}{number of samples}
@@ -59,6 +59,8 @@ main-interactionErdos/main-interactionScalefree}
 \item{out.degree}{out-degree of vertices in Scale-free graph}
 
 \item{data.type}{character indicating if data is from a "continuous" or "discrete" distribution}
+
+\item{avg.maf}{numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations}
 }
 \value{
 A list with:

@@ -8,7 +8,7 @@ library(igraph)
 # install_github("insilico/npdr")
 library(npdr)
 
-#==================== Simulate Data with pEC ===================================#
+#==================== Simulate Data with npdr simulate2 ===================================#
 ##### simulate case-control interaction effect data 
 n.samples <- 300     # 100 samples in train/holdout/test
 n.variables <- 100   # 100 features
