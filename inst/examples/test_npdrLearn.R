@@ -126,8 +126,11 @@ test_acc <- test_results$accuracy
 cat("\n Train Accuracy [",test_acc,"]\n")
 
 #=======================consenses nested CV from pEC library ===========================#
+if("caret" %in% rownames(installed.packages()) == FALSE) {install.packages("caret")}
+# caret needed for confusionMatrix in consensus_nestedCV (privateEC library)
+
 # 100 train, 100 test plus a validation set
-cncv.case.control <- consensus_nestedCV(train.ds = case.control.data, 
+cncv.case.control <- privateEC::consensus_nestedCV(train.ds = case.control.data, 
                                         validation.ds =  case.control.3sets$validation, 
                                         label = "class",
                                         method.model = "classification",
