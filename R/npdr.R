@@ -32,16 +32,32 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
     res_df <- mod$df.residual
   }
   fit <- summary(mod)
-  coef_mat <- coef(fit) %>% as.data.frame() %>% mutate_if(is.factor, ~ as.numeric(as.character(.x)))
-  stats.vec <- data.frame(pval.att = pt(coef_mat[2, 3], res_df, lower = FALSE), 
-                 # use one-side p-value for attribute beta, to test H1: beta>0 for case-control and continuous outcome
-                 beta.raw.att = coef_mat[2, 1],   # for attribute a, raw, slope (not standardized)
-                 beta.Z.att = coef_mat[2, 3],     # standardized beta coefficient for attribute a
-                 beta.0 = coef_mat[1, 1],         # beta for intercept, row 1 is inercept, col 1 is raw beta
-                 pval.0 = coef_mat[1, 4])         # p for intercept, row 1 is intercept, col 4 is p-val
-
+  coeffs <- fit$coefficients
+  
+  ## create output NPDR summary stats (stats.vec)
+  if (nrow(coeffs)<2){
+    # for example, monomorphic SNP might result in attribute stats (row 2) not being created
+    beta_a <- NA
+    beta_zscore_a <- NA
+    pval.att <- NA
+    message("Regression failure. Possible monomorphic SNP.\n")
+  } else {
+    beta_a <- coeffs[2,1]
+    beta_zscore_a <- coeffs[2,3]  # standardized beta coefficient (col 3)
+    ## use one-side p-value to test H1: beta>0 for case-control and continuous outcome
+    pval.att <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
+  }
+  
+  stats.vec <- c(
+    pval.att,            # one-sided p-value for attribute beta
+    beta_a,                 # beta_a for attribute a
+    beta_zscore_a,          # standardized beta for attribut a
+    coeffs[1,1],  # beta_0, intercept, row 1 is inercept, col 1 is raw beta
+    coeffs[1,4]   # p-value for intercept, row 1 is intercept, col 4 is p-val 
+  )
+  
   if (regression.type=="lm"){
-    stats.vec <- data.frame(stats.vec, R.sqr = fit$r.squared)}
+    stats.vec <- c(stats.vec, fit$r.squared)} # add R^2 of fit, R.sqr for continuous outcomes
   
   return(stats.vec)
 }
@@ -305,7 +321,9 @@ npdr <- function(outcome, dataset,
         npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
       } # end of for loop, regression done for each attribute
       
-      npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
+      #npdr.stats.attr.mat <- bind_rows(npdr.stats.list)
+      npdr.stats.attr.mat <- data.frame(do.call(rbind, npdr.stats.list))
+      colnames(npdr.stats.attr.mat) <- c("pval.att","beta.raw.att", "beta.Z.att", "beta.0", "pval.0")
     }
 
     if(attr.diff.type=="correlation-data"){                                            # corrdata    
@@ -320,7 +338,7 @@ npdr <- function(outcome, dataset,
         ) %>% arrange(pval.att) %>% # order by attribute p-value                       # corrdata
         dplyr::select(att, pval.adj, everything()) %>% # reorder columns               # corrdata
         as.data.frame() # convert tibbles to df -- can we remove this step?            # corrdata
-    }else{
+    }else{ # non-correlation matrix predictors
       npdr.stats.df <- npdr.stats.attr.mat %>% 
         mutate(att = colnames(attr.mat), # add an attribute column
                pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
