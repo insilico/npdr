@@ -45,7 +45,7 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
     beta_a <- coeffs[2,1]
     beta_zscore_a <- coeffs[2,3]  # standardized beta coefficient (col 3)
     ## use one-side p-value to test H1: beta>0 for case-control and continuous outcome
-    pval.att <- pt(beta_zscore_a, mod$df.residual, lower = FALSE)  # one-sided p-val
+    pval.att <- pt(beta_zscore_a, res_df, lower = FALSE)  # one-sided p-val
   }
   
   stats.vec <- c(
