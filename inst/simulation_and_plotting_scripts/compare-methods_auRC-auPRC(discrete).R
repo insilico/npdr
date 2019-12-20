@@ -1,9 +1,19 @@
-# compute auRC and auPRC for NPDR, Relief, and Random Forest from 30 replicated data sets - Continuous Data
+# compute auRC and auPRC for NPDR, Relief, and Random Forest from 30 replicated data sets 
+# Discrete (SNP) Data
 library(npdr)
 library(CORElearn)
 library(randomForest)
 library(reshape2)
 library(ggplot2)
+library(PRROC)
+
+show.plots = T
+save.files = F
+num.iter <- 1  # just run one simulation
+#num.iter <- 30 # 30 replicate simulations will take several minutes
+if (save.files){
+  cat("Results files for ",num.iter, " replicate simulation(s) will be saved in ", getwd(),".", sep="")
+}
 
 # sim.type (options)
 #
@@ -44,7 +54,7 @@ auPRC.vec.npdr.fixedk <- numeric()
 auPRC.vec.relief <- numeric()
 auPRC.vec.RF <- numeric()
 set.seed(1989)
-num.iter <- 30 # this will take several minutes
+
 for(iter in 1:num.iter){
   cat("Iteration: ",iter,"\n")
   
@@ -87,14 +97,16 @@ for(iter in 1:num.iter){
   functional.vars <- dataset$signal.names
   npdr.positives1 <- npdr.results1 %>% filter(pval.adj<.05) %>% pull(att)
   
-  idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars)==TRUE)
+  df1 <- na.omit(df1)
+  idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars))
   func.betas1 <- df1[idx.func,"beta"]
   neg.betas1 <- df1[-idx.func,"beta"]
   
   pr.npdr1 <- PRROC::pr.curve(scores.class0 = func.betas1,
                               scores.class1 = neg.betas1, 
                               curve = T)
-  #plot(pr.npdr1)
+  
+  if (show.plots){plot(pr.npdr1)}
   
   npdr.detect.stats1 <- detectionStats(functional.vars, npdr.positives1)
   
@@ -112,6 +124,7 @@ for(iter in 1:num.iter){
   df2 <- data.frame(att=npdr.results2$att,
                     beta=npdr.results2$beta.Z.att,
                     pval=npdr.results2$pval.adj)
+  df2 <- na.omit(df2)
   
   idx.func <- which(c(as.character(df2[,"att"]) %in% functional.vars)==TRUE)
   func.betas2 <- df2[idx.func,"beta"]
@@ -120,7 +133,8 @@ for(iter in 1:num.iter){
   pr.npdr2 <- PRROC::pr.curve(scores.class0 = func.betas2,
                               scores.class1 = neg.betas2, 
                               curve = T)
-  #plot(pr.npdr2)
+  
+  if (show.plots){plot(pr.npdr2)}
   
   npdr.detect.stats2 <- detectionStats(functional.vars, npdr.positives2)
   
@@ -137,7 +151,7 @@ for(iter in 1:num.iter){
   pr.rf <- PRROC::pr.curve(scores.class0 = func.scores.rf,
                            scores.class1 = neg.scores.rf, 
                            curve = T)
-  #plot(pr.rf)
+  if (show.plots){plot(pr.rf)}
   
   ##### Regular Relief
   relief <- CORElearn::attrEval(as.factor(class) ~ ., data = dats, 
@@ -156,7 +170,7 @@ for(iter in 1:num.iter){
   pr.relief <- PRROC::pr.curve(scores.class0 = func.scores.relief,
                                scores.class1 = neg.scores.relief, 
                                curve = T)
-  #plot(pr.relief)
+  if (show.plots){plot(pr.relief)}
   
   pcts <- seq(0,1,.05)
   rf.detected <- sapply(pcts,function(p){rfDetected(rf.df,functional.vars,p)})
@@ -164,6 +178,7 @@ for(iter in 1:num.iter){
   npdr.detected.multisurf <- sapply(pcts,function(p){npdrDetected(npdr.results1,functional.vars,p)})
   npdr.detected.fixedk <- sapply(pcts,function(p){npdrDetected(npdr.results2,functional.vars,p)})
   
+  if (show.plots){
   # plot recall curves (RC) for several methods
   df <- data.frame(pcts=pcts, NPDR.MultiSURF=npdr.detected.multisurf, 
                    NPDR.Fixed.k=npdr.detected.fixedk,
@@ -197,6 +212,7 @@ for(iter in 1:num.iter){
     ggtitle("Precision-Recall Curves: Comparison of Methods") +
     theme(plot.title = element_text(hjust=0.5)) + theme_bw()
   print(gg)
+  }
   
   # auRC: area under the recall curve for several methods
   auRC.RF[iter] <- sum(rf.detected)/length(rf.detected)       
@@ -212,6 +228,7 @@ for(iter in 1:num.iter){
   
 }
 
+if (save.files){
 # save results
 df.save <- data.frame(cbind(iter=seq(1,30,by=1),
                             auRC.RForest=auRC.RF,
@@ -226,3 +243,4 @@ df.save <- apply(df.save,2,as.numeric)
 #setwd("C:/Users/bdawk/Documents/KNN_project_output") will need to change to desired directory
 file <- paste("auRC-auPRC_iterates_methods-comparison_",data.type,"-",sim.type,".csv",sep="")
 write.csv(df.save,file,row.names=F)
+}

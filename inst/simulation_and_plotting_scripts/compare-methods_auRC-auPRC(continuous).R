@@ -4,53 +4,15 @@ library(CORElearn)
 library(randomForest)
 library(reshape2)
 library(ggplot2)
+library(PRROC)
 
-#####################################################################################
-#
-## some useful functions
-#
-#####################################################################################
-
-##### Functions for creating detection rate vs percentage variables selected
-
-reliefDetected <- function(results.df,functional,top.pct){
-  # results.df is the results output of relief from corelearn 
-  # functional are known functional var names
-  # top.pct is percentile of top relief variables to compare with functional
-  # results order is high to low score
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>% top_n(top.num, rrelief) %>% pull(att) # rrelief column of results.df
-  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
+show.plots = T
+save.files = F
+num.iter <- 1  # just run one simulation
+#num.iter <- 30 # 30 replicate simulations will take several minutes
+if (save.files){
+  cat("Results files for ",num.iter, " replicate simulation(s) will be saved in ", getwd(),".", sep="")
 }
-
-rfDetected <- function(results.df,functional,top.pct){
-  # results.df is the results output of random forest 
-  # functional are known functional var names
-  # top.pct is percentile of top random forest variables to compare with functional
-  # results order is high to low score
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>% top_n(top.num, rf.scores) %>% pull(att)  # rf.scores column for rf results
-  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
-}
-
-npdrDetected <- function(results.df,functional,top.pct){
-  # results.df is the output of npdr
-  # functional are known functional var names
-  # top.pct is percentile of top npdr variables to compare with functional
-  # results order is low P value to high P value
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>% top_n(-top.num, pval.att) %>% pull(att)  # pval.att is npdr specific
-  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
-}
-
-#####################################################################################
-#
-## (end) useful functions
-#
-#####################################################################################
 
 # sim.type (options)
 #
@@ -130,6 +92,7 @@ for(iter in 1:num.iter){
   df1 <- data.frame(att=npdr.results1$att,
                     beta=npdr.results1$beta.Z.att,
                     pval=npdr.results1$pval.adj)
+  df1 <- na.omit(df1)
   
   functional.vars <- dataset$signal.names
   npdr.positives1 <- npdr.results1 %>% filter(pval.adj<.05) %>% pull(att)
@@ -141,7 +104,7 @@ for(iter in 1:num.iter){
   pr.npdr1 <- PRROC::pr.curve(scores.class0 = func.betas1,
                              scores.class1 = neg.betas1, 
                              curve = T)
-  #plot(pr.npdr1)
+  if (show.plots){plot(pr.npdr1)}
   
   npdr.detect.stats1 <- detectionStats(functional.vars, npdr.positives1)
   
@@ -159,6 +122,7 @@ for(iter in 1:num.iter){
   df2 <- data.frame(att=npdr.results2$att,
                     beta=npdr.results2$beta.Z.att,
                     pval=npdr.results2$pval.adj)
+  df2 <- na.omit(df2)
   
   idx.func <- which(c(as.character(df2[,"att"]) %in% functional.vars)==TRUE)
   func.betas2 <- df2[idx.func,"beta"]
@@ -167,7 +131,7 @@ for(iter in 1:num.iter){
   pr.npdr2 <- PRROC::pr.curve(scores.class0 = func.betas2,
                               scores.class1 = neg.betas2, 
                               curve = T)
-  #plot(pr.npdr2)
+  if (show.plots){plot(pr.npdr2)}
   
   npdr.detect.stats2 <- detectionStats(functional.vars, npdr.positives2)
   
@@ -184,7 +148,7 @@ for(iter in 1:num.iter){
   pr.rf <- PRROC::pr.curve(scores.class0 = func.scores.rf,
                            scores.class1 = neg.scores.rf, 
                            curve = T)
-  #plot(pr.rf)
+  if (show.plots){plot(pr.rf)}
   
   ##### Regular Relief
   relief <- CORElearn::attrEval(as.factor(class) ~ ., data = dats, 
@@ -203,7 +167,7 @@ for(iter in 1:num.iter){
   pr.relief <- PRROC::pr.curve(scores.class0 = func.scores.relief,
                                scores.class1 = neg.scores.relief, 
                                curve = T)
-  #plot(pr.relief)
+  if (show.plots){plot(pr.relief)}
   
   pcts <- seq(0,1,.05)
   rf.detected <- sapply(pcts,function(p){rfDetected(rf.df,functional.vars,p)})
@@ -211,6 +175,7 @@ for(iter in 1:num.iter){
   npdr.detected.multisurf <- sapply(pcts,function(p){npdrDetected(npdr.results1,functional.vars,p)})
   npdr.detected.fixedk <- sapply(pcts,function(p){npdrDetected(npdr.results2,functional.vars,p)})
   
+  if (show.plots){
   # plot recall curves (RC) for several methods
   df <- data.frame(pcts=pcts, NPDR.MultiSURF=npdr.detected.multisurf, 
                    NPDR.Fixed.k=npdr.detected.fixedk,
@@ -244,6 +209,7 @@ for(iter in 1:num.iter){
     ggtitle("Precision-Recall Curves: Comparison of Methods") +
     theme(plot.title = element_text(hjust=0.5)) + theme_bw()
   print(gg)
+  }
   
   # auRC: area under the recall curve for several methods
   auRC.RF[iter] <- sum(rf.detected)/length(rf.detected)       
@@ -259,6 +225,7 @@ for(iter in 1:num.iter){
   
 }
 
+if (save.files){
 # save results
 df.save <- data.frame(cbind(iter=seq(1,30,by=1),
                             auRC.RForest=auRC.RF,
@@ -273,3 +240,4 @@ df.save <- apply(df.save,2,as.numeric)
 #setwd("C:/Users/bdawk/Documents/KNN_project_output") will need to change to desired directory
 file <- paste("auRC-auPRC_iterates_methods-comparison_",data.type,"-",sim.type,".csv",sep="")
 write.csv(df.save,file,row.names=F)
+}

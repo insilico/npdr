@@ -332,22 +332,74 @@ npdr <- function(outcome, dataset,
       }else{                                                                           # corrdata
         att.names <- as.character(corr.attr.names)                                     # corrdata
       }                                                                                # corrdata
-      npdr.stats.df <- npdr.stats.attr.mat %>%                                         # corrdata
-        mutate(att = att.names, # add an attribute column                              # corrdata
-               pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values   # corrdata
-        ) %>% arrange(pval.att) %>% # order by attribute p-value                       # corrdata
-        dplyr::select(att, pval.adj, everything()) %>% # reorder columns               # corrdata
-        as.data.frame() # convert tibbles to df -- can we remove this step?            # corrdata
+      
+      #### Create Results Data Frame for NPDR
+      # attribute p-values
+      # relies on first column [, 1] being the p-value for now
+      # later, first columns become att and adjusted p-value
+      attr.pvals <- npdr.stats.attr.mat[, 1]
+      # order-index for sorted attribute-beta p-values
+      attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
+      # adjust p-values using Benjamini-Hochberg (default)
+      attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=padj.method)
+      # order by attribute p-value
+      npdr.stats.pval_ordered.mat <- npdr.stats.attr.mat[attr.pvals.order.idx, ]
+      # prepend adjused attribute p-values to first column
+      npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
+      # prepend attribute column (att)
+      att = colnames(attr.mat)
+      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att, stringsAsFactors=FALSE), 
+                                           data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
+      colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",
+                                                   "beta.0", "pval.0")
+      # dataframe final output for regular npdr
+      npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
+      
+      #npdr.stats.df <- npdr.stats.attr.mat %>%                                         # corrdata
+      #  mutate(att = att.names, # add an attribute column                              # corrdata
+      #         pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values   # corrdata
+      #  ) %>% arrange(pval.att) %>% # order by attribute p-value                       # corrdata
+      #  dplyr::select(att, pval.adj, everything()) %>% # reorder columns               # corrdata
+      #  as.data.frame() # convert tibbles to df -- can we remove this step?            # corrdata
+      
     }else{ # non-correlation matrix predictors
-      npdr.stats.df <- npdr.stats.attr.mat %>% 
-        mutate(att = colnames(attr.mat), # add an attribute column
-               pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
-        ) %>% arrange(pval.att) %>% # order by attribute p-value 
-        dplyr::select(att, pval.adj, everything()) %>% # reorder columns
-        as.data.frame() # convert tibbles to df -- can we remove this step?
-    }
+      
+      # npdr.stats.df <- as.data.frame(npdr.stats.attr.mat) %>% 
+      #   mutate(att = colnames(attr.mat), # add an attribute column
+      #          pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
+      #   ) %>% arrange(pval.att) %>% # order by attribute p-value 
+      #   dplyr::select(att, pval.adj, everything()) %>% # reorder columns
+      #   as.data.frame() # convert tibbles to df -- can we remove this step?
+      
+      #### Create Results Data Frame for NPDR
+      # attribute p-values
+      # relies on first column [, 1] being the p-value for now
+      # later, first columns become att and adjusted p-value
+      attr.pvals <- npdr.stats.attr.mat[, 1]
+      # order-index for sorted attribute-beta p-values
+      attr.pvals.order.idx <- order(attr.pvals, decreasing = F)
+      # adjust p-values using Benjamini-Hochberg (default)
+      attr.pvals.adj <- p.adjust(attr.pvals[attr.pvals.order.idx], method=padj.method)
+      # order by attribute p-value
+      npdr.stats.pval_ordered.mat <- npdr.stats.attr.mat[attr.pvals.order.idx, ]
+      # prepend adjused attribute p-values to first column
+      npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
+      # prepend attribute column (att)
+      att = colnames(attr.mat)
+      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att, stringsAsFactors=FALSE), 
+                                           data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
+      if (regression.type=="lm"){# stats colnames for lm
+        colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
+                                                   "beta.0", "pval.0", "R.sqr")
+      } else{ # stats columns for glm-binomial
+        colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",
+                                                   "beta.0", "pval.0")
+      }
+      # dataframe final output for regular npdr
+      npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
+    } # end-else non-correlation-based predictors
     
-  } else { # Here we add an option npdrNET use.glmnet = TRUE
+  } else { # use.glmnet = TRUE, Option npdrNET
     # Run glmnet on the diff attribute columns
     # Need to create a data matrix with each column as a vector of diffs for each attribute.
     # Need matrix because npdrNET operates on all attributes at once.
