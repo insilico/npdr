@@ -150,6 +150,86 @@ detectionStats <- function(functional, positives){
 }
 
 #=========================================================================#
+#' reliefDetected
+#'
+#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile 
+#'threshold, returns true positive rate.
+#'
+#' @param results.df dataframe of relief-sorted (high to low) attribute names from CORElearn 
+#' @param functional character vector of functional/true attribute names
+#' @param p percentile of top relief scores compared with the functional list 
+#' @return True positive rate: number of true postives divided by the number of functional 
+#' @examples
+#' functional.vars <- dataset$signal.names  
+#' relief <- CORElearn::attrEval(as.factor(class) ~ ., data = dats, 
+#'                               estimator = "ReliefFequalK",
+#'                               costMatrix = NULL,
+#'                               outputNumericSplits=FALSE,
+#'                               kNearestEqual = floor(knnSURF(nrow(dats),.5)/2)) # fn from npdr
+#' relief.order <- order(relief, decreasing = T)
+#' relief.df <- data.frame(att=names(relief)[relief.order], rrelief=relief[relief.order])
+#' reliefDetected(relief.df,functional.vars,p=.1)
+#' @export
+reliefDetected <- function(results.df,functional,top.pct){
+  top.num <- floor(top.pct * nrow(results.df))
+  top.vars <- results.df %>% top_n(top.num, rrelief) %>% pull(att) # rrelief column of results.df
+  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
+  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
+}
+
+#=========================================================================#
+#' rfDetected
+#'
+#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile 
+#'threshold, returns true positive rate.
+#'
+#' @param results.df dataframe of sorted (high to low) attribute names from randomForest 
+#' @param functional character vector of functional/true attribute names
+#' @param p percentile of top relief scores compared with the functional list 
+#' @return True positive rate: number of true postives divided by the number of functional 
+#' @examples
+#' functional.vars <- dataset$signal.names  
+#' ranfor.fit <- randomForest(as.factor(class) ~ ., data = dats) 
+#' rf.importance <- importance(ranfor.fit)  
+#' rf.sorted<-sort(rf.importance, decreasing=T, index.return=T)
+#' rf.df <-data.frame(att=rownames(rf.importance)[rf.sorted$ix],rf.scores=rf.sorted$x)
+#' rfDetected(rf.df,functional.vars,p=.1)
+#' @export
+rfDetected <- function(results.df,functional,top.pct){
+  top.num <- floor(top.pct * nrow(results.df))
+  top.vars <- results.df %>% top_n(top.num, rf.scores) %>% pull(att)  # rf.scores column for rf results
+  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
+  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
+}
+
+#=========================================================================#
+#' npdrDetected
+#'
+#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile 
+#'threshold, returns true positive rate.
+#'
+#' @param results.df dataframe of sorted (low to high P value) attribute names from NPDR 
+#' @param functional character vector of functional/true attribute names
+#' @param p percentile of top relief scores compared with the functional list 
+#' @return True positive rate: number of true postives divided by the number of functional 
+#' @examples
+#' functional.vars <- dataset$signal.names  
+#'  npdr.results1 <- npdr("class", dats, regression.type="binomial", 
+#'                         attr.diff.type="allele-sharing",   #nbd.method="relieff", 
+#'                        nbd.method="multisurf", 
+#'                        nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
+#'                        neighbor.sampling="none", separate.hitmiss.nbds=F,
+#'                        dopar.nn = T, dopar.reg=T, padj.method="bonferroni", verbose=T)
+#' npdrDetected(npdr.results1,functional.vars,p=.1)
+#' @export
+npdrDetected <- function(results.df,functional,top.pct){
+  top.num <- floor(top.pct * nrow(results.df))
+  top.vars <- results.df %>% top_n(-top.num, pval.att) %>% pull(att)  # pval.att is npdr specific
+  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
+  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
+}
+
+#=========================================================================#
 #' geneLowVarianceFilter
 #'
 #' Low variance mask and filtered data for gene expression matrix.

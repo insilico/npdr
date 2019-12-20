@@ -36,7 +36,7 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
   
   ## create output NPDR summary stats (stats.vec)
   if (nrow(coeffs)<2){
-    # for example, monomorphic SNP might result in attribute stats (row 2) not being created
+    # for example, a monomorphic SNP might result in attribute stats (row 2) not being created
     beta_a <- NA
     beta_zscore_a <- NA
     pval.att <- NA
