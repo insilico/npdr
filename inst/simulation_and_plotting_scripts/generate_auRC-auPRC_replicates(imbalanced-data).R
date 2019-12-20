@@ -8,17 +8,6 @@ library(reshape2)
 library(ggplot2)
 library(PRROC)
 
-npdrDetected <- function(results.df,functional,top.pct){
-  # results.df is the output of npdr
-  # functional are known functional var names
-  # top.pct is percentile of top npdr variables to compare with functional
-  # results order is low P value to high P value
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>% top_n(-top.num, pval.att) %>% pull(att)  # pval.att is npdr specific
-  power <- detectionStats(functional,top.vars)$TP  # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power),0,power)/length(functional) # if nan, return 0, normalize by num of functional
-}
-
 # sim.type (options)
 #
 # "mainEffect": simple main effects
