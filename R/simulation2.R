@@ -872,7 +872,7 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph object
       
-      eps <- 0.01
+      eps <- 0.1
       lb <- eps
       ub <- 2*avg.maf - eps
       f.a <- runif(num.variables,min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
@@ -1128,7 +1128,7 @@ createSimulation2 <- function(num.samples=100,
       
       A.mat <- network.atts$A.mat          # adjacency from graph object
       
-      eps <- 0.01
+      eps <- 0.1
       lb <- eps
       ub <- 2*avg.maf - eps
       f.a <- runif(num.variables,min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
@@ -1430,7 +1430,7 @@ createSimulation2 <- function(num.samples=100,
         
         A.mat <- network.atts$A.mat          # adjacency from graph object
         
-        eps <- 0.01
+        eps <- 0.1
         lb <- eps
         ub <- 2*avg.maf - eps
         f.a <- runif((num.variables-num.main),min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
@@ -1784,7 +1784,7 @@ createSimulation2 <- function(num.samples=100,
         
         A.mat <- network.atts$A.mat          # adjacency from graph object
         
-        eps <- 0.01
+        eps <- 0.1
         lb <- eps
         ub <- 2*avg.maf - eps
         f.a <- runif((num.variables-num.main),min=lb,max=ub) # minor allele frequencies (success probabilities for bernoulli trials)
