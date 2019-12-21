@@ -53,7 +53,7 @@ auPRC.vec.npdr.fixedk <- numeric()
 auPRC.vec.relief <- numeric()
 auPRC.vec.RF <- numeric()
 set.seed(1989)
-num.iter <- 30 # this will take several minutes
+num.iter <- 1 # this will take several minutes
 for(iter in 1:num.iter){
   cat("Iteration: ",iter,"\n")
   
@@ -88,7 +88,7 @@ for(iter in 1:num.iter){
                         nbd.method="multisurf", 
                         nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
                         neighbor.sampling="none", separate.hitmiss.nbds=F,
-                        dopar.nn = T, dopar.reg=T, padj.method="bonferroni", verbose=T)
+                        dopar.nn = T, dopar.reg=F, padj.method="bonferroni", verbose=T)
   df1 <- data.frame(att=npdr.results1$att,
                     beta=npdr.results1$beta.Z.att,
                     pval=npdr.results1$pval.adj)

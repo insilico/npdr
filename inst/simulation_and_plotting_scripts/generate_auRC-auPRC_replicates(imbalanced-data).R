@@ -3,10 +3,14 @@
 # generates data for plotting script: make_auRC-auPRC_boxplots(imbalanced-hitmiss-nbds).R
 
 library(npdr)
-
 library(reshape2)
 library(ggplot2)
 library(PRROC)
+
+save.files = F
+if (save.files){
+  cat("Results files for ",num.iter, " replicate simulation(s) will be saved in ", getwd(),".", sep="")
+}
 
 # sim.type (options)
 #
@@ -44,6 +48,7 @@ separate.hitmiss.nbds <- T # run with both T/F to generate all files for plots
 ###################################################################################################
 
 num.iter <- 1 # generate num.iter replicates for each level of imbalance (THIS WILL TAKE AWHILE!!!)
+#num.iter <- 30 # 30 might be too much
 imbalances <- c(0.1, 0.2, 0.3, 0.4, 0.5)
 for(iter in 1:length(imbalances)){
   cat("Class Imbalance: ",imbalances[iter],"\n")
@@ -135,7 +140,9 @@ for(iter in 1:length(imbalances)){
     
   }
   accu.df <- data.frame(auRC=accu.vec,auPRC=auPRC.vec)
-  #setwd("C:/Users/bdawk/Documents/KNN_project_output") will need to change to desired directory
+ 
+  
+if (save.files){  
   
   balanced.hit.miss <- strsplit(as.character(separate.hitmiss.nbds), split="")[[1]][1]
   file <- paste("separate-hitmiss-nbds-",balanced.hit.miss,"_",sim.type,"_",data.type,"_imbalance-",iter,".csv",sep="")
@@ -143,6 +150,7 @@ for(iter in 1:length(imbalances)){
   
   file <- paste("separate-hitmiss-nbds-",balanced.hit.miss,"_",sim.type,"_k-matrix_",data.type,"_imbalance-",iter,".csv",sep="")
   write.csv(chosen.k.mat,file,row.names=F)
+}
   
 }
 

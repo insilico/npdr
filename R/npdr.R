@@ -134,7 +134,7 @@ npdr <- function(outcome, dataset,
     attr.mat <- dataset %>% dplyr::select(- outcome) # outcome = "qtrait" or 101
   } else { # user specifies a separate phenotype vector
     pheno.vec <- outcome # assume users provides a separate outcome data vector
-    attr.mat <- dataset # assumes dataset only contains attributes/predictors
+    attr.mat <- as.matrix(dataset) # assumes dataset only contains attributes/predictors
   }
   rm(dataset)  # cleanup memory
   
@@ -318,6 +318,9 @@ npdr <- function(outcome, dataset,
           # colnames(design.matrix.df)[2+covar.col] <- covar.name # change variable name
         }
         # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
+        if (verbose){
+          cat("running non-parallel npdr.stats.list for attr ", attr.idx,".\n",sep="")
+        }
         npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
       } # end of for loop, regression done for each attribute
       
