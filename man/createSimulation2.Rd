@@ -46,7 +46,7 @@ mainEffect/mainEffect_Erdos-Renyi/mainEffect_Scalefree/interactionErdos/interact
 \item{mix.type}{character that determines the type of mixed effects simulation:
 main-interactionErdos/main-interactionScalefree}
 
-\item{pct.mixed}{fraction of functional variables with interaction effects}
+\item{pct.mixed}{percent of functional variables that are main effects (1 - pct_interaction). Use with sim.type="mixed" and specify mix.type.}
 
 \item{verbose}{logical indicating whether to display time required to generate simulation}
 

@@ -184,7 +184,7 @@ generate_structured_corrmat <- function(g=NULL,
 #' @param save.file logical but not currently being used
 #' @param mix.type character that determines the type of mixed effects simulation:
 #' main-interactionErdos/main-interactionScalefree
-#' @param pct.mixed fraction of functional variables with interaction effects
+#' @param pct.mixed percent of functional variables that are main effects (1 - pct_interaction). Use with sim.type="mixed" and specify mix.type.
 #' @param verbose logical indicating whether to display time required to generate simulation
 #' @param plot.graph logical indicating whether to plot networks
 #' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 

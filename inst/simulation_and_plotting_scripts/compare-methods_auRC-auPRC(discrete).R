@@ -36,12 +36,13 @@ if (save.files){
 num.samples <- 100
 num.variables <- 100
 main.bias <- 0.5      
-pct.mixed <- 0.5 
-pct.imbalance <- 0.5
+pct.mixed <- .5 
+pct.imbalance <- .5  # percent of effects that are main effects, must also use sim.type = "mixed" 
+mix.type <-  "main-interactionErdos"
 #pct.imbalance <- 0.25 # 75% case - 25% ctrl
 pct.signals <- 0.1 
 nbias <- round(pct.signals*num.variables)
-sim.type <- "interactionErdos"
+sim.type <- "interactionErdos"  # "mixed" for mixed main and interactions
 data.type <- "discrete"  # or "continuous" for standard normal data
 
 auRC.npdr.multisurf <- numeric()
@@ -69,7 +70,7 @@ for(iter in 1:num.iter){
                                mix.type=mix.type,
                                label="class",
                                sim.type=sim.type,
-                               pct.mixed=0.5,
+                               pct.mixed=pct.mixed,
                                pct.train=0.5,
                                pct.holdout=0.5,
                                pct.validation=0,
