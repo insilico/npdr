@@ -350,8 +350,8 @@ npdr <- function(outcome, dataset,
       # prepend adjused attribute p-values to first column
       npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
       # prepend attribute column (att)
-      att = colnames(attr.mat)
-      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att, stringsAsFactors=FALSE), 
+      #att = colnames(attr.mat)
+      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att.names, stringsAsFactors=FALSE), 
                                            data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
       colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",
                                                    "beta.0", "pval.0")

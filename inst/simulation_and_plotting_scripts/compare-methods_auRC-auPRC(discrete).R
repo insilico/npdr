@@ -9,6 +9,7 @@ library(PRROC)
 
 show.plots = T
 save.files = F
+run.pairs = F
 num.iter <- 1  # just run one simulation
 #num.iter <- 30 # 30 replicate simulations will take several minutes
 if (save.files){
@@ -82,6 +83,26 @@ for(iter in 1:num.iter){
                                data.type=data.type)
   dats <- rbind(dataset$train, dataset$holdout, dataset$validation)
   dats <- dats[order(dats[,ncol(dats)]),]
+  
+  if (run.pairs){  # skip this
+    # pairwise interaction p-values or beta's if you want from inbixGAIN.R
+    intPairs.mat <- getInteractionEffects("class", dats, 
+                                      regressionFamily = "binomial", 
+                                      numCovariates = 0,
+                                      writeBetas = FALSE, 
+                                      excludeMainEffects = FALSE, 
+                                      interactOutput = "Pvals", 
+                                      transformMethod = "", 
+                                      numCores = 1, 
+                                      verbose = T) 
+    colnames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
+    rownames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
+    row <- 1
+    for (var in rownames(intPairs.mat)){
+      cat(var,": ", intPairs.mat[row,intPairs.mat[row,]>0 & intPairs.mat[row,]<.001],"\n")
+      row <- row + 1
+    }
+  }
   
   # npdr - multisurf
   npdr.results1 <- npdr("class", dats, regression.type="binomial", 
