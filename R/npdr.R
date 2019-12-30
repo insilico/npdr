@@ -351,7 +351,7 @@ npdr <- function(outcome, dataset,
       npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
       # prepend attribute column (att)
       #att = colnames(attr.mat)
-      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att.names, stringsAsFactors=FALSE), 
+      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att.names[attr.pvals.order.idx], stringsAsFactors=FALSE),
                                            data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
       colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",
                                                    "beta.0", "pval.0")
