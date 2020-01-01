@@ -1,5 +1,5 @@
-# inbixGAIN.R - Bill White - 10/10/15
-# Brett McKinney
+# inbixGAIN.R - Brett McKinney - 1/1/2020
+# Bill White - 10/10/15
 #
 # Rinbix package genetic association network (GAIN) functions.
 
@@ -786,5 +786,3 @@ regainParallel <- function(labelledDataFrame,
   regainMatrix[is.na(regainMatrix)] <- 0
   regainMatrix
 }
-
-

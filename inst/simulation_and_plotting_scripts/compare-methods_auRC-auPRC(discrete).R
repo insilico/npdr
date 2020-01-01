@@ -9,7 +9,7 @@ library(PRROC)
 
 show.plots = T
 save.files = F
-run.pairs = F
+run.pairs = T  # probalby don't want to do this for num.iter > 1 iterations
 num.iter <- 1  # just run one simulation
 #num.iter <- 30 # 30 replicate simulations will take several minutes
 if (save.files){
@@ -84,24 +84,53 @@ for(iter in 1:num.iter){
   dats <- rbind(dataset$train, dataset$holdout, dataset$validation)
   dats <- dats[order(dats[,ncol(dats)]),]
   
-  if (run.pairs){  # skip this
+  if (run.pairs){  # only use this to explore one dataset
     # pairwise interaction p-values or beta's if you want from inbixGAIN.R
     intPairs.mat <- getInteractionEffects("class", dats, 
                                       regressionFamily = "binomial", 
                                       numCovariates = 0,
                                       writeBetas = FALSE, 
                                       excludeMainEffects = FALSE, 
-                                      interactOutput = "Pvals", 
+                                      interactOutput = "Pvals",   # "Pvals", Betas", "stdBetas"
                                       transformMethod = "", 
                                       numCores = 1, 
-                                      verbose = T) 
+                                      verbose = F) 
     colnames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
     rownames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
+    pval.threshold <- .005
+    rm.nodes <- numeric()
+    A <- intPairs.mat
     row <- 1
     for (var in rownames(intPairs.mat)){
-      cat(var,": ", intPairs.mat[row,intPairs.mat[row,]>0 & intPairs.mat[row,]<.001],"\n")
+      A[row,] <- 0  # make all A values 0 unless significant
+      signif.pairs.idx <- which(intPairs.mat[row,]>0 & intPairs.mat[row,]<pval.threshold)
+      if (any(signif.pairs.idx)){
+        cat(var,": ", colnames(intPairs.mat)[signif.pairs.idx],"\n")
+        cat(var,": ", intPairs.mat[row,signif.pairs.idx],"\n")
+        A[row,signif.pairs.idx] <- 1
+      } else{
+      # collect rows with no significant interactions for removal
+      rm.nodes <- c(rm.nodes,row)
+      }
       row <- row + 1
     }
+    
+    A <- A[-rm.nodes,-rm.nodes]  # remove nodes with no connections
+    
+    g <- igraph::graph.adjacency(A)
+    # shape
+    V(g)$shape <- "circle"
+    V(g)$shape[grep("intvar",names(V(g)))] <- "rectangle"  
+    # color
+    V(g)$color <- "gray"
+    V(g)$color[grep("intvar",names(V(g)))] <- "lightblue"  
+    
+    
+    #igraph::V(g)$size <- scaleAB(degrees, 10, 20)
+    #png(paste(filePrefix, "_ba_network.png", sep = ""), width = 1024, height = 768)
+    plot(g, layout = igraph::layout.fruchterman.reingold, edge.arrow.mode = 0) 
+         #vertex.size=(strwidth(V(g)$names) + strwidth("oo")) * 100,
+         #vertex.size2=strheight("I") * 100)
   }
   
   # npdr - multisurf
@@ -118,6 +147,7 @@ for(iter in 1:num.iter){
   
   functional.vars <- dataset$signal.names
   npdr.positives1 <- npdr.results1 %>% filter(pval.adj<.05) %>% pull(att)
+  npdr.positives1
   
   df1 <- na.omit(df1)
   idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars))
