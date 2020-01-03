@@ -7,9 +7,10 @@ library(reshape2)
 library(ggplot2)
 library(PRROC)
 
-show.plots = T
-save.files = F
-run.pairs = T  # probalby don't want to do this for num.iter > 1 iterations
+show.plots = T # probalby want F for num.iter > 1 iterations
+save.files = F # T for subsequent auPRC etc plots
+run.pairs = T  # compute all pairwise interaction stats and graph, 
+               # probalby want F for num.iter > 1 iterations
 num.iter <- 1  # just run one simulation
 #num.iter <- 30 # 30 replicate simulations will take several minutes
 if (save.files){
@@ -37,10 +38,9 @@ if (save.files){
 num.samples <- 100
 num.variables <- 100
 main.bias <- 0.5      
-pct.mixed <- .5 
-pct.imbalance <- .5  # percent of effects that are main effects, must also use sim.type = "mixed" 
+pct.mixed <- .5    # percent of effects that are main effects, must also use sim.type = "mixed"
+pct.imbalance <- .5  # 0.25 => 75% case - 25% ctrl
 mix.type <-  "main-interactionErdos"
-#pct.imbalance <- 0.25 # 75% case - 25% ctrl
 pct.signals <- 0.1 
 nbias <- round(pct.signals*num.variables)
 sim.type <- "interactionErdos"  # "mixed" for mixed main and interactions
@@ -86,27 +86,55 @@ for(iter in 1:num.iter){
   
   if (run.pairs){  # only use this to explore one dataset
     # pairwise interaction p-values or beta's if you want from inbixGAIN.R
+    output.type <- "Pvals"
     intPairs.mat <- getInteractionEffects("class", dats, 
                                       regressionFamily = "binomial", 
                                       numCovariates = 0,
                                       writeBetas = FALSE, 
                                       excludeMainEffects = FALSE, 
-                                      interactOutput = "Pvals",   # "Pvals", Betas", "stdBetas"
+                                      interactOutput = output.type,   # "Pvals", Betas", "stdBetas"
                                       transformMethod = "", 
                                       numCores = 1, 
                                       verbose = F) 
     colnames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
     rownames(intPairs.mat) <- colnames(dats)[1:(ncol(dats)-1)]
-    pval.threshold <- .005
+    
+    intPairs.Betas <- getInteractionEffects("class", dats, 
+                                          regressionFamily = "binomial", 
+                                          numCovariates = 0,
+                                          writeBetas = FALSE, 
+                                          excludeMainEffects = FALSE, 
+                                          interactOutput = "Betas",   # "Pvals", Betas", "stdBetas"
+                                          transformMethod = "", 
+                                          numCores = 1, 
+                                          verbose = F) 
+    colnames(intPairs.stdBetas) <- colnames(dats)[1:(ncol(dats)-1)]
+    rownames(intPairs.stdBetas) <- colnames(dats)[1:(ncol(dats)-1)]
+    
+    
+    want.to.adjust.p <- TRUE
+    if (output.type=="Pvals" & want.to.adjust.p){
+      # adjust p values
+      p.raw <- intPairs.mat[lower.tri(intPairs.mat, diag=FALSE)]
+      p.adj <- p.adjust(p.raw,method="fdr")
+      intPairs.mat[lower.tri(intPairs.mat, diag=FALSE)] <- p.adj
+      intPairs.mat <- intPairs.mat + t(intPairs.mat)
+    }
+    threshold <- .05
     rm.nodes <- numeric()
     A <- intPairs.mat
     row <- 1
     for (var in rownames(intPairs.mat)){
       A[row,] <- 0  # make all A values 0 unless significant
-      signif.pairs.idx <- which(intPairs.mat[row,]>0 & intPairs.mat[row,]<pval.threshold)
+      if (output.type=="Pvals"){
+        signif.pairs.idx <- which(intPairs.mat[row,]>0 & intPairs.mat[row,]<threshold)
+      } else{ # matrix of betas
+        signif.pairs.idx <- which(intPairs.mat[row,]>threshold)
+      }
       if (any(signif.pairs.idx)){
         cat(var,": ", colnames(intPairs.mat)[signif.pairs.idx],"\n")
-        cat(var,": ", intPairs.mat[row,signif.pairs.idx],"\n")
+        cat("pval.adj: ", intPairs.mat[row,signif.pairs.idx],"\n")
+        cat("beta: ", intPairs.Betas[row,signif.pairs.idx],"\n")
         A[row,signif.pairs.idx] <- 1
       } else{
       # collect rows with no significant interactions for removal
@@ -114,9 +142,9 @@ for(iter in 1:num.iter){
       }
       row <- row + 1
     }
-    
     A <- A[-rm.nodes,-rm.nodes]  # remove nodes with no connections
     
+    # plot graph
     g <- igraph::graph.adjacency(A)
     # shape
     V(g)$shape <- "circle"
@@ -124,7 +152,6 @@ for(iter in 1:num.iter){
     # color
     V(g)$color <- "gray"
     V(g)$color[grep("intvar",names(V(g)))] <- "lightblue"  
-    
     
     #igraph::V(g)$size <- scaleAB(degrees, 10, 20)
     #png(paste(filePrefix, "_ba_network.png", sep = ""), width = 1024, height = 768)
@@ -148,6 +175,7 @@ for(iter in 1:num.iter){
   functional.vars <- dataset$signal.names
   npdr.positives1 <- npdr.results1 %>% filter(pval.adj<.05) %>% pull(att)
   npdr.positives1
+  npdr.results1[1:10,]
   
   df1 <- na.omit(df1)
   idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars))
@@ -195,7 +223,7 @@ for(iter in 1:num.iter){
   rf.importance <- importance(ranfor.fit)  
   rf.sorted<-sort(rf.importance, decreasing=T, index.return=T)
   rf.df <-data.frame(att=rownames(rf.importance)[rf.sorted$ix],rf.scores=rf.sorted$x)
-  
+  rf.df[1:10,]
   idx.func <- which(c(as.character(rf.df$att) %in% functional.vars)==TRUE)
   func.scores.rf <- rf.df[idx.func,"rf.scores"]
   neg.scores.rf <- rf.df[-idx.func,"rf.scores"]
