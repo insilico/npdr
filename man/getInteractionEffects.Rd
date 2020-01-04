@@ -7,7 +7,7 @@
 getInteractionEffects(depVarName = "class", labelledDataFrame,
   regressionFamily = "binomial", numCovariates = 0,
   writeBetas = FALSE, excludeMainEffects = FALSE,
-  interactOutput = "Pvals", transformMethod = "", numCores = 2,
+  interactOutput = "stdBetas", transformMethod = "", numCores = 2,
   verbose = FALSE)
 }
 \arguments{

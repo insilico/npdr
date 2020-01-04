@@ -379,13 +379,14 @@ gainToSimpleSIF <- function(gainMatrix) {
 #' @param numCores \code{numeric} number of processor cores to use in mclapply
 #' @param verbose \code{logical} to send verbose messages to stdout.
 #' @return results \code{matrix} of variable by variable regression coefficients.
+#' @export
 getInteractionEffects <- function(depVarName="class",
                                   labelledDataFrame, 
                                   regressionFamily = "binomial", 
                                   numCovariates = 0,
                                   writeBetas = FALSE, 
                                   excludeMainEffects = FALSE, 
-                                  interactOutput = "Pvals", 
+                                  interactOutput = "stdBetas", 
                                   transformMethod = "", 
                                   numCores = 2, 
                                   verbose = FALSE) {
