@@ -701,7 +701,7 @@ getMainEffects <- function(labelledDataFrame,
 #' data(testdata10)
 #' rinbixRegain <- regain(testdata10, stdBetas = TRUE, absBetas = TRUE)
 #' @export
-regain <- function(labelledDataFrame, 
+regain <- function(depVarName, labelledDataFrame, 
                    stdBetas = FALSE, 
                    absBetas = FALSE, 
                    numCores = 2, 
@@ -713,12 +713,13 @@ regain <- function(labelledDataFrame,
   # run C++ version if grater than 5000 variables
   if (numVars <= 5000) {
     if (verbose) cat("[", numVars, "] Running parallel R reGAIN\n")
-    regainMatrix <- regainParallel(labelledDataFrame, 
+    regainMatrix <- regainParallel(depVarName, labelledDataFrame, 
                                    stdBetas = stdBetas, 
                                    absBetas = absBetas,
                                    numCores = numCores, 
                                    verbose = verbose,
                                    writeBetas = writeBetas,
+                                   interactOutput = "Betas",
                                    regressionFamily = regressionFamily)
   } else {
     cat("WARNING: More than 5000 variables, attempting to run reGAIN in C++\n")
@@ -745,6 +746,7 @@ regain <- function(labelledDataFrame,
 #' @keywords models array regression
 #' @family GAIN functions
 #' @family inbix synonym functions
+#' @param depVarName \code{string} name of class column (e.g., "class")
 #' @param labelledDataFrame \code{data.frame} with variable in columns and samples in rows;
 #' the last column should be labeled 'Class' and be 0 or 1 values.
 #' @param stdBetas \code{logical} to use standardized beta coefficients.
@@ -753,17 +755,19 @@ regain <- function(labelledDataFrame,
 #' @param verbose \code{logical} to send verbose messages to stdout.
 #' @param writeBetas \code{logical} indicating whether to write beta values to separate file.
 #' @param regressionFamily \code{string} glm regression family name.
+#' @param interactOutput \code{string} output in return matrix, "indicating betas "Betas", "stdBetas", "Pvals".
 #' @return regainMatrix \code{matrix} of variable by variable regression coefficients.
 #' @examples
 #' data(testdata10)
 #' rinbixRegain <- regainParallel(testdata10, stdBetas = TRUE, absBetas = TRUE)
 #' @export
-regainParallel <- function(labelledDataFrame, 
+regainParallel <- function(depVarName="class", labelledDataFrame, 
                            stdBetas = FALSE, 
                            absBetas = FALSE, 
                            numCores = 2, 
                            verbose = FALSE, 
                            writeBetas = FALSE,
+                           interactOutput = "Betas",
                            regressionFamily = "binomial") {
   transform <- ifelse(absBetas, "abs", "")
   rawBetas <- ifelse(stdBetas, FALSE, TRUE)
@@ -772,15 +776,18 @@ regainParallel <- function(labelledDataFrame,
                                 transformMethod = transform,
                                 numCores = numCores,
                                 verbose = verbose, 
-                                writeBetas = writeBetas,
+                                writeBetas = FALSE,
                                 regressionFamily = regressionFamily)
-  regainMatrix <- getInteractionEffects(labelledDataFrame, 
-                                        useBetas = rawBetas,
-                                        transformMethod = transform,
-                                        numCores = numCores,
-                                        verbose = verbose, 
-                                        writeBetas = writeBetas,
-                                        regressionFamily = regressionFamily)
+  regainMatrix <- getInteractionEffects(depVarName="class",
+                                    labelledDataFrame,   # mod input
+                                    regressionFamily = regressionFamily, 
+                                    writeBetas = FALSE, 
+                                    excludeMainEffects = FALSE, 
+                                    interactOutput = "stdBetas",    # add input
+                                    transformMethod = transform, 
+                                    numCores = numCores, 
+                                    verbose = FALSE) 
+  
   diag(regainMatrix) <- mainEffects
   colnames(regainMatrix) <- colnames(labelledDataFrame)[1:(ncol(labelledDataFrame) - 1)]
   # replace NAs with zero

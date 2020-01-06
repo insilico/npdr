@@ -65,7 +65,7 @@ for(iter in 1:num.iter){
                                pct.imbalance=pct.imbalance,
                                pct.signals=pct.signals,
                                main.bias=main.bias,
-                               interaction.bias=1,
+                               interaction.bias=1,   # 1/0 is max/min effect size
                                hi.cor=0.8,
                                lo.cor=0.1,
                                mix.type=mix.type,

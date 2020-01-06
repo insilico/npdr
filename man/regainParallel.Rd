@@ -4,11 +4,14 @@
 \alias{regainParallel}
 \title{Parallel execution of the regression genetic association interaction network (reGAIN) algorithm.}
 \usage{
-regainParallel(labelledDataFrame, stdBetas = FALSE, absBetas = FALSE,
-  numCores = 2, verbose = FALSE, writeBetas = FALSE,
+regainParallel(depVarName = "class", labelledDataFrame,
+  stdBetas = FALSE, absBetas = FALSE, numCores = 2,
+  verbose = FALSE, writeBetas = FALSE, interactOutput = "Betas",
   regressionFamily = "binomial")
 }
 \arguments{
+\item{depVarName}{\code{string} name of class column (e.g., "class")}
+
 \item{labelledDataFrame}{\code{data.frame} with variable in columns and samples in rows;
 the last column should be labeled 'Class' and be 0 or 1 values.}
 
@@ -21,6 +24,8 @@ the last column should be labeled 'Class' and be 0 or 1 values.}
 \item{verbose}{\code{logical} to send verbose messages to stdout.}
 
 \item{writeBetas}{\code{logical} indicating whether to write beta values to separate file.}
+
+\item{interactOutput}{\code{string} output in return matrix, "indicating betas "Betas", "stdBetas", "Pvals".}
 
 \item{regressionFamily}{\code{string} glm regression family name.}
 }

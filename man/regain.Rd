@@ -4,9 +4,9 @@
 \alias{regain}
 \title{Front end to the reGAIN algorithm.}
 \usage{
-regain(labelledDataFrame, stdBetas = FALSE, absBetas = FALSE,
-  numCores = 2, verbose = FALSE, writeBetas = FALSE,
-  regressionFamily = "binomial")
+regain(depVarName, labelledDataFrame, stdBetas = FALSE,
+  absBetas = FALSE, numCores = 2, verbose = FALSE,
+  writeBetas = FALSE, regressionFamily = "binomial")
 }
 \arguments{
 \item{labelledDataFrame}{\code{data.frame} with variables in columns and samples in rows;

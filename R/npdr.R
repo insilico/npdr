@@ -389,7 +389,7 @@ npdr <- function(outcome, dataset,
       npdr.stats.pval_ordered.mat <- cbind(attr.pvals.adj, npdr.stats.pval_ordered.mat)
       # prepend attribute column (att)
       att = colnames(attr.mat)
-      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att, stringsAsFactors=FALSE), 
+      npdr.stats.pval_ordered.mat <- cbind(data.frame(att=att[attr.pvals.order.idx], stringsAsFactors=FALSE), 
                                            data.frame(npdr.stats.pval_ordered.mat, row.names=NULL))
       if (regression.type=="lm"){# stats colnames for lm
         colnames(npdr.stats.pval_ordered.mat) <- c("att", "pval.adj", "pval.att", "beta.raw.att", "beta.Z.att",  
