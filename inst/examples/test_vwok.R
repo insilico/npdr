@@ -2,7 +2,6 @@
 #install_github(insilico\npdr)
 library(npdr)
 
-
 ####################################################################################
 # mixed simulation parameters
 ####################################################################################
@@ -70,7 +69,7 @@ signal.names <- c(int.vars,main.vars)
 out <- vwok(dats=dats,
             #k.grid=seq(1,(m-1),by=1), # default
             verbose=F,
-            #signal.names=signal.names,
+            signal.names=signal.names,
             label="class")
 
 idx.func <- which((as.character(out$vwok.out[,"att"]) %in% signal.names)==T)
@@ -94,7 +93,7 @@ vwok.k.func <- round(mean(out$vwok.out[idx,"best.ks"])) # avg of func atts
 # predicted multisurf k
 predk.vec <- knnSURF(m,sd.frac=0.5)
 
-# global k
+# global k -- best k for auPRC if you know the functional attributes
 globk.vec <- as.numeric(as.character(out$best.auPRC.k[,"k"]))
 
 # top 10 features
@@ -106,9 +105,9 @@ out$best.auPRC.k[,"auPRC"]
 # auPRC for vwok (optimizes attr scores only)
 auPRC.vwok
 
-# global k
+# global k -- best k for auPRC if you know the functional attributes
 globk.vec
 # avg vwok k (all)
-vwok.k.vec
-# avg vwok k (func)
-vwok.k.func
+vwok.k.all
+# avg vwok k (func) -- average of k's that give hightest beta for each attribute
+vwok.k.func 
