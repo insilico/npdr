@@ -4,8 +4,11 @@
 \alias{diffRegression}
 \title{diffRegression}
 \usage{
-diffRegression(design.matrix.df, regression.type = "binomial",
-  fast.reg = FALSE)
+diffRegression(
+  design.matrix.df,
+  regression.type = "binomial",
+  fast.reg = FALSE
+)
 }
 \arguments{
 \item{design.matrix.df}{Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.}

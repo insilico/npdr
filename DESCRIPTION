@@ -14,4 +14,4 @@ Suggests: knitr,
 Imports: tidyverse
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 7.1.0

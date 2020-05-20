@@ -4,10 +4,16 @@
 \alias{vwok}
 \title{vwok}
 \usage{
-vwok(dats = NULL, k.grid = NULL, verbose = F,
-  attr.diff.type = "numeric-abs", corr.attr.names = NULL,
-  signal.names = NULL, separate.hitmiss.nbds = FALSE,
-  label = "class")
+vwok(
+  dats = NULL,
+  k.grid = NULL,
+  verbose = F,
+  attr.diff.type = "numeric-abs",
+  corr.attr.names = NULL,
+  signal.names = NULL,
+  separate.hitmiss.nbds = FALSE,
+  label = "class"
+)
 }
 \arguments{
 \item{dats}{m x (p+1) data set of m instances and p attributes with 1 binary outcome or m x [p(p - 1) + 1] with p(p-1) correlations and 1 outcome. Outcome is last column for standard m x (p + 1) and first column for m x [p(p - 1) + 1] (no good reason for the difference).}

@@ -26,13 +26,15 @@ rinbixDmgain <- dmgain(testdata10)
 }
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \concept{inbix synonym functions

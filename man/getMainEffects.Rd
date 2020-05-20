@@ -4,9 +4,16 @@
 \alias{getMainEffects}
 \title{Get main effects from generalized linear model regression (parallel).}
 \usage{
-getMainEffects(labelledDataFrame, regressionFamily = "binomial",
-  numCovariates = 0, writeBetas = FALSE, useBetas = FALSE,
-  transformMethod = "", numCores = 2, verbose = FALSE)
+getMainEffects(
+  labelledDataFrame,
+  regressionFamily = "binomial",
+  numCovariates = 0,
+  writeBetas = FALSE,
+  useBetas = FALSE,
+  transformMethod = "",
+  numCores = 2,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{labelledDataFrame}{\code{data.frame} with variables in columns and samples in rows.}
@@ -34,15 +41,20 @@ mainEffectValues \code{vector} of main effect values.
 \seealso{
 \code{\link{rankUnivariateRegression}}
 
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 
-Other inbix synonym functions: \code{\link{dcgain}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other inbix synonym functions: 
+\code{\link{dcgain}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \concept{inbix synonym functions}

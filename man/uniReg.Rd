@@ -4,11 +4,16 @@
 \alias{uniReg}
 \title{uniReg}
 \usage{
-uniReg(outcome, dataset, regression.type = "lm", padj.method = "fdr",
-  covars = "none")
+uniReg(
+  outcome,
+  dataset,
+  regression.type = "lm",
+  padj.method = "fdr",
+  covars = "none"
+)
 }
 \arguments{
-\item{outcome}{string with name of class column.}
+\item{outcome}{string with name of class column or outcome vector.}
 
 \item{dataset}{data matrix with predictor columns and outcome column.}
 

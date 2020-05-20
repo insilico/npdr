@@ -4,8 +4,14 @@
 \alias{fitInteractionModel}
 \title{Get the interaction effect of a pair of variables using generalized linear regression.}
 \usage{
-fitInteractionModel(labelledDataFrame, variableIndices, depVarName,
-  regressionFamily, numCovariates, excludeMainEffects)
+fitInteractionModel(
+  labelledDataFrame,
+  variableIndices,
+  depVarName,
+  regressionFamily,
+  numCovariates,
+  excludeMainEffects
+)
 }
 \arguments{
 \item{labelledDataFrame}{\code{labelledDataFrame.frame} with variables in columns and samples in rows.}
@@ -28,12 +34,15 @@ p-value, standard error and standardized beta columns.
 \code{fitInteractionModel}
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \keyword{array}

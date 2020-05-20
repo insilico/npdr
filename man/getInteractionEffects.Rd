@@ -4,11 +4,18 @@
 \alias{getInteractionEffects}
 \title{Get interaction effects from generalized linear model regression.}
 \usage{
-getInteractionEffects(depVarName = "class", labelledDataFrame,
-  regressionFamily = "binomial", numCovariates = 0,
-  writeBetas = FALSE, excludeMainEffects = FALSE,
-  interactOutput = "stdBetas", transformMethod = "", numCores = 2,
-  verbose = FALSE)
+getInteractionEffects(
+  depVarName = "class",
+  labelledDataFrame,
+  regressionFamily = "binomial",
+  numCovariates = 0,
+  writeBetas = FALSE,
+  excludeMainEffects = FALSE,
+  interactOutput = "stdBetas",
+  transformMethod = "",
+  numCores = 2,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{depVarName}{\code{string} name of class column (e.g., "class")}
@@ -38,12 +45,15 @@ results \code{matrix} of variable by variable regression coefficients.
 \code{getInteractionEffects}
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \keyword{array}

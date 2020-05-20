@@ -4,10 +4,18 @@
 \alias{nearestNeighbors}
 \title{nearestNeighbors}
 \usage{
-nearestNeighbors(attr.mat, nb.method = "multisurf",
-  nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5, k = 0,
-  neighbor.sampling = "none", att_to_remove = c(), fast.dist = FALSE,
-  dopar.nn = FALSE)
+nearestNeighbors(
+  attr.mat,
+  nb.method = "multisurf",
+  nb.metric = "manhattan",
+  sd.vec = NULL,
+  sd.frac = 0.5,
+  k = 0,
+  neighbor.sampling = "none",
+  att_to_remove = c(),
+  fast.dist = FALSE,
+  dopar.nn = FALSE
+)
 }
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}

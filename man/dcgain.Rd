@@ -38,16 +38,20 @@ rinbixDcgain <- dcgain(testdata10)
 \code{\link{dmgain}} for differential modularity. 
 \code{\link{dcgainInbix}} for inbix differential coexpression GAIN.
 
-Other GAIN functions: \code{\link{dmgain}},
-  \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 
-Other inbix synonym functions: \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other inbix synonym functions: 
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \concept{Genetic Association Interaction Network functions}

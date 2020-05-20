@@ -4,14 +4,31 @@
 \alias{createSimulation2}
 \title{createSimulation2}
 \usage{
-createSimulation2(num.samples = 100, num.variables = 100,
-  pct.imbalance = 0.5, pct.signals = 0.1, main.bias = 0.4,
-  interaction.bias = 0.4, hi.cor = 0.8, lo.cor = 0.2,
-  label = "class", sim.type = "mainEffect", pct.train = 0.5,
-  pct.holdout = 0.5, pct.validation = 0, save.file = NULL,
-  mix.type = NULL, pct.mixed = 0.5, verbose = FALSE,
-  plot.graph = F, use.Rcpp = F, prob.connected = NULL,
-  out.degree = NULL, data.type = "continuous", avg.maf = 0.2)
+createSimulation2(
+  num.samples = 100,
+  num.variables = 100,
+  pct.imbalance = 0.5,
+  pct.signals = 0.1,
+  main.bias = 0.4,
+  interaction.bias = 0.4,
+  hi.cor = 0.8,
+  lo.cor = 0.2,
+  label = "class",
+  sim.type = "mainEffect",
+  pct.train = 0.5,
+  pct.holdout = 0.5,
+  pct.validation = 0,
+  save.file = NULL,
+  mix.type = NULL,
+  pct.mixed = 0.5,
+  verbose = FALSE,
+  plot.graph = F,
+  use.Rcpp = F,
+  prob.connected = NULL,
+  out.degree = NULL,
+  data.type = "continuous",
+  avg.maf = 0.2
+)
 }
 \arguments{
 \item{num.samples}{number of samples}

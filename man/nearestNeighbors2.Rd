@@ -4,9 +4,16 @@
 \alias{nearestNeighbors2}
 \title{nearestNeighbors2}
 \usage{
-nearestNeighbors2(attr.mat1, attr.mat2, nb.method = "multisurf",
-  nb.metric = "manhattan", sd.vec = NULL, sd.frac = 0.5,
-  dopar.nn = FALSE, k = 0)
+nearestNeighbors2(
+  attr.mat1,
+  attr.mat2,
+  nb.method = "multisurf",
+  nb.metric = "manhattan",
+  sd.vec = NULL,
+  sd.frac = 0.5,
+  dopar.nn = FALSE,
+  k = 0
+)
 }
 \arguments{
 \item{attr.mat1}{m1 x p matrix of m instances and p attributes (training data)}

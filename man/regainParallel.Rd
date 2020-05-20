@@ -4,10 +4,17 @@
 \alias{regainParallel}
 \title{Parallel execution of the regression genetic association interaction network (reGAIN) algorithm.}
 \usage{
-regainParallel(depVarName = "class", labelledDataFrame,
-  stdBetas = FALSE, absBetas = FALSE, numCores = 2,
-  verbose = FALSE, writeBetas = FALSE, interactOutput = "Betas",
-  regressionFamily = "binomial")
+regainParallel(
+  depVarName = "class",
+  labelledDataFrame,
+  stdBetas = FALSE,
+  absBetas = FALSE,
+  numCores = 2,
+  verbose = FALSE,
+  writeBetas = FALSE,
+  interactOutput = "Betas",
+  regressionFamily = "binomial"
+)
 }
 \arguments{
 \item{depVarName}{\code{string} name of class column (e.g., "class")}
@@ -47,15 +54,20 @@ rinbixRegain <- regainParallel(testdata10, stdBetas = TRUE, absBetas = TRUE)
 }
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regain}()}
 
-Other inbix synonym functions: \code{\link{dcgain}},
-  \code{\link{getMainEffects}}, \code{\link{regain}}
+Other inbix synonym functions: 
+\code{\link{dcgain}()},
+\code{\link{getMainEffects}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \concept{inbix synonym functions}

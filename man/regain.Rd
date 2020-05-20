@@ -4,9 +4,16 @@
 \alias{regain}
 \title{Front end to the reGAIN algorithm.}
 \usage{
-regain(depVarName, labelledDataFrame, stdBetas = FALSE,
-  absBetas = FALSE, numCores = 2, verbose = FALSE,
-  writeBetas = FALSE, regressionFamily = "binomial")
+regain(
+  depVarName,
+  labelledDataFrame,
+  stdBetas = FALSE,
+  absBetas = FALSE,
+  numCores = 2,
+  verbose = FALSE,
+  writeBetas = FALSE,
+  regressionFamily = "binomial"
+)
 }
 \arguments{
 \item{labelledDataFrame}{\code{data.frame} with variables in columns and samples in rows;
@@ -45,17 +52,20 @@ rinbixRegain <- regain(testdata10, stdBetas = TRUE, absBetas = TRUE)
 }
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitInteractionModel}},
-  \code{\link{fitMainEffectModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{fitMainEffectModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()}
 
-Other inbix synonym functions: \code{\link{dcgain}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}
+Other inbix synonym functions: 
+\code{\link{dcgain}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()}
 }
 \concept{GAIN functions}
 \concept{inbix synonym functions}

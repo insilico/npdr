@@ -4,8 +4,13 @@
 \alias{fitMainEffectModel}
 \title{Get the main effect of a variable using generalized linear regression .}
 \usage{
-fitMainEffectModel(labelledDataFrame, variableName, depVarName,
-  regressionFamily, numCovariates)
+fitMainEffectModel(
+  labelledDataFrame,
+  variableName,
+  depVarName,
+  regressionFamily,
+  numCovariates
+)
 }
 \arguments{
 \item{labelledDataFrame}{\code{data.frame} with variables in columns and samples in rows.}
@@ -26,12 +31,15 @@ p-value, standard error and standardized beta columns.
 \code{fitMainEffectModel}
 }
 \seealso{
-Other GAIN functions: \code{\link{dcgain}},
-  \code{\link{dmgain}}, \code{\link{fitInteractionModel}},
-  \code{\link{gainToSimpleSIF}},
-  \code{\link{getInteractionEffects}},
-  \code{\link{getMainEffects}},
-  \code{\link{regainParallel}}, \code{\link{regain}}
+Other GAIN functions: 
+\code{\link{dcgain}()},
+\code{\link{dmgain}()},
+\code{\link{fitInteractionModel}()},
+\code{\link{gainToSimpleSIF}()},
+\code{\link{getInteractionEffects}()},
+\code{\link{getMainEffects}()},
+\code{\link{regainParallel}()},
+\code{\link{regain}()}
 }
 \concept{GAIN functions}
 \keyword{array}

@@ -4,15 +4,31 @@
 \alias{npdr}
 \title{npdr}
 \usage{
-npdr(outcome, dataset, regression.type = "binomial",
-  attr.diff.type = "numeric-abs", nbd.method = "multisurf",
-  nbd.metric = "manhattan", knn = 0, msurf.sd.frac = 0.5,
-  covars = "none", covar.diff.type = "match-mismatch",
-  padj.method = "bonferroni", verbose = FALSE, use.glmnet = FALSE,
-  glmnet.alpha = 1, glmnet.lower = 0, rm.attr.from.dist = c(),
-  neighbor.sampling = "none", separate.hitmiss.nbds = FALSE,
-  corr.attr.names = NULL, fast.reg = FALSE, fast.dist = FALSE,
-  dopar.nn = FALSE, dopar.reg = FALSE)
+npdr(
+  outcome,
+  dataset,
+  regression.type = "binomial",
+  attr.diff.type = "numeric-abs",
+  nbd.method = "multisurf",
+  nbd.metric = "manhattan",
+  knn = 0,
+  msurf.sd.frac = 0.5,
+  covars = "none",
+  covar.diff.type = "match-mismatch",
+  padj.method = "bonferroni",
+  verbose = FALSE,
+  use.glmnet = FALSE,
+  glmnet.alpha = 1,
+  glmnet.lower = 0,
+  rm.attr.from.dist = c(),
+  neighbor.sampling = "none",
+  separate.hitmiss.nbds = FALSE,
+  corr.attr.names = NULL,
+  fast.reg = FALSE,
+  fast.dist = FALSE,
+  dopar.nn = FALSE,
+  dopar.reg = FALSE
+)
 }
 \arguments{
 \item{outcome}{character name or length-m numeric outcome vector for linear regression, factor for logistic regression}

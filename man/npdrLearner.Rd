@@ -4,9 +4,17 @@
 \alias{npdrLearner}
 \title{npdrLearner}
 \usage{
-npdrLearner(train.outcome, train.data, test.outcome, test.data,
-  nbd.method = "relieff", nbd.metric = "manhattan",
-  msurf.sd.frac = 0.5, dopar.nn = FALSE, knn = 0)
+npdrLearner(
+  train.outcome,
+  train.data,
+  test.outcome,
+  test.data,
+  nbd.method = "relieff",
+  nbd.metric = "manhattan",
+  msurf.sd.frac = 0.5,
+  dopar.nn = FALSE,
+  knn = 0
+)
 }
 \arguments{
 \item{train.outcome}{character name or length-m numeric outcome vector train data}

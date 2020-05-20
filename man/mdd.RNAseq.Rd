@@ -4,7 +4,9 @@
 \name{mdd.RNAseq}
 \alias{mdd.RNAseq}
 \title{RNA-Seq from the paper referenced below.}
-\format{Data frame with 157 mdd and hc subjects, 5912 genes.}
+\format{
+Data frame with 157 mdd and hc subjects, 5912 genes.
+}
 \usage{
 data(mdd.RNAseq)
 }
