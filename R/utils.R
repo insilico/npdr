@@ -45,7 +45,7 @@ knnSURF <- function(m.samples,sd.frac=.5){
 #'
 #' Univariate logistic or linear regression for a dataset.
 #'
-#' @param outcome string with name of class column.
+#' @param outcome string with name of class column or outcome vector.
 #' @param dataset data matrix with predictor columns and outcome column.
 #' @param regression.type "lm" or "binomial"
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...) 
@@ -77,9 +77,19 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
     } else { # covar=="none"
       model.func <- function(x) {
         # if nrow(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff) < 2 then there was an issue with the attribute
-        as.numeric(summary(lm(pheno.vec ~ attr.mat[,x]))$coeff[2,])}  
+        fit <- summary(lm(pheno.vec ~ attr.mat[,x]))
+        coeffs <- fit$coeff
+        ## create summary stats
+        if (nrow(coeffs)<2){
+          # for example, a monomorphic SNP might result in attribute stats (row 2) not being created
+          message("Regression failure. Continuing to next variable.\n")
+          return(rep(NA,4))
+          } else{
+          return(as.numeric(coeffs[2,])) 
+          }
+        } # end this model.func 
     } 
-    } else { # "binomial"
+    } else { # "binomial" model
     if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
       model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,]}
@@ -95,7 +105,8 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
     num.attr <- ncol(attr.mat) # num.attr <- 1
   }
   beta_pvals <- t(sapply(1:num.attr, model.func)) # stats for all predictors
-  univariate.padj <- p.adjust(beta_pvals[,4], method=padj.method) # fdr
+  pvals_coerce <- as.numeric(unlist(beta_pvals[,4])) # p.adjust - no dataframe input
+  univariate.padj <- p.adjust(pvals_coerce, method=padj.method) # fdr
   univariate.padj <- as.numeric(format(univariate.padj, scientific = T, digits=5))
   betas <- as.numeric(format(beta_pvals[,1], scientific = F, digits=5))
   betas.Z.att <- as.numeric(format(beta_pvals[,3], scientific = F, digits=5))

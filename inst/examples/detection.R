@@ -1,4 +1,6 @@
 # devtools::install_github("insilico/npdr") # npdr install
+#library(devtools)
+#install_github("insilico/privateEC")
 library(npdr)
 library(ggplot2)
 library(reshape2)
@@ -114,3 +116,4 @@ ggplot(melt.df, aes(x=pcts, y=value, group=variable)) +
 # auDC: area under the detection curve
 sum(npdr.detected)/length(npdr.detected)       # .83
 sum(relief.detected)/length(relief.detected)   # .72
+
