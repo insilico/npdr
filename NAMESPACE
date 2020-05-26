@@ -3,6 +3,7 @@
 export(checkPackages)
 export(createMainEffects)
 export(createSimulation2)
+export(createfMRIsimulation)
 export(dcgain)
 export(detectionStats)
 export(diffRegression)

@@ -2,7 +2,8 @@
 % Please edit documentation in R/simulation2.R
 \name{createSimulation2}
 \alias{createSimulation2}
-\title{createSimulation2}
+\title{createSimulation2
+update to createSimulation2() that allows for rs-fMRI data generation.}
 \usage{
 createSimulation2(
   num.samples = 100,
@@ -27,7 +28,8 @@ createSimulation2(
   prob.connected = NULL,
   out.degree = NULL,
   data.type = "continuous",
-  avg.maf = 0.2
+  avg.maf = 0.2,
+  graph.structure = NULL
 )
 }
 \arguments{
@@ -78,6 +80,8 @@ main-interactionErdos/main-interactionScalefree}
 \item{data.type}{character indicating if data is from a "continuous" or "discrete" distribution}
 
 \item{avg.maf}{numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations}
+
+\item{graph.structure}{(igraph) graph structure generated from igraph, NULL default}
 }
 \value{
 A list with:
@@ -94,7 +98,20 @@ A list with:
 }
 }
 \description{
-createSimulation2
+Changes: only an additional input with conditional if/else statements
+         wherever an igraph object is generated. Will allow for
+         user-supplied graph object as well, this functionality requires
+         an igraph object specifically for now.
+}
+\details{
+New Parameter: 
+
+   graph.structure - (igraph) graph structure generated from igraph. If NULL,
+                     then createSimulation2() typically generates one on its own.
+                     However, this will be handled by createfMRIsimulation() and
+                     the user will not be using createSimulation2() directly. This
+                     input is used to circumvent automatic simulation of graphs
+                     by the previous iteration of createSimulation2().
 }
 \examples{
 

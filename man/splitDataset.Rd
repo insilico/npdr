@@ -11,14 +11,6 @@ splitDataset(
   pct.validation = 0,
   label = "class"
 )
-
-splitDataset(
-  all.data = NULL,
-  pct.train = 0.5,
-  pct.holdout = 0.5,
-  pct.validation = 0,
-  label = "class"
-)
 }
 \arguments{
 \item{all.data}{A data frame of n rows by d colums of data plus a label column}
@@ -39,13 +31,6 @@ A list containing:
   \item{holdout}{holdout data set}
   \item{validation}{validation data set}
 }
-
-A list containing:
-\describe{
-  \item{train}{traing data set}
-  \item{holdout}{holdout data set}
-  \item{validation}{validation data set}
-}
 }
 \description{
 Return data.sets as a list of training set, holdout set and validation set
@@ -53,23 +38,12 @@ according to the predefined percentage of each partition
 default is a 50-50 split into training and holdout, no testing set
 code class/label/phenotypes as 1 and -1.
 User can manage the simulation data to be dichotomious/quantitative using label (class/qtrait)
-
-Return data.sets as a list of training set, holdout set and validation set
-according to the predefined percentage of each partition
-default is a 50-50 split into training and holdout, no testing set
-code class/label/phenotypes as 1 and -1.
-User can manage the simulation data to be dichotomious/quantitative using label (class/qtrait)
 }
 \examples{
-data("rsfMRIcorrMDD")
-data.sets <- splitDataset(rsfMRIcorrMDD)
 data("rsfMRIcorrMDD") # from privateEC
 data.sets <- splitDataset(rsfMRIcorrMDD)
 }
 \seealso{
-Other simulation: 
-\code{\link{createMainEffects}()}
-
 Other simulation: 
 \code{\link{createMainEffects}()}
 }

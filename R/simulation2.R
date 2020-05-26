@@ -1,8 +1,30 @@
+# Functions in simulation2.R file in order:
+# not exported: r_to_z_fn, stretch_mat
+# exported: generate_structured_corrmat, splitDataset, createMainEffects
+#           createSimulation2, createfMRIsimulation
+#
+#
 #Rcpp::sourceCpp('R/arma_getEigenValues.cpp')
 #Rcpp::cppFunction(depends="RcppArmadillo",
 #                    'arma::vec getEigenValues(arma::mat M) {
 #                    return arma::eig_sym(M);
 #}')
+
+# fisher r-to-z
+r_to_z_fn <- function(x){
+  r.z <- 0.5*log((1 + x)/(1 - x))
+  r.z
+}
+
+# vectorize subject correlation matrix and preserve order
+stretch_mat <- function(M){
+  
+  mat <- numeric()
+  for(k in 1:nrow(M)){
+    mat <- c(mat,M[k,-k])
+  }
+  return(mat)
+}
 
 #=========================================================================================#
 #' generate_structured_corrmat
@@ -163,110 +185,10 @@ generate_structured_corrmat <- function(g=NULL,
   # return correlation matrix, degree vector, adjacency matrix, and functional variables
   list(corrmat = R, deg.vec = kvec, A.mat = Adj, sig.vars = diff.cor.vars)
 }
+######################################################
 
-#' Split a data set for machine learning classification
-#'
-#' Return data.sets as a list of training set, holdout set and validation set
-#' according to the predefined percentage of each partition
-#' default is a 50-50 split into training and holdout, no testing set
-#' code class/label/phenotypes as 1 and -1.
-#' User can manage the simulation data to be dichotomious/quantitative using label (class/qtrait)
-#'
-#' @param all.data A data frame of n rows by d colums of data plus a label column
-#' @param pct.train A numeric percentage of samples to use for traning
-#' @param pct.holdout A numeric percentage of samples to use for holdout
-#' @param pct.validation A numeric percentage of samples to use for testing
-#' @param label A character vector of the data column name for the outcome label. class for classification
-#' and qtrait for regression.
-#' @return A list containing:
-#' \describe{
-#'   \item{train}{traing data set}
-#'   \item{holdout}{holdout data set}
-#'   \item{validation}{validation data set}
-#' }
-#' @examples
-#' data("rsfMRIcorrMDD")
-#' data.sets <- splitDataset(rsfMRIcorrMDD)
-#' @family simulation
-#' @export
-# splitDataset function
-######################################################################################################
-splitDataset <- function(all.data=NULL,
-                         pct.train=0.5,
-                         pct.holdout=0.5,
-                         pct.validation=0,
-                         label="class") {
-  if (is.null(all.data)) {
-    # stop or warning and return list of length 0?
-    stop("No data passed")
-  }
-  if (1.0 - (pct.train + pct.holdout + pct.validation) > 0.001 ) {
-    stop("Proportions of training, holdout and testing must to sum to 1")
-  }
-  if (!(label %in% colnames(all.data))) {
-    stop("Class label is not in the column names or used more than once in data set column names")
-  }
-  if (label == "class"){
-    if (!is.factor(all.data[, label])) {
-      all.data[, label] <- factor(all.data[, label])
-    }
-    if (nlevels(all.data[, label]) != 2) {
-      stop("Cannot split data set with more than or less than 2 factor levels in the class label")
-    }
-  }
-  
-  if (label == "class"){
-    class.levels <- levels(all.data[, label])
-    ind.case <- rownames(all.data)[all.data[, label] == class.levels[1]]
-    ind.ctrl <- rownames(all.data)[all.data[, label] == class.levels[2]]
-    
-    n.case <- length(ind.case)
-    n.ctrl <- length(ind.ctrl)
-    
-    n.validation.case <- floor(pct.validation * n.case)
-    n.holdo.case <- floor(pct.holdout * n.case)
-    n.train.case <- n.case - n.validation.case - n.holdo.case
-    partition.case <- sample(c(rep(3, n.validation.case), rep(2, n.holdo.case),
-                               rep(1, n.train.case)), n.case)
-    
-    n.validation.ctrl <- floor(pct.validation * n.ctrl)
-    n.holdo.ctrl <- floor(pct.holdout * n.ctrl)
-    n.train.ctrl <- n.ctrl - n.validation.ctrl - n.holdo.ctrl
-    partition.ctrl <- sample(c(rep(3, n.validation.ctrl),
-                               rep(2, n.holdo.ctrl),
-                               rep(1, n.train.ctrl)), n.ctrl)
-    
-    all.data <- data.frame(all.data)
-    all.data[, label] <- factor(all.data[, label])
-    levels(all.data[, label]) <- c(-1, 1)
-    data.case <- all.data[ind.case, ]
-    data.ctrl <- all.data[ind.ctrl, ]
-    X_train <- rbind(data.case[partition.case == 1, ], data.ctrl[partition.ctrl == 1, ])
-    X_holdo <- rbind(data.case[partition.case == 2, ], data.ctrl[partition.ctrl == 2, ])
-    X_validation <- rbind(data.case[partition.case == 3, ], data.ctrl[partition.ctrl == 3, ])
-  } else {
-    num_sample <- length(all.data[, label])
-    n.train <- floor(pct.train * num_sample)
-    n.holdout <- floor(pct.holdout * num_sample)
-    n.validation <- floor(pct.validation * num_sample)
-    partition <- sample(c(rep(3, n.validation),
-                          rep(2, n.holdout),
-                          rep(1, n.train)))
-    X_train <- rbind(all.data[partition == 1, ])
-    X_holdo <- rbind(all.data[partition == 2, ])
-    X_validation <- rbind(all.data[partition == 3, ])
-  }
-  
-  # if(nrow(X_validation) == 0) {
-  #   data.sets <- list(train=X_train, holdout=X_holdo)
-  # } else {
-  data.sets <- list(train = X_train, holdout = X_holdo, validation = X_validation)
-  # }
-  #
-  data.sets
-}
 
-#=========================================================================================#
+#======================================================================================#
 #' Split a data set for machine learning classification
 #'
 #' Return data.sets as a list of training set, holdout set and validation set
@@ -293,7 +215,7 @@ splitDataset <- function(all.data=NULL,
 #' @family simulation
 #' @export
 # splitDataset function
-######################################################################################################
+##########################################################################################
 splitDataset <- function(all.data=NULL,
                          pct.train=0.5,
                          pct.holdout=0.5,
@@ -413,7 +335,7 @@ splitDataset <- function(all.data=NULL,
 #' @family simulation
 #' @export
 # createMainEffects function
-######################################################################################################
+##########################################################################################
 createMainEffects <- function(n.e=1000,
                               n.db=70,
                               n.ns=30,
@@ -434,7 +356,7 @@ createMainEffects <- function(n.e=1000,
   }
   n <- n.db + n.ns
   # Create random error
-  U <- matrix(nrow = n.e, ncol = n, stats::rnorm(n.e * n, sd = sd.u))
+  U <- matrix(nrow = n.e, ncol = n, rnorm(n.e * n, sd = sd.u))
   
   # Create index for database vs. new sample #
   ind <- as.factor(c(rep("db", n.db), rep("ns", n.ns)))
@@ -530,9 +452,9 @@ createMainEffects <- function(n.e=1000,
     # figure out dimensions for Gamma
     
     # create parameters for signal, noise
-    B <- matrix(nrow = n.e, ncol = 1, stats::rnorm(n.e, mean = 0, sd = sd.b) * ind.B)
+    B <- matrix(nrow = n.e, ncol = 1, rnorm(n.e, mean = 0, sd = sd.b) * ind.B)
     Gam <- matrix(nrow = n.e, ncol = dim(G)[1],
-                  stats::rnorm(n.e * dim(G)[1], mean = 0, sd = sd.gam) * ind.Gam)
+                  rnorm(n.e * dim(G)[1], mean = 0, sd = sd.gam) * ind.Gam)
     
     # simulate the data
     sim.dat <- B %*% S + Gam %*% G + U
@@ -557,8 +479,8 @@ createMainEffects <- function(n.e=1000,
     # Since, we have quantitative outcome and not dichotomize outcome, we may not be able to include conf.
     # Also, simulation algorithm return a simulate data without batch effects, so we do not also need Gam.
     ##########################
-    S.db <- stats::rnorm(n.db, 0, 1)
-    S.ns <- stats::rnorm(n.ns, 0, 1)
+    S.db <- rnorm(n.db, 0, 1)
+    S.ns <- rnorm(n.ns, 0, 1)
     S <- c(S.db, S.ns)
     
     # Determine which probes are affected by what:
@@ -573,7 +495,7 @@ createMainEffects <- function(n.e=1000,
     # figure out dimensions for Gamma
     
     # create parameters for signal, noise
-    B <- matrix(nrow = n.e, ncol = 1, stats::rnorm(n.e, mean = 0, sd = sd.b) * ind.B)
+    B <- matrix(nrow = n.e, ncol = 1, rnorm(n.e, mean = 0, sd = sd.b) * ind.B)
     # Gam <- matrix(nrow = n.e, ncol = dim(G)[1],
     #               stats::rnorm(n.e * dim(G)[1], mean = 0, sd = sd.gam) * ind.Gam)
     # 
@@ -604,11 +526,25 @@ createMainEffects <- function(n.e=1000,
   
   list(db = db, vars = vars)
 }
-######################################################################################################
-
+##########################################################################################
 
 #=========================================================================================#
 #' createSimulation2
+#' update to createSimulation2() that allows for rs-fMRI data generation.
+#'
+#' Changes: only an additional input with conditional if/else statements
+#'          wherever an igraph object is generated. Will allow for
+#'          user-supplied graph object as well, this functionality requires
+#'          an igraph object specifically for now.
+#'
+#' New Parameter: 
+#'
+#'    graph.structure - (igraph) graph structure generated from igraph. If NULL,
+#'                      then createSimulation2() typically generates one on its own.
+#'                      However, this will be handled by createfMRIsimulation() and
+#'                      the user will not be using createSimulation2() directly. This
+#'                      input is used to circumvent automatic simulation of graphs
+#'                      by the previous iteration of createSimulation2().
 #'
 #' @param num.samples number of samples
 #' @param num.variables number of variables (features)
@@ -635,6 +571,7 @@ createMainEffects <- function(n.e=1000,
 #' @param out.degree out-degree of vertices in Scale-free graph
 #' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
 #' @param avg.maf numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations
+#' @param graph.structure (igraph) graph structure generated from igraph, NULL default
 #' @return A list with:
 #' \describe{
 #'   \item{train}{traing data set}
@@ -718,7 +655,8 @@ createSimulation2 <- function(num.samples=100,
                               prob.connected=NULL,
                               out.degree=NULL,
                               data.type="continuous",
-                              avg.maf=0.2){
+                              avg.maf=0.2,
+                              graph.structure=NULL){
   
   ptm <- proc.time() # start time
   
@@ -852,7 +790,12 @@ createSimulation2 <- function(num.samples=100,
       }else{
         prob <- prob.connected
       }
-      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      
+      if(is.null(graph.structure)){
+        g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      }else{
+        g <- graph.structure
+      }
       
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
@@ -902,7 +845,12 @@ createSimulation2 <- function(num.samples=100,
       }else{
         prob <- prob.connected
       }
-      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      
+      if(is.null(graph.structure)){
+        g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      }else{
+        g <- graph.structure
+      }
       
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
@@ -1018,6 +966,10 @@ createSimulation2 <- function(num.samples=100,
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
       
+      if(!is.null(graph.structure)){
+        g <- graph.structure
+      }
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -1067,6 +1019,10 @@ createSimulation2 <- function(num.samples=100,
         g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
       }else{
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+      }
+      
+      if(!is.null(graph.structure)){
+        g <- graph.structure
       }
       
       # generate correlation matrix from g
@@ -1180,7 +1136,12 @@ createSimulation2 <- function(num.samples=100,
       }else{
         prob <- prob.connected
       }
-      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      
+      if(is.null(graph.structure)){
+        g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      }else{
+        g <- graph.structure
+      }
       
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
@@ -1290,10 +1251,15 @@ createSimulation2 <- function(num.samples=100,
       }else{
         prob <- prob.connected
       }
-      g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      
+      if(is.null(graph.structure)){
+        g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+      }else{
+        g <- graph.structure
+      }
       
       # generate correlation matrix from g
-      network.atts <- npdr::generate_structured_corrmat(g=g,
+      network.atts <- generate_structured_corrmat(g=g,
                                                         num.variables=num.variables, 
                                                         hi.cor.tmp=case.hi.cor,
                                                         lo.cor.tmp=lo.cor,
@@ -1435,6 +1401,10 @@ createSimulation2 <- function(num.samples=100,
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
       
+      if(!is.null(graph.structure)){
+        g <- graph.structure
+      }
+      
       # generate correlation matrix from g
       network.atts <- generate_structured_corrmat(g=g,
                                                   num.variables=num.variables, 
@@ -1548,8 +1518,12 @@ createSimulation2 <- function(num.samples=100,
         g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
       }
       
+      if(!is.null(graph.structure)){
+        g <- graph.structure
+      }
+      
       # generate correlation matrix from g
-      network.atts <- npdr::generate_structured_corrmat(g=g,
+      network.atts <- generate_structured_corrmat(g=g,
                                                         num.variables=num.variables, 
                                                         hi.cor.tmp=case.hi.cor,
                                                         lo.cor.tmp=lo.cor,
@@ -1696,7 +1670,11 @@ createSimulation2 <- function(num.samples=100,
         }
         
         # generate random Erdos-Renyi network
-        g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+        if(is.null(graph.structure)){
+          g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+        }else{
+          g <- graph.structure
+        }
         
         # generate correlation matrix from g
         network.atts <- generate_structured_corrmat(g=g,
@@ -2458,3 +2436,250 @@ createSimulation2 <- function(num.samples=100,
          elapsed = elapsed)
   }
 }
+#############################################################################
+
+#=========================================================================================#
+#' createfMRIsimulation
+#' 
+#' function for generating NPDR-formatted rs-fMRI data set
+#' 
+#' Parameters: Very similar to createSimulation2() in NPDR
+#'
+#'  New Parameters: 
+#'
+#' num.times - (numeric) number of time points for each ROI (same for cases and controls)
+#' graph.structure - (igraph like object) user-supplied graphical structure for all subjects. 
+#' Currently only igraph object is acceptable. We really just need the ability
+#' to compute degree vec and adjacency matrix in generate_structured_corrmat().
+#' sim.graph.structure - (logical) set to TRUE for random graph from igraph package. If FALSE, must provide graph structure as input.
+#'
+#' Value:
+#'
+#' (list) with the following elements:
+#'
+#' corr.attr.names - (character) ordered vec of ROI names from simulation. Each subject's correlation matrix
+#' will have this exact order in its rows and columns.
+#' dataset - (matrix) of dimension num.samples x num.variables*(num.variables - 1), where each row
+#' represents a subject's pairwise correlations. The first (num.variables - 1) columns
+#' are all pairwise correlations (excluding self-correlation) with the first ROI in 
+#' corr.attr.names vec, the next subsequent group of (num.variables - 1) columns are
+#' pairwise correlations with the second ROI in corr.attr.names vec, ... etc. This order
+#' is preserved in all individual subject correlation matrices.
+#'
+#' Details: Generates (num.times x num.variables) matrix of (num.variables) ROI time series for each of the num.samples subjects. Each ROI has (num.times) time points in the simulated fMRI scan. Functional ROIs can be created using (sim.type), which should be one of c("interactionErdos","interactionScalefree"). Effect size is controlled exactly the same as in createSimulation2(), using a combination of (interaction.bias), (hi.cor), and (prob.connected) (or out.degree). For example, setting interaction.bias = 1, hi.cor ~ 1, and prob.connected ~ 1 will yield maximal effect sizes for functional ROIs (or out.degree = num.variables - 1 for interactionScalefree). The order of ROIs in (dataset) columns is given by (corr.attr.names), which is a primary input to npdr() that allows us to assign importance to each ROI.
+#'
+#' Notes: Must be careful when using real data to make sure all subject correlation matrices have the same row/column order. The (corr.attr.names) parameter contains ROI names in the same order as row/column in subject correlation matrices. If subjects have differing row/column order, then ROI importance is meaningless.
+#'
+#' @param num.samples number of samples
+#' @param num.variables number of variables (features)
+#' @param pct.imbalance fraction of num.samples that are cases
+#' @param pct.signals fraction of num.variables that are functional
+#' @param main.bias approximate effect size for main effect simulations
+#' @param interaction.bias approximate effect size for interaction effects
+#' @param hi.cor parameter to use for network-connected pairwise correlations
+#' @param lo.cor parameter to use for network-non-connected pairwise correlations
+#' @param label should just be "class" for binary response
+#' @param sim.type a character that determines the type of simulation:
+#' mainEffect/mainEffect_Erdos-Renyi/mainEffect_Scalefree/interactionErdos/interactionScalefree/mixed
+#' @param pct.train fraction of num.samples used for training
+#' @param pct.holdout fraction of num.samples used for holdout
+#' @param pct.validation fraction of num.samples used for validation
+#' @param save.file logical but not currently being used
+#' @param mix.type character that determines the type of mixed effects simulation:
+#' main-interactionErdos/main-interactionScalefree
+#' @param pct.mixed percent of functional variables that are main effects (1 - pct_interaction). Use with sim.type="mixed" and specify mix.type.
+#' @param verbose logical indicating whether to display time required to generate simulation
+#' @param plot.graph logical indicating whether to plot networks
+#' @param use.Rcpp if true use Rcpp to correct negative eigenvalues 
+#' @param prob.connected probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph
+#' @param out.degree out-degree of vertices in Scale-free graph
+#' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
+#' @param avg.maf numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations
+#' @param num.times - (numeric) number of time points for each ROI (same for cases and controls)
+#' @param graph.structure (igraph) graph structure generated from igraph, NULL default
+#' @param sim.graph.structure - (logical) set to TRUE for random graph from igraph package. If FALSE, must provide graph structure as input.
+#' @return A list with:
+#' \describe{
+#'   \item{dataset}{(matrix) of dimension num.samples x num.variables*(num.variables - 1), where each row}
+#'   \item{corr.attr.names}{(character) ordered vec of ROI names from simulation. Each subject's correlation matrix will have this exact order in its rows and columns.}
+#' }
+#' @examples
+#'                             
+#' @export
+createfMRIsimulation <- function(num.samples=100,
+                                 num.variables=100,
+                                 num.times=100,
+                                 pct.imbalance=0.5,
+                                 pct.signals=0.1,
+                                 main.bias=0.4,
+                                 interaction.bias=0.4,
+                                 hi.cor=0.8,
+                                 lo.cor=0.2,
+                                 label="class",
+                                 sim.type="interactionErdos",
+                                 mix.type=NULL,
+                                 pct.mixed=0.5,
+                                 plot.graph=FALSE, use.Rcpp=FALSE,
+                                 prob.connected=NULL,
+                                 out.degree=NULL,
+                                 sim.graph.structure=T,
+                                 graph.structure=NULL){
+  
+  if(sim.graph.structure==T){
+    
+    nbias <- pct.signals * num.variables # number of functional attributes
+    
+    e <- 1    # fudge factor to the number of nodes to avoid giant component
+    if(is.null(prob.connected)){
+      prob <- 1/(num.variables+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+    }else{
+      prob <- prob.connected
+    }
+    
+    if(is.null(graph.structure)){
+      if(sim.type!="mixed"){
+        
+        if(c(sim.type %in% c("interactionErdos","mainEffect_Erdos-Renyi"))==T){
+          
+          g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
+          
+        }else if(c(sim.type %in% c("interactionScalefree","mainEffect_Scalefree"))==T){
+          
+          if(is.null(out.degree)){
+            g <- igraph::barabasi.game(num.variables, directed=F) # scale-free network
+          }else{
+            g <- igraph::barabasi.game(num.variables, m=out.degree, directed=F)
+          }
+          
+        }
+        
+      }else if(sim.type=="mixed"){
+        
+        num.main <- round(pct.mixed*nbias)      # number of main effect attributes
+        num.int <- round((1 - pct.mixed)*nbias) # number of interaction effect attributes
+        
+        if(mix.type == "main-interactionErdos"){
+          e <- 1    # fudge factor to the number of nodes to avoid giant component
+          if(is.null(prob.connected)){
+            prob <- 1/((num.variables - num.main)+e) # probability of a node being connected to another node is less than 1/N to avoid giant component
+          }else{
+            prob <- prob.connected
+          }
+          
+          # generate random Erdos-Renyi network
+          g <- igraph::erdos.renyi.game((num.variables - num.main), prob)
+        }else if(mix.type == "main-interactionScalefree"){
+          # generate random Scale-Free network
+          if(is.null(out.degree)){
+            g <- igraph::barabasi.game((num.variables - num.main), directed=F)
+          }else{
+            g <- igraph::barabasi.game((num.variables - num.main), m=out.degree, directed=F)
+          }
+        }
+        
+      }
+      
+    }else{
+      
+      g <- graph.structure # user supplied graph structure
+      
+    }
+    
+  }else{
+    
+    g <- graph.structure
+  }
+  
+  m.case <- round((1 - pct.imbalance)*num.samples) # size of case group
+  m.ctrl <- round(pct.imbalance*num.samples)       # size of ctrl group
+  
+  m <- num.samples   # m.case + m.ctrl
+  p <- num.variables # number of ROIs
+  D.case <- matrix(0, nrow=m.case, ncol=p*(p-1)) # case block of transformed data
+  
+  for(k in 1:m.case){
+    cat("Case Subject: ",k,"\n")
+    
+    data.mat <- createSimulation2(num.samples=num.times,
+                                  num.variables=p,
+                                  pct.imbalance=pct.imbalance,
+                                  pct.signals=pct.signals,
+                                  main.bias=main.bias,
+                                  interaction.bias=interaction.bias,
+                                  hi.cor=hi.cor,
+                                  lo.cor=lo.cor,
+                                  mix.type=mix.type,
+                                  label="class",
+                                  sim.type=sim.type,
+                                  pct.mixed=pct.mixed,
+                                  pct.train=0.5,
+                                  pct.holdout=0.5,
+                                  pct.validation=0,
+                                  plot.graph=F,
+                                  verbose=T,
+                                  use.Rcpp=T,
+                                  prob.connected=prob.connected,
+                                  out.degree=out.degree,
+                                  data.type=data.type,
+                                  graph.structure=g)
+    dats <- rbind(data.mat$train, data.mat$holdout, data.mat$validation)
+    dats <- dats[order(dats[,ncol(dats)]),]
+    
+    case.dats <- dats[which(as.character(dats[,label])=="1"),]
+    case.dats.tmp <- case.dats[,-ncol(case.dats)]
+    case.dats.tmp <- case.dats.tmp[,sort(colnames(case.dats.tmp))]
+    R <- cor(case.dats.tmp) # correlation matrix
+    print(R[1:5,1:5])
+    
+    zcorr <- apply(matrix(stretch_mat(R),ncol=1),1,r_to_z_fn)
+    D.case[k,] <- matrix(zcorr,ncol=(p*(p-1)),nrow=1)
+    
+  }
+  
+  D.ctrl <- matrix(0, nrow=m.ctrl, ncol=p*(p-1)) # ctrl block of transformed data
+  
+  for(k in 1:m.ctrl){
+    cat("Control Subject: ",k,"\n")
+    
+    data.mat <- createSimulation2(num.samples=num.times,
+                                  num.variables=p,
+                                  pct.imbalance=pct.imbalance,
+                                  pct.signals=pct.signals,
+                                  main.bias=main.bias,
+                                  interaction.bias=interaction.bias,
+                                  hi.cor=hi.cor,
+                                  lo.cor=lo.cor,
+                                  mix.type=mix.type,
+                                  label="class",
+                                  sim.type=sim.type,
+                                  pct.mixed=pct.mixed,
+                                  pct.train=0.5,
+                                  pct.holdout=0.5,
+                                  pct.validation=0,
+                                  plot.graph=F,
+                                  verbose=T,
+                                  use.Rcpp=T,
+                                  prob.connected=prob.connected,
+                                  out.degree=out.degree,
+                                  data.type=data.type)
+    dats <- rbind(data.mat$train, data.mat$holdout, data.mat$validation)
+    dats <- dats[order(dats[,ncol(dats)]),]
+    
+    ctrl.dats <- dats[which(as.character(dats[,label])=="-1"),]
+    ctrl.dats.tmp <- ctrl.dats[,-ncol(ctrl.dats)]
+    ctrl.dats.tmp <- ctrl.dats.tmp[,sort(colnames(ctrl.dats.tmp))]
+    R <- cor(ctrl.dats.tmp) # correlation matrix
+    
+    zcorr <- apply(matrix(stretch_mat(R),ncol=1),1,r_to_z_fn)
+    D.ctrl[k,] <- matrix(zcorr,ncol=(p*(p-1)),nrow=1)
+    
+  }
+  
+  D <- rbind(D.case,D.ctrl)
+  case.ctrl <- c(rep(1,length=m.case),rep(-1,length=m.ctrl))
+  D <- cbind(D,class=case.ctrl)
+  corr.attr.names <- colnames(ctrl.dats.tmp)
+  
+  list(dataset=D, corr.attr.names=corr.attr.names)
+}
+##############################################################################
