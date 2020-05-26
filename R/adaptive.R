@@ -147,9 +147,9 @@ vwok <- function(dats=NULL,
                         if(!is.null(signal.names)){
                           functional.vars <- signal.names
                           
-                          idx.func <- which(c(as.character(out.mat[,"att"]) %in% functional.vars)==T)
-                          func.betas <- out.mat[idx.func,"beta"] # functional variable betas
-                          neg.betas <- out.mat[-idx.func,"beta"] # noise variable betas
+                          idx.func <- which(c(att.mat %in% functional.vars)==T)
+                          func.betas <- beta.mat[idx.func] # functional variable betas
+                          neg.betas <- beta.mat[-idx.func] # noise variable betas
                           
                           # precision-recall curve and area
                           pr.npdr <- PRROC::pr.curve(scores.class0 = func.betas,
