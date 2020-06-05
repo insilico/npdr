@@ -92,11 +92,34 @@ uniReg <- function(outcome, dataset, regression.type="lm", padj.method="fdr", co
     } else { # "binomial" model
     if (length(covars)>1){
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))[2,4:5]}
-      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))$coeff[2,]}
+      model.func <- function(x) {
+        fit <- summary(glm(pheno.vec ~ attr.mat[,x] + covars, family=binomial))
+        coeffs <- fit$coeff
+        ## create summary stats
+        if (nrow(coeffs)<2){
+        # for example, a monomorphic SNP might result in attribute stats (row 2) not being created
+          message("Regression failure. Continuing to next variable.\n")
+          return(rep(NA,4))
+        } else{
+          return(as.numeric(coeffs[2,])) 
+        }
+      } # end this model.func
     } else { # covar=="none"
       #model.func <- function(x) {tidy(glm(pheno.vec ~ attr.mat[,x], family=binomial))[2,4:5]}
-      model.func <- function(x) {summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))$coeff[2,]}
-    } } # end else binomial
+      model.func <- function(x) {
+        fit <- summary(glm(pheno.vec ~ attr.mat[,x], family=binomial))
+        coeffs <- fit$coeff
+        ## create summary stats
+        if (nrow(coeffs)<2){
+          # for example, a monomorphic SNP might result in attribute stats (row 2) not being created
+          message("Regression failure. Continuing to next variable.\n")
+          return(rep(NA,4))
+        } else{
+          return(as.numeric(coeffs[2,])) 
+        }
+      } # end this model.func
+    } 
+  } # end else binomial
   #class.col <- which(colnames(dataset)==outcome)
   #predictor.cols <- which(colnames(dataset)!=outcome)
   num.attr <- ncol(attr.mat)
