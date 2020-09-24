@@ -27,7 +27,8 @@ npdr(
   fast.reg = FALSE,
   fast.dist = FALSE,
   dopar.nn = FALSE,
-  dopar.reg = FALSE
+  dopar.reg = FALSE,
+  unique.dof = FALSE
 )
 }
 \arguments{
@@ -74,6 +75,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 \item{dopar.nn}{logical, whether or not neighborhood is computed in parallel, default as F}
 
 \item{dopar.reg}{logical, whether or not regression is run in parallel, default as F}
+
+\item{unique.dof}{use unique neighbor pairs for degrees of freedom. FALSE lets R stats determine regression degrees of freedom}
 }
 \value{
 npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])

@@ -6,13 +6,14 @@
 #' @param design.matrix.df Desgin matrix with variables: pheno.diff.vec (outcome variable as vector of diffs), attr.diff.vec (one predictor varialbe as vector of diffs) and optional covariates (regressors of non-interest) vector diffs.   
 #' @param regression.type (\code{"lm"}, \code{"binomial"}) 
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
+#' @param dof manual input for degrees of freedom, dof=0 lets R stats determine
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @examples
 #'
 #' @export
 # regression of the neighbor diff vector for one attribute
-diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.reg = FALSE) {
+diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.reg = FALSE, dof=0) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
@@ -22,14 +23,16 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
     } else { # regression.type == "binomial"
       mod <- speedglm(pheno.diff.vec ~ ., data = design.matrix.df, family = binomial(link = logit))
     }
-    res_df <- mod$df
+    #              use R d.o.f       use input dof
+    ifelse(dof==0, res_df <- mod$df, res_df = dof)
   } else { # non-speedy version -- but why?
     if (regression.type == "lm"){
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
       mod <- glm(pheno.diff.vec ~ ., family = binomial(link = logit), data = design.matrix.df)
     }
-    res_df <- mod$df.residual
+    #              use R d.o.f       use input dof
+    ifelse(dof==0, res_df <- mod$df.residual, res_df <- dof)
   }
   fit <- summary(mod)
   coeffs <- fit$coefficients
@@ -57,8 +60,9 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
   )
   
   if (regression.type=="lm"){
-    stats.vec <- c(stats.vec, fit$r.squared)} # add R^2 of fit, R.sqr for continuous outcomes
-  
+    stats.vec <- c(stats.vec, fit$r.squared)
+    } # add R^2 of fit, R.sqr for continuous outcomes
+  #cat(res_df,"\n")
   return(stats.vec)
 }
 
@@ -95,6 +99,7 @@ diffRegression <- function(design.matrix.df, regression.type = 'binomial', fast.
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @param dopar.nn logical, whether or not neighborhood is computed in parallel, default as F
 #' @param dopar.reg logical, whether or not regression is run in parallel, default as F
+#' @param unique.dof use unique neighbor pairs for degrees of freedom. FALSE lets R stats determine regression degrees of freedom
 #' 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3]) 
 #'
@@ -126,7 +131,8 @@ npdr <- function(outcome, dataset,
                  separate.hitmiss.nbds = FALSE,
                  corr.attr.names=NULL,
                  fast.reg = FALSE, fast.dist = FALSE,
-                 dopar.nn = FALSE, dopar.reg = FALSE){
+                 dopar.nn = FALSE, dopar.reg = FALSE,
+                 unique.dof = FALSE){
   ##### parse the commandline 
   if (length(outcome)==1){
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -190,17 +196,20 @@ npdr <- function(outcome, dataset,
   }
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
+  unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
+  num.unique.neighbors <- nrow(unique.neighbor.pairs.idx)
   if (neighbor.sampling == "unique"){
     if (verbose){
       cat("Extracting unique neighbors.\n")
     }
       # if you only want to return unique neighbors
-      neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)
+      neighbor.pairs.idx <- unique.neighbor.pairs.idx
   }
   end_time <- Sys.time()
   if (verbose){
     cat("Neighborhood calculation:", capture.output(end_time - start_time), "\n")
     cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).\n")
+    cat(num.unique.neighbors, "unique neighbor pairs.\n")
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- knnSURF(num.samp,msurf.sd.frac)
@@ -288,7 +297,12 @@ npdr <- function(outcome, dataset,
           design.matrix.df <- data.frame(design.matrix.df, covar.diff.df)
         }
         # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-        return(diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg))
+        if (unique.dof == TRUE){
+           dof = num.unique.neighbors - 2
+        } else{
+          dof <- 0 # uses all neighbor pairs for regression degrees of freedom
+        }
+        return(diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg, dof=dof))
       } # end of foreach loop, regression done in parallel
       parallel::stopCluster(cl)
       
@@ -319,9 +333,14 @@ npdr <- function(outcome, dataset,
         }
         # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
         if (verbose){
-          cat("running non-parallel npdr.stats.list for attr ", attr.idx,".\n",sep="")
+          #cat("running non-parallel npdr.stats.list for attr ", attr.idx,".\n",sep="")
         }
-        npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg) 
+        if (unique.dof == TRUE){
+          dof <- num.unique.neighbors - 2
+        } else{
+          dof <- 0 # uses all neighbor pairs for regression degrees of freedom
+        }
+        npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg, dof=dof) 
       } # end of for loop, regression done for each attribute
       
       #npdr.stats.attr.mat <- bind_rows(npdr.stats.list)

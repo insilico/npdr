@@ -7,7 +7,8 @@
 diffRegression(
   design.matrix.df,
   regression.type = "binomial",
-  fast.reg = FALSE
+  fast.reg = FALSE,
+  dof = 0
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ diffRegression(
 \item{regression.type}{(\code{"lm"}, \code{"binomial"})}
 
 \item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
+
+\item{dof}{manual input for degrees of freedom, dof=0 lets R stats determine}
 }
 \value{
 vector of regression stats to put into list for npdr and combine into matrix
