@@ -4,14 +4,14 @@ Version: 0.0.0.9000
 Authors@R: c(person("Brett", "McKinney", email = "brett.mckinney@gmail.com", role = c("aut", "cre")),
   person("Trang", "Le", email = "ttle@pennmedicine.upenn.edu", role = c("aut")))
 Description: What the package does (one paragraph).
-Depends: R (>= 3.3.2), speedglm, doParallel, parallel, foreach, tidyverse, flexclust, Matrix, igraph
-License: What license is it under?
+Depends: R (>= 3.3.2)
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Suggests: knitr,
     rmarkdown,
     glmnet
-Imports: tidyverse
+Imports: dplyr, speedglm, doParallel, parallel, foreach, flexclust, Matrix, igraph
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 VignetteBuilder: knitr
 RoxygenNote: 7.1.0
