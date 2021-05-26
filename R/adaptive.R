@@ -147,7 +147,7 @@ vwok <- function(dats=NULL,
                         if(!is.null(signal.names)){
                           functional.vars <- signal.names
                           
-                          idx.func <- which(c(att.mat %in% functional.vars)==T)
+                          idx.func <- which(c(att.mat %in% functional.vars))
                           func.betas <- beta.mat[idx.func] # functional variable betas
                           neg.betas <- beta.mat[-idx.func] # noise variable betas
                           

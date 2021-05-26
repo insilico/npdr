@@ -8,10 +8,7 @@ Depends: R (>= 3.3.2)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Suggests: knitr,
-    rmarkdown,
-    glmnet
-Imports: dplyr, speedglm, doParallel, parallel, foreach, flexclust, Matrix, igraph
-LinkingTo: Rcpp, RcppArmadillo, RcppEigen
+Suggests: knitr
+Imports: dplyr, speedglm, doParallel, parallel, foreach, flexclust, Matrix, igraph, glmnet
 VignetteBuilder: knitr
 RoxygenNote: 7.1.0
