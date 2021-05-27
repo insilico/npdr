@@ -15,7 +15,3 @@ knn.vec vector number of nearest neighbors for each instance
 \description{
 Number of neighbors for each sample (vector) from a neighbor-pair matrix.
 }
-\examples{
-mean(knnVec(neighbor.pairs.idx))  # average number of neighbors
-
-}

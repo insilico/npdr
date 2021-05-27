@@ -11,10 +11,10 @@ generate_structured_corrmat(
   lo.cor.tmp = 0.2,
   hi.cor.fixed = 0.8,
   graph.type = "Erdos-Renyi",
-  plot.graph = F,
-  make.diff.cors = F,
+  plot.graph = FALSE,
+  make.diff.cors = FALSE,
   nbias = 1,
-  use.Rcpp = F
+  use.Rcpp = FALSE
 )
 }
 \arguments{
@@ -47,7 +47,4 @@ A list containing:
 }
 \description{
 parameters:
-}
-\examples{
-
 }

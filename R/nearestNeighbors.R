@@ -9,8 +9,6 @@
 #' @param b value of attribute for second instance. Vector for correlation-data.
 #' @param type diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.
 #' @return val diff or vector of diffs
-#' @examples
-#' Example
 #' @export
 npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
   # compute the difference between two vectors element-wise
@@ -40,8 +38,6 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
 #' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"},
 #' versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).
 #' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
-#' @examples
-#' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
 #' @export
 npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
   if (fast.dist) {
@@ -100,14 +96,6 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
-#' @examples
-#' # multisurf neighborhood with sigma/2 (sd.frac=0.5) "dead-band" boundary
-#' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method = "multisurf", nb.metric = "manhattan", sd.frac = 0.5)
-#' # reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
-#' # One can change the theoretical value by changing sd.frac (default 0.5)
-#' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method = "relieff", nb.metric = "manhattan")
-#' # reliefF (fixed-k) neighborhood with a user-specified k
-#' neighbor.pairs.idx <- nearestNeighbors(predictors.mat, nb.method = "relieff", nb.metric = "manhattan", k = 10)
 #' @export
 nearestNeighbors <- function(attr.mat,
                              nb.method = "multisurf",
@@ -143,7 +131,7 @@ nearestNeighbors <- function(attr.mat,
       k <- floor((num.samp - 1) * (1 - erf(sd.frac / sqrt(2))) / 2) # uses sd.frac
     }
 
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -199,7 +187,7 @@ nearestNeighbors <- function(attr.mat,
       if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp, function(x) sd(dist.mat[-x, x]))
       Ri.radius <- colSums(dist.mat) / (num.samp - 1) - sd.frac * sd.vec # use adaptive radius
     }
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -228,7 +216,7 @@ nearestNeighbors <- function(attr.mat,
         Ri.int <- as.integer(Ri)
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>%
-          rownames_to_column() %>%
+          tibble::rownames_to_column() %>%
           filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
           pull(rowname) %>%
           as.integer()
@@ -272,13 +260,6 @@ nearestNeighbors <- function(attr.mat,
 #' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
-#' @examples
-#' # reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
-#' # One can change the theoretical value by changing sd.frac (default 0.5)
-#' neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(cc.attrs, cc.pheno, # need attributes and pheno
-#'   nb.method = "relieff", nb.metric = "manhattan",
-#'   sd.frac = .5, k = 0
-#' )
 #' @export
 nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
                                             nb.method = "relieff",
@@ -319,7 +300,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       k <- floor((num.samp - 1) * (1 - erf(sd.frac / sqrt(2))) / 2) # uses sd.frac
     }
 
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -439,7 +420,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       names(Ri.miss.radii) <- as.character(1:num.samp)
     } # end multisurf radii calc
 
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -497,9 +478,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #'
 #' @param neighbor.pairs.idx two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function
 #' @return new neighborhood pair matrix of only unique pairs
-#'
-#' @examples
-#' unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx) # unique neighbor pairs
+#' unique neighbor pairs
 #' @export
 uniqueNeighbors <- function(neighbor.pairs) {
   # input: two columns of redundant "i,j" pairs
@@ -523,8 +502,6 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #' @param neighbor.pairs.idx two columns of redundant "i,j" pairs from nearestNeighbors function
 #' @return  knn.vec vector number of nearest neighbors for each instance
 #'
-#' @examples
-#' mean(knnVec(neighbor.pairs.idx)) # average number of neighbors
 #' @export
 knnVec <- function(neighbor.pairs.mat) {
   knn.vec <- data.frame(neighbor.pairs.mat) %>%

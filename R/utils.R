@@ -28,9 +28,6 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 #' @param padj.method for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.
-#' @examples
-#' lr.results <- uniReg(outcome = "class", dataset = case.control.data, regression.type = "binomial")
-#' #  lr.results[lr.results[,"p.adj"]<.05]
 #' @export
 uniReg <- function(outcome, dataset, regression.type = "lm", padj.method = "fdr", covars = "none") {
   ## parse input
@@ -134,15 +131,10 @@ uniReg <- function(outcome, dataset, regression.type = "lm", padj.method = "fdr"
 #' @param functional character vector of functional/true attribute names.
 #' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
 #' @return list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (string).
-#' @examples
-#' functional <- case.control.3sets$signal.names
-#' positives <- row.names(npdr.cc.results.df[npdr.cc.results.df[, 1] < .05, ]) # p.adj<.05
-#' npdr.cc.detect.stats <- detectionStats(functional.case.control, positives)
-#' cat(npdr.cc.detect.stats$summary.msg) # on(outcome="class", dataset=case.control.data)
 #' @export
 detectionStats <- function(functional, positives) {
   TP <- sum(positives %in% functional)
-  FP <- sum((positives %in% functional) == F)
+  FP <- sum(!(positives %in% functional))
   FN <- length(functional) - TP
   precision <- TP / (TP + FP)
   recall <- TP / (TP + FN)
@@ -175,18 +167,6 @@ detectionStats <- function(functional, positives) {
 #' @param functional character vector of functional/true attribute names
 #' @param p percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
-#' @examples
-#' functional.vars <- dataset$signal.names
-#' relief <- CORElearn::attrEval(as.factor(class) ~ .,
-#'   data = dats,
-#'   estimator = "ReliefFequalK",
-#'   costMatrix = NULL,
-#'   outputNumericSplits = FALSE,
-#'   kNearestEqual = floor(knnSURF(nrow(dats), .5) / 2)
-#' ) # fn from npdr
-#' relief.order <- order(relief, decreasing = T)
-#' relief.df <- data.frame(att = names(relief)[relief.order], rrelief = relief[relief.order])
-#' reliefDetected(relief.df, functional.vars, p = .1)
 #' @export
 reliefDetected <- function(results.df, functional, top.pct) {
   top.num <- floor(top.pct * nrow(results.df))
@@ -207,13 +187,6 @@ reliefDetected <- function(results.df, functional, top.pct) {
 #' @param functional character vector of functional/true attribute names
 #' @param p percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
-#' @examples
-#' functional.vars <- dataset$signal.names
-#' ranfor.fit <- randomForest(as.factor(class) ~ ., data = dats)
-#' rf.importance <- importance(ranfor.fit)
-#' rf.sorted <- sort(rf.importance, decreasing = T, index.return = T)
-#' rf.df <- data.frame(att = rownames(rf.importance)[rf.sorted$ix], rf.scores = rf.sorted$x)
-#' rfDetected(rf.df, functional.vars, p = .1)
 #' @export
 rfDetected <- function(results.df, functional, top.pct) {
   top.num <- floor(top.pct * nrow(results.df))
@@ -234,17 +207,6 @@ rfDetected <- function(results.df, functional, top.pct) {
 #' @param functional character vector of functional/true attribute names
 #' @param p percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
-#' @examples
-#' functional.vars <- dataset$signal.names
-#' npdr.results1 <- npdr("class", dats,
-#'   regression.type = "binomial",
-#'   attr.diff.type = "allele-sharing", # nbd.method="relieff",
-#'   nbd.method = "multisurf",
-#'   nbd.metric = "manhattan", msurf.sd.frac = .5, k = 0,
-#'   neighbor.sampling = "none", separate.hitmiss.nbds = F,
-#'   dopar.nn = T, dopar.reg = T, padj.method = "bonferroni", verbose = T
-#' )
-#' npdrDetected(npdr.results1, functional.vars, p = .1)
 #' @export
 npdrDetected <- function(results.df, functional, top.pct) {
   top.num <- floor(top.pct * nrow(results.df))
@@ -263,10 +225,6 @@ npdrDetected <- function(results.df, functional, top.pct) {
 #' @param dataMatrix data matrix with predictors only, sample x gene
 #' @param pct percentile of low variance removed
 #' @return mask and filtered data
-#' @examples
-#' pct <- 0.7 # higher value more strict
-#' filter <- geneLowVarianceFilter(unfiltered.predictors.mat, pct)
-#' filtered.data.df <- data.frame(filter$fdata, class = rnaseq.mdd.phenotype)
 #' @export
 geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
   variances <- apply(as.matrix(dataMatrix), 2, var)

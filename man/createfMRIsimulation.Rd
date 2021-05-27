@@ -22,7 +22,7 @@ createfMRIsimulation(
   use.Rcpp = FALSE,
   prob.connected = NULL,
   out.degree = NULL,
-  sim.graph.structure = T,
+  sim.graph.structure = TRUE,
   graph.structure = NULL
 )
 }
@@ -94,10 +94,10 @@ function for generating NPDR-formatted rs-fMRI data set
 \details{
 Parameters: Very similar to createSimulation2() in NPDR
 
- New Parameters: 
+ New Parameters:
 
 num.times - (numeric) number of time points for each ROI (same for cases and controls)
-graph.structure - (igraph like object) user-supplied graphical structure for all subjects. 
+graph.structure - (igraph like object) user-supplied graphical structure for all subjects.
 Currently only igraph object is acceptable. We really just need the ability
 to compute degree vec and adjacency matrix in generate_structured_corrmat().
 sim.graph.structure - (logical) set to TRUE for random graph from igraph package. If FALSE, must provide graph structure as input.
@@ -110,7 +110,7 @@ corr.attr.names - (character) ordered vec of ROI names from simulation. Each sub
 will have this exact order in its rows and columns.
 dataset - (matrix) of dimension num.samples x num.variables*(num.variables - 1), where each row
 represents a subject's pairwise correlations. The first (num.variables - 1) columns
-are all pairwise correlations (excluding self-correlation) with the first ROI in 
+are all pairwise correlations (excluding self-correlation) with the first ROI in
 corr.attr.names vec, the next subsequent group of (num.variables - 1) columns are
 pairwise correlations with the second ROI in corr.attr.names vec, ... etc. This order
 is preserved in all individual subject correlation matrices.
@@ -118,7 +118,4 @@ is preserved in all individual subject correlation matrices.
 Details: Generates (num.times x num.variables) matrix of (num.variables) ROI time series for each of the num.samples subjects. Each ROI has (num.times) time points in the simulated fMRI scan. Functional ROIs can be created using (sim.type), which should be one of c("interactionErdos","interactionScalefree"). Effect size is controlled exactly the same as in createSimulation2(), using a combination of (interaction.bias), (hi.cor), and (prob.connected) (or out.degree). For example, setting interaction.bias = 1, hi.cor ~ 1, and prob.connected ~ 1 will yield maximal effect sizes for functional ROIs (or out.degree = num.variables - 1 for interactionScalefree). The order of ROIs in (dataset) columns is given by (corr.attr.names), which is a primary input to npdr() that allows us to assign importance to each ROI.
 
 Notes: Must be careful when using real data to make sure all subject correlation matrices have the same row/column order. The (corr.attr.names) parameter contains ROI names in the same order as row/column in subject correlation matrices. If subjects have differing row/column order, then ROI importance is meaningless.
-}
-\examples{
-                            
 }

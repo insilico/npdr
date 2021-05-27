@@ -7,17 +7,18 @@
 #' @param regression.type (\code{"lm"}, \code{"binomial"})
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @param dof manual input for degrees of freedom, dof=0 lets R stats determine
+#' 
+#' @importFrom stats cor binomial lm glm pt var quantile rnorm pnorm runif rbinom qbinom
+#' 
 #' @return vector of regression stats to put into list for npdr and combine into matrix
-#' @import stats
 #'
-#' @examples
 #' @export
 # regression of the neighbor diff vector for one attribute
 diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.reg = FALSE, dof = 0) {
   # if there are no covariates then ~. model is pheno.diff.vec ~ attr.diff.vec
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
-  if (fast.reg == TRUE) {
+  if (fast.reg) {
     if (regression.type == "lm") {
       mod <- speedglm::speedlm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
@@ -109,20 +110,22 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @import dplyr
 #'
 #' @examples
+#' \donttest{
 #' # Data interface options.
 #' # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
 #' # ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
-#' npdr.results.df <- npdr("qtrait", train.data, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
+#' npdr.results.df <- npdr("qtrait", qtrait.3sets$train, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
 #'
 #' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
 #' #  # ReliefF fixed-k nbd, choose a k (knn=10). Or choose msurf.sd.frac
-#' npdr.results.df <- npdr(101, train.data, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", knn = 10, padj.method = "bonferroni")
+#' npdr.results.df <- npdr(101, qtrait.3sets$train, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", knn = 10, padj.method = "bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
-#' npdr.results.df <- npdr(pheno.vec, predictors.mat, regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
+#' # npdr.results.df <- npdr(pheno.vec, predictors.mat, regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
 #' # attributes with npdr adjusted p-value less than .05
 #' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) # npdr p.adj<.05
+#' }
 #' @export
 #'
 npdr <- function(outcome, dataset,
@@ -250,7 +253,7 @@ npdr <- function(outcome, dataset,
   attr.diff.mat <- matrix(0, nrow = nrow(neighbor.pairs.idx), ncol = num.attr)
   # for npdrnet later, need matrix because npdrNET operates on all attributes at once
   if (length(covars) > 1) { # if covars is a vector or matrix
-    if (use.glmnet == TRUE) {
+    if (use.glmnet) {
       message("penalized npdrNET does not currently support covariates.")
     }
     # default value is covar="none" (no covariates) which has length 1
@@ -280,7 +283,7 @@ npdr <- function(outcome, dataset,
     }
   }
 
-  if (use.glmnet == FALSE) { # combine non-glmnet result lists into a matrix
+  if (!use.glmnet) { # combine non-glmnet result lists into a matrix
     if (dopar.reg) { # perform regressions in parallel
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
@@ -309,7 +312,7 @@ npdr <- function(outcome, dataset,
           design.matrix.df <- data.frame(design.matrix.df, covar.diff.df)
         }
         # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff
-        if (unique.dof == TRUE) {
+        if (unique.dof) {
           dof <- num.unique.neighbors - 2
         } else {
           dof <- 0 # uses all neighbor pairs for regression degrees of freedom
@@ -347,7 +350,7 @@ npdr <- function(outcome, dataset,
         if (verbose) {
           # cat("running non-parallel npdr.stats.list for attr ", attr.idx,".\n",sep="")
         }
-        if (unique.dof == TRUE) {
+        if (unique.dof) {
           dof <- num.unique.neighbors - 2
         } else {
           dof <- 0 # uses all neighbor pairs for regression degrees of freedom

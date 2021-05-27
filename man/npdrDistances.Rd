@@ -9,16 +9,13 @@ npdrDistances(attr.mat, metric = "manhattan", fast.dist = FALSE)
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
 
-\item{metric}{for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"}, 
+\item{metric}{for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"},
 versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).}
 }
 \value{
 distancesmat, matrix of m x m (instances x intances) pairwise distances.
 }
 \description{
-Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors(). 
+Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors().
 Note: Probably best to standardize data before manhattan and euclidean.
-}
-\examples{
-dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
 }

@@ -17,17 +17,6 @@ reliefDetected(results.df, functional, top.pct)
 True positive rate: number of true postives divided by the number of functional
 }
 \description{
-Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile 
+Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile
 threshold, returns true positive rate.
-}
-\examples{
-functional.vars <- dataset$signal.names  
-relief <- CORElearn::attrEval(as.factor(class) ~ ., data = dats, 
-                              estimator = "ReliefFequalK",
-                              costMatrix = NULL,
-                              outputNumericSplits=FALSE,
-                              kNearestEqual = floor(knnSURF(nrow(dats),.5)/2)) # fn from npdr
-relief.order <- order(relief, decreasing = T)
-relief.df <- data.frame(att=names(relief)[relief.order], rrelief=relief[relief.order])
-reliefDetected(relief.df,functional.vars,p=.1)
 }

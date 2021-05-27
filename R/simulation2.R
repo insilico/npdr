@@ -47,7 +47,6 @@ stretch_mat <- function(M) {
 #'   \item{sig.vars}{indices of functional variables}
 #' }
 #'
-#' @examples
 #' @export
 
 generate_structured_corrmat <- function(g = NULL,
@@ -92,10 +91,10 @@ generate_structured_corrmat <- function(g = NULL,
 
   # functional variables are randomly defined from connected variables
   if (length(idx.connected) >= nbias) { # if number connected at least nbias
-    diff.cor.vars <- sample(idx.connected, size = nbias, replace = F)
+    diff.cor.vars <- sample(idx.connected, size = nbias, replace = FALSE)
   } else { # if too few are connected
     n.add.vars <- nbias - length(idx.connected)
-    diff.cor.vars <- c(idx.connected, sample(idx.not.connected, size = n.add.vars, replace = F)) # add some from unconnected
+    diff.cor.vars <- c(idx.connected, sample(idx.not.connected, size = n.add.vars, replace = FALSE)) # add some from unconnected
   }
 
   ## make make noisy covariance matrix form structure of adjacency matrix
@@ -157,7 +156,7 @@ generate_structured_corrmat <- function(g = NULL,
   # correct for negative eigenvalues to make matrix positive definite
   #
   if (use.Rcpp) { # compute eigenvalues and make diag matrix
-    R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+    R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
   } else {
     R.d <- diag(eigen(R)$values)
   }
@@ -208,12 +207,8 @@ generate_structured_corrmat <- function(g = NULL,
 #'   \item{holdout}{holdout data set}
 #'   \item{validation}{validation data set}
 #' }
-#' @examples
-#' data("rsfMRIcorrMDD") # from privateEC
-#' data.sets <- splitDataset(rsfMRIcorrMDD)
 #' @family simulation
 #' @export
-# splitDataset function
 ##########################################################################################
 splitDataset <- function(all.data = NULL,
                          pct.train = 0.5,
@@ -339,7 +334,6 @@ splitDataset <- function(all.data = NULL,
 #' studies by surrogate variable analysis. PLoS Genet., 3, 1724–1735
 #' @family simulation
 #' @export
-# createMainEffects function
 ##########################################################################################
 createMainEffects <- function(n.e = 1000,
                               n.db = 70,
@@ -407,7 +401,7 @@ createMainEffects <- function(n.e = 1000,
       }
     }
 
-    if (conf == TRUE) {
+    if (conf) {
       x1 <- c(
         rep("A", round(distr.db * len0)),
         rep("B", len0 - round(distr.db * len0))
@@ -620,8 +614,8 @@ createMainEffects <- function(n.e = 1000,
 #'   pct.train = 0.5,
 #'   pct.holdout = 0.5,
 #'   pct.validation = 0,
-#'   plot.graph = F,
-#'   verbose = T,
+#'   plot.graph = FALSE,
+#'   verbose = TRUE,
 #'   data.type = "continuous"
 #' )
 #'
@@ -646,8 +640,8 @@ createMainEffects <- function(n.e = 1000,
 #'   pct.train = 0.5,
 #'   pct.holdout = 0.5,
 #'   pct.validation = 0,
-#'   plot.graph = F,
-#'   verbose = T,
+#'   plot.graph = FALSE,
+#'   verbose = TRUE,
 #'   data.type = "discrete"
 #' )
 #' @export
@@ -668,7 +662,7 @@ createSimulation2 <- function(num.samples = 100,
                               mix.type = NULL,
                               pct.mixed = 0.5,
                               verbose = FALSE,
-                              plot.graph = F, use.Rcpp = F,
+                              plot.graph = FALSE, use.Rcpp = FALSE,
                               prob.connected = NULL,
                               out.degree = NULL,
                               data.type = "continuous",
@@ -971,9 +965,9 @@ createSimulation2 <- function(num.samples = 100,
       prob <- 1 / (num.variables + e) # probability of a node being connected to another node is less than 1/N to avoid giant component
 
       if (is.null(out.degree)) {
-        g <- igraph::barabasi.game(num.variables, directed = F) # scale-free network
+        g <- igraph::barabasi.game(num.variables, directed = FALSE) # scale-free network
       } else {
-        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = F)
+        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = FALSE)
       }
 
       if (!is.null(graph.structure)) {
@@ -1026,9 +1020,9 @@ createSimulation2 <- function(num.samples = 100,
       prob <- 1 / (num.variables + e) # probability of a node being connected to another node is less than 1/N to avoid giant component
 
       if (is.null(out.degree)) {
-        g <- igraph::barabasi.game(num.variables, directed = F) # scale-free network
+        g <- igraph::barabasi.game(num.variables, directed = FALSE) # scale-free network
       } else {
-        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = F)
+        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = FALSE)
       }
 
       if (!is.null(graph.structure)) {
@@ -1155,7 +1149,7 @@ createSimulation2 <- function(num.samples = 100,
         hi.cor.fixed = hi.cor,
         graph.type = "Erdos-Renyi",
         plot.graph = plot.graph,
-        make.diff.cors = T,
+        make.diff.cors = TRUE,
         nbias = nbias, use.Rcpp = use.Rcpp
       )
 
@@ -1198,7 +1192,7 @@ createSimulation2 <- function(num.samples = 100,
       # correct for negative eigenvalues so R is positive definite
       #
       if (use.Rcpp) { # compute eigenvalues and make diag matrix
-        R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+        R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
       } else {
         R.d <- diag(eigen(R)$values)
       }
@@ -1270,7 +1264,7 @@ createSimulation2 <- function(num.samples = 100,
         hi.cor.fixed = hi.cor,
         graph.type = "Erdos-Renyi",
         plot.graph = plot.graph,
-        make.diff.cors = T,
+        make.diff.cors = TRUE,
         nbias = nbias, use.Rcpp = use.Rcpp
       )
 
@@ -1327,7 +1321,7 @@ createSimulation2 <- function(num.samples = 100,
       # correct for negative eigenvalues so R is positive definite
       #
       if (use.Rcpp) { # compute eigenvalues and make diag matrix
-        R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+        R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
       } else {
         R.d <- diag(eigen(R)$values)
       }
@@ -1396,9 +1390,9 @@ createSimulation2 <- function(num.samples = 100,
       prob <- 1 / (num.variables + e) # probability of a node being connected to another node is less than 1/N to avoid giant component
 
       if (is.null(out.degree)) {
-        g <- igraph::barabasi.game(num.variables, directed = F) # scale-free network
+        g <- igraph::barabasi.game(num.variables, directed = FALSE) # scale-free network
       } else {
-        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = F)
+        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = FALSE)
       }
 
       if (!is.null(graph.structure)) {
@@ -1414,7 +1408,7 @@ createSimulation2 <- function(num.samples = 100,
         hi.cor.fixed = hi.cor,
         graph.type = "Scalefree",
         plot.graph = plot.graph,
-        make.diff.cors = T,
+        make.diff.cors = TRUE,
         nbias = nbias, use.Rcpp = use.Rcpp
       )
 
@@ -1458,7 +1452,7 @@ createSimulation2 <- function(num.samples = 100,
       # correct for negative eigenvalues to make R positive definite
       #
       if (use.Rcpp) { # compute eigenvalues and make diag matrix
-        R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+        R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
       } else {
         R.d <- diag(eigen(R)$values)
       }
@@ -1513,9 +1507,9 @@ createSimulation2 <- function(num.samples = 100,
       prob <- 1 / (num.variables + e) # probability of a node being connected to another node is less than 1/N to avoid giant component
 
       if (is.null(out.degree)) {
-        g <- igraph::barabasi.game(num.variables, directed = F) # scale-free network
+        g <- igraph::barabasi.game(num.variables, directed = FALSE) # scale-free network
       } else {
-        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = F)
+        g <- igraph::barabasi.game(num.variables, m = out.degree, directed = FALSE)
       }
 
       if (!is.null(graph.structure)) {
@@ -1531,7 +1525,7 @@ createSimulation2 <- function(num.samples = 100,
         hi.cor.fixed = hi.cor,
         graph.type = "Scalefree",
         plot.graph = plot.graph,
-        make.diff.cors = T,
+        make.diff.cors = TRUE,
         nbias = nbias, use.Rcpp = use.Rcpp
       )
 
@@ -1588,7 +1582,7 @@ createSimulation2 <- function(num.samples = 100,
       # correct for negative eigenvalues so R is positive definite
       #
       if (use.Rcpp) { # compute eigenvalues and make diag matrix
-        R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+        R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
       } else {
         R.d <- diag(eigen(R)$values)
       }
@@ -1681,7 +1675,7 @@ createSimulation2 <- function(num.samples = 100,
           hi.cor.fixed = hi.cor,
           graph.type = "Erdos-Renyi",
           plot.graph = plot.graph,
-          make.diff.cors = T,
+          make.diff.cors = TRUE,
           nbias = num.int, use.Rcpp = use.Rcpp
         )
 
@@ -1726,7 +1720,7 @@ createSimulation2 <- function(num.samples = 100,
         # correct for negative eigenvalues so R is positive definite
         #
         if (use.Rcpp) { # compute eigenvalues and make diag matrix
-          R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+          R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
         } else {
           R.d <- diag(eigen(R)$values)
         }
@@ -1833,7 +1827,7 @@ createSimulation2 <- function(num.samples = 100,
           hi.cor.fixed = hi.cor,
           graph.type = "Erdos-Renyi",
           plot.graph = plot.graph,
-          make.diff.cors = T,
+          make.diff.cors = TRUE,
           nbias = num.int, use.Rcpp = use.Rcpp
         )
 
@@ -1892,7 +1886,7 @@ createSimulation2 <- function(num.samples = 100,
         # correct for negative eigenvalues so R is positive definite
         #
         if (use.Rcpp) { # compute eigenvalues and make diag matrix
-          R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+          R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
         } else {
           R.d <- diag(eigen(R)$values)
         }
@@ -2014,9 +2008,9 @@ createSimulation2 <- function(num.samples = 100,
 
         # generate random Scale-Free network
         if (is.null(out.degree)) {
-          g <- igraph::barabasi.game((num.variables - num.main), directed = F)
+          g <- igraph::barabasi.game((num.variables - num.main), directed = FALSE)
         } else {
-          g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = F)
+          g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = FALSE)
         }
 
         # generate case group correlation matrix
@@ -2028,7 +2022,7 @@ createSimulation2 <- function(num.samples = 100,
           hi.cor.fixed = hi.cor,
           graph.type = "Scalefree",
           plot.graph = plot.graph,
-          make.diff.cors = T,
+          make.diff.cors = TRUE,
           nbias = num.int, use.Rcpp = use.Rcpp
         )
 
@@ -2073,7 +2067,7 @@ createSimulation2 <- function(num.samples = 100,
         # correct for negative eigenvalues to make R positive definite
         #
         if (use.Rcpp) { # compute eigenvalues and make diag matrix
-          R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+          R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
         } else {
           R.d <- diag(eigen(R)$values)
         }
@@ -2166,9 +2160,9 @@ createSimulation2 <- function(num.samples = 100,
 
         # generate random Scale-Free network
         if (is.null(out.degree)) {
-          g <- igraph::barabasi.game((num.variables - num.main), directed = F)
+          g <- igraph::barabasi.game((num.variables - num.main), directed = FALSE)
         } else {
-          g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = F)
+          g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = FALSE)
         }
 
         # generate correlation matrix from g
@@ -2180,7 +2174,7 @@ createSimulation2 <- function(num.samples = 100,
           hi.cor.fixed = hi.cor,
           graph.type = "Scalefree",
           plot.graph = plot.graph,
-          make.diff.cors = T,
+          make.diff.cors = TRUE,
           nbias = num.int, use.Rcpp = use.Rcpp
         )
 
@@ -2239,7 +2233,7 @@ createSimulation2 <- function(num.samples = 100,
         # correct for negative eigenvalues so R is positive definite
         #
         if (use.Rcpp) { # compute eigenvalues and make diag matrix
-          R.d <- diag(sort(c(getEigenValues(R)), decreasing = T))
+          R.d <- diag(sort(c(getEigenValues(R)), decreasing = TRUE))
         } else {
           R.d <- diag(eigen(R)$values)
         }
@@ -2493,7 +2487,6 @@ createSimulation2 <- function(num.samples = 100,
 #'   \item{dataset}{(matrix) of dimension num.samples x num.variables*(num.variables - 1), where each row}
 #'   \item{corr.attr.names}{(character) ordered vec of ROI names from simulation. Each subject's correlation matrix will have this exact order in its rows and columns.}
 #' }
-#' @examples
 #' @export
 createfMRIsimulation <- function(num.samples = 100,
                                  num.variables = 100,
@@ -2511,7 +2504,7 @@ createfMRIsimulation <- function(num.samples = 100,
                                  plot.graph = FALSE, use.Rcpp = FALSE,
                                  prob.connected = NULL,
                                  out.degree = NULL,
-                                 sim.graph.structure = T,
+                                 sim.graph.structure = TRUE,
                                  graph.structure = NULL) {
   if (sim.graph.structure) {
     nbias <- pct.signals * num.variables # number of functional attributes
@@ -2529,9 +2522,9 @@ createfMRIsimulation <- function(num.samples = 100,
           g <- igraph::erdos.renyi.game(num.variables, prob) # Erdos-Renyi network
         } else if (c(sim.type %in% c("interactionScalefree", "mainEffect_Scalefree"))) {
           if (is.null(out.degree)) {
-            g <- igraph::barabasi.game(num.variables, directed = F) # scale-free network
+            g <- igraph::barabasi.game(num.variables, directed = FALSE) # scale-free network
           } else {
-            g <- igraph::barabasi.game(num.variables, m = out.degree, directed = F)
+            g <- igraph::barabasi.game(num.variables, m = out.degree, directed = FALSE)
           }
         }
       } else if (sim.type == "mixed") {
@@ -2551,9 +2544,9 @@ createfMRIsimulation <- function(num.samples = 100,
         } else if (mix.type == "main-interactionScalefree") {
           # generate random Scale-Free network
           if (is.null(out.degree)) {
-            g <- igraph::barabasi.game((num.variables - num.main), directed = F)
+            g <- igraph::barabasi.game((num.variables - num.main), directed = FALSE)
           } else {
-            g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = F)
+            g <- igraph::barabasi.game((num.variables - num.main), m = out.degree, directed = FALSE)
           }
         }
       }
@@ -2590,9 +2583,9 @@ createfMRIsimulation <- function(num.samples = 100,
       pct.train = 0.5,
       pct.holdout = 0.5,
       pct.validation = 0,
-      plot.graph = F,
-      verbose = T,
-      use.Rcpp = T,
+      plot.graph = FALSE,
+      verbose = TRUE,
+      use.Rcpp = TRUE,
       prob.connected = prob.connected,
       out.degree = out.degree,
       data.type = data.type,
@@ -2632,9 +2625,9 @@ createfMRIsimulation <- function(num.samples = 100,
       pct.train = 0.5,
       pct.holdout = 0.5,
       pct.validation = 0,
-      plot.graph = F,
-      verbose = T,
-      use.Rcpp = T,
+      plot.graph = FALSE,
+      verbose = TRUE,
+      use.Rcpp = TRUE,
       prob.connected = prob.connected,
       out.degree = out.degree,
       data.type = data.type

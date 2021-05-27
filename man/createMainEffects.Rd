@@ -32,7 +32,7 @@ createMainEffects(
 \item{label}{A character vector for the name of the outcome column. class for classification
 and qtrait for regression}
 
-\item{pct.imbalance}{A numeric percentage to indicate proportion of the imbalaced samples. 
+\item{pct.imbalance}{A numeric percentage to indicate proportion of the imbalaced samples.
 0 means all controls and 1 mean all cases.}
 
 \item{sv.db}{batches}

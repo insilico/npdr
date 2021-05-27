@@ -19,37 +19,6 @@
 #'   \item{best.auPRC.k}{1 x 2 data.frame of auPRC-optimal fixed k (if signal.names provided) and corresponding auPRC}
 #' }
 #' 
-#' @examples
-#' # Main effect simulation for standard m x p data set
-#' num.samples <- 100
-#' num.variables <- 100
-#' pct.imbalance <- 0.5
-#' pct.signals <- 0.1
-#' main.bias <- 0.5
-#' sim.type <- "mainEffect"
-#'
-#' dataset <- createSimulation2(num.samples=num.samples,
-#'                              num.variables=num.variables,
-#'                              pct.imbalance=pct.imbalance,
-#'                              pct.signals=pct.signals,
-#'                              main.bias=main.bias,
-#'                              label="class",
-#'                              sim.type=sim.type,
-#'                              pct.mixed=0.5,
-#'                              pct.train=0.5,
-#'                              pct.holdout=0.5,
-#'                              pct.validation=0,
-#'                              verbose=T,
-#'                              data.type="continuous")
-#' dats <- rbind(dataset$train, dataset$holdout, dataset$validation)
-#' dats <- dats[order(dats[,ncol(dats)]),]
-#'
-#' # run Variable-Wise Optimized k function
-#' out <- vwok(dats=dats,
-#'             k.grid=NULL,
-#'             verbose=T,
-#'             attr.diff.type="numeric-abs",
-#'             label="class")
 #' @export
 #' 
 vwok <- function(dats=NULL,

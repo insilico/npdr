@@ -17,10 +17,7 @@ npdrDiff(a, b, diff.type = "numeric-abs", norm.fac = 1)
 val diff or vector of diffs
 }
 \description{
-A diff is a function that computes the diffrence of values for an attribute between two instances.
-It is used for attribute selection for attribute diffs and phenotype diffs.  
+A diff is a function that computes the difference of values for an attribute between two instances.
+It is used for attribute selection for attribute diffs and phenotype diffs.
 This function is vectorized: input a and b can be two vectors of values for one attribute.
-}
-\examples{
-Example
 }

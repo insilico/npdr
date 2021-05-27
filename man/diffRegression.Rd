@@ -26,6 +26,3 @@ vector of regression stats to put into list for npdr and combine into matrix
 \description{
 Wrapper for lm and glm-binomial to run regression for a phenotype diff vector, one attribute diff vector with optional covariate adjustment. Organizes regression statistics into a vector and then all attribute statistics combined in npdr.
 }
-\examples{
-
-}

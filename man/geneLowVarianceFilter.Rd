@@ -17,8 +17,3 @@ mask and filtered data
 \description{
 Low variance mask and filtered data for gene expression matrix.
 }
-\examples{
-pct <- 0.7 # higher value more strict
-filter <- geneLowVarianceFilter(unfiltered.predictors.mat, pct)
-filtered.data.df <- data.frame(filter$fdata, class = rnaseq.mdd.phenotype)
-}

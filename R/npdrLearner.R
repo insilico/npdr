@@ -21,7 +21,7 @@
 #'
 #' @examples
 #' test.results <- npdrLearner(
-#'   train.outcome = "class", train.data = case.control.data,
+#'   train.outcome = "class", train.data = case.control.3sets$train,
 #'   test.outcome = "class", test.data = case.control.3sets$validation,
 #'   nb.method = "relieff",
 #'   nb.metric = "manhattan",
@@ -128,7 +128,9 @@ npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
 #' @return  Ri.nearestNeighbors.list: list of Ri's (data2 test instances) NN's in data1 (train instances)
 #'
 #' @examples
-#' test.neighbors <- nearestNeighbors2(train.data, test.data, # no phenotype column
+#' test.neighbors <- nearestNeighbors2(
+#'   case.control.3sets$train, 
+#'   case.control.3sets$validation, # no phenotype column
 #'   nb.method = "relieff",
 #'   nb.metric = "manhattan",
 #'   sd.vec = NULL, sd.frac = 0.5,
@@ -159,7 +161,7 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       k <- floor((num.samp1 - 1) * (1 - erf(sd.frac / sqrt(2))) / 2) # uses sd.frac
     }
 
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
@@ -206,7 +208,7 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       Ri.radius <- colMeans(dist.mat) - sd.frac * sd.vec # use adaptive radius
       names(Ri.radius) <- as.character(1:num.samp2)
     }
-    if (dopar.nn == TRUE) {
+    if (dopar.nn) {
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)

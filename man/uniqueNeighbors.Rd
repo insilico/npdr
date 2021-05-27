@@ -11,12 +11,9 @@ uniqueNeighbors(neighbor.pairs)
 }
 \value{
 new neighborhood pair matrix of only unique pairs
+unique neighbor pairs
 }
 \description{
-Find pairs of unique nearest neighbors pairs from possible redundant pairs. 
+Find pairs of unique nearest neighbors pairs from possible redundant pairs.
 Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functions.
-}
-\examples{
-unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)  # unique neighbor pairs
-
 }
