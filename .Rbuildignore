@@ -8,3 +8,4 @@ R/^inbixGAIN\.R$
 ^R/TODO\.R$
 ^R/npdrLearner\.R$
 ^\.DS_Store$
+^data-raw$
