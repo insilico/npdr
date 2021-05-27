@@ -9,7 +9,6 @@ nearestNeighborsSeparateHitMiss(
   pheno.vec,
   nb.method = "relieff",
   nb.metric = "manhattan",
-  sd.vec = NULL,
   sd.frac = 0.5,
   k = 0,
   neighbor.sampling = "none",

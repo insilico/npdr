@@ -7,7 +7,7 @@
 uniqueNeighbors(neighbor.pairs)
 }
 \arguments{
-\item{neighbor.pairs.idx}{two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function}
+\item{neighbor.pairs}{two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function}
 }
 \value{
 new neighborhood pair matrix of only unique pairs

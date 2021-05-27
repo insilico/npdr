@@ -22,6 +22,10 @@ generate_structured_corrmat(
 
 \item{num.variables}{number of independent variables in data matrix}
 
+\item{hi.cor.tmp}{high correlation proportion}
+
+\item{lo.cor.tmp}{low correlation proportion}
+
 \item{hi.cor.fixed}{high correlation for network connected/non-functional features}
 
 \item{graph.type}{either Erdos-Renyi or Scale-Free graph}
@@ -31,6 +35,8 @@ generate_structured_corrmat(
 \item{make.diff.cors}{logical indicating whether case correlation matrix for differential correlation is being created or not}
 
 \item{nbias}{number of functional interaction variables}
+
+\item{use.Rcpp}{logical, whether to use Rcpp or not}
 
 \item{hi.cor}{upper baseline pairwise functional correlation in control group}
 

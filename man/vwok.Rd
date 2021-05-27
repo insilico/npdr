@@ -26,6 +26,8 @@ vwok(
 
 \item{corr.attr.names}{character indicating names of ROIs for attr.diff.type='correlation-data'. Default is NULL.}
 
+\item{signal.names}{variable names with simulated signals}
+
 \item{separate.hitmiss.nbds}{logical indicating whether to compute hit/miss neighborhoods separately. Default is FALSE.}
 
 \item{label}{character indicating type of response. Default is "class" and should not change as of yet.}

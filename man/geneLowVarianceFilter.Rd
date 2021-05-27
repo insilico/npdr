@@ -9,7 +9,7 @@ geneLowVarianceFilter(dataMatrix, percentile = 0.5)
 \arguments{
 \item{dataMatrix}{data matrix with predictors only, sample x gene}
 
-\item{pct}{percentile of low variance removed}
+\item{percentile}{percentile of low variance removed}
 }
 \value{
 mask and filtered data

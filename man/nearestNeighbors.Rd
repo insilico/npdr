@@ -24,6 +24,8 @@ nearestNeighbors(
 
 \item{nb.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
 
+\item{sd.vec}{vector of standard deviations}
+
 \item{sd.frac}{multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
 
 \item{k}{number of constant nearest hits/misses for \code{"relieff"} (fixed k).

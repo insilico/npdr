@@ -11,7 +11,7 @@ rfDetected(results.df, functional, top.pct)
 
 \item{functional}{character vector of functional/true attribute names}
 
-\item{p}{percentile of top relief scores compared with the functional list}
+\item{top.pct}{percentile of top relief scores compared with the functional list}
 }
 \value{
 True positive rate: number of true postives divided by the number of functional

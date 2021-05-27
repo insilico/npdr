@@ -11,6 +11,10 @@ npdrDiff(a, b, diff.type = "numeric-abs", norm.fac = 1)
 
 \item{b}{value of attribute for second instance. Vector for correlation-data.}
 
+\item{diff.type}{Metric for the difference computation.}
+
+\item{norm.fac}{Normalization factor.}
+
 \item{type}{diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.}
 }
 \value{

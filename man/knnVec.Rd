@@ -7,7 +7,7 @@
 knnVec(neighbor.pairs.mat)
 }
 \arguments{
-\item{neighbor.pairs.idx}{two columns of redundant "i,j" pairs from nearestNeighbors function}
+\item{neighbor.pairs.mat}{two columns of redundant "i,j" pairs from nearestNeighbors function}
 }
 \value{
 knn.vec vector number of nearest neighbors for each instance

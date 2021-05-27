@@ -23,6 +23,7 @@ createfMRIsimulation(
   prob.connected = NULL,
   out.degree = NULL,
   sim.graph.structure = TRUE,
+  data.type = "continuous",
   graph.structure = NULL
 )
 }
@@ -65,21 +66,9 @@ main-interactionErdos/main-interactionScalefree}
 
 \item{sim.graph.structure}{- (logical) set to TRUE for random graph from igraph package. If FALSE, must provide graph structure as input.}
 
-\item{graph.structure}{(igraph) graph structure generated from igraph, NULL default}
-
-\item{pct.train}{fraction of num.samples used for training}
-
-\item{pct.holdout}{fraction of num.samples used for holdout}
-
-\item{pct.validation}{fraction of num.samples used for validation}
-
-\item{save.file}{logical but not currently being used}
-
-\item{verbose}{logical indicating whether to display time required to generate simulation}
-
 \item{data.type}{character indicating if data is from a "continuous" or "discrete" distribution}
 
-\item{avg.maf}{numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations}
+\item{graph.structure}{(igraph) graph structure generated from igraph, NULL default}
 }
 \value{
 A list with:
