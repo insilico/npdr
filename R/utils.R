@@ -240,11 +240,23 @@ geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
 #' Hamming distance for a binary matrix
 #' https://johanndejong.wordpress.com/2015/10/02/faster-hamming-distance-in-r-2/
 #' 
-#' @param X 
+#' @param X Original matrix.
 #'
-#' @return Distance matrix with the Hamming metric
+#' @return Distance matrix with the Hamming metric.
 #' @export
 hamming.binary <- function(X) {
   D <- t(1 - X) %*% X
   D + t(D)
+}
+
+#' =========================================================================#
+#' Compute denominator of the diff formula
+#' for each attribute x (column) in my.mat, max(x) - min(x)
+#' 
+#' @param my.mat attribute matrix
+#'
+#' @return Numeric vectors representing the denominators in the diff formula
+#' 
+attr.range <- function(my.mat) {
+  apply(as.matrix(my.mat), 2, function(x) {max(x) - min(x)})
 }

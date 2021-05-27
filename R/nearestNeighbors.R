@@ -8,6 +8,9 @@
 #' @param a value of attribute for first instance. Vector for correlation-data.
 #' @param b value of attribute for second instance. Vector for correlation-data.
 #' @param type diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.
+#' @param diff.type Metric for the difference computation.
+#' @param norm.fac Normalization factor.
+#' 
 #' @return val diff or vector of diffs
 #' @export
 npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
@@ -35,8 +38,12 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
 #' Note: Probably best to standardize data before manhattan and euclidean.
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes
-#' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"},
-#' versions scaled by max-min, \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"}, and for GWAS \code{"allele-sharing-manhattan"}).
+#' @param metric for distance matrix between instances (default: \code{"manhattan"},
+#' others include \code{"euclidean"}, versions scaled by max-min,
+#' \code{"relief-scaled-manhattan"} and \code{"relief-scaled-euclidean"},
+#' and for GWAS \code{"allele-sharing-manhattan"}).
+#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
+#'
 #' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
 #' @export
 npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
@@ -87,6 +94,7 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' @param attr.mat m x p matrix of m instances and p attributes
 #' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
 #' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param sd.vec vector of standard deviations
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
@@ -184,7 +192,9 @@ nearestNeighbors <- function(attr.mat,
       names(Ri.radius) <- as.character(1:num.samp)
     }
     if (nb.method == "multisurf") {
-      if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp, function(x) sd(dist.mat[-x, x]))
+      if (is.null(sd.vec)) {
+        sd.vec <- sapply(1:num.samp, function(x) sd(dist.mat[-x, x]))
+      }
       Ri.radius <- colSums(dist.mat) / (num.samp - 1) - sd.frac * sd.vec # use adaptive radius
     }
     if (dopar.nn) {
@@ -251,9 +261,9 @@ nearestNeighbors <- function(attr.mat,
 #' @param pheno.vec vector of class values for m instances
 #' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
 #' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
-#' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
+#' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to return only unique neighbor pairs
 #' @param att_to_remove attributes for removal (possible confounders) from the distance matrix calculation.
 #' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
@@ -264,7 +274,7 @@ nearestNeighbors <- function(attr.mat,
 nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
                                             nb.method = "relieff",
                                             nb.metric = "manhattan",
-                                            sd.vec = NULL, sd.frac = 0.5, k = 0,
+                                            sd.frac = 0.5, k = 0,
                                             neighbor.sampling = "none",
                                             att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
   # create a matrix with num.samp rows and two columns
@@ -476,7 +486,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #' Find pairs of unique nearest neighbors pairs from possible redundant pairs.
 #' Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functions.
 #'
-#' @param neighbor.pairs.idx two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function
+#' @param neighbor.pairs two columns of (possibly redundant) "i,j" pairs from nearestNeighbors function
 #' @return new neighborhood pair matrix of only unique pairs
 #' unique neighbor pairs
 #' @export
@@ -499,7 +509,7 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #'
 #' Number of neighbors for each sample (vector) from a neighbor-pair matrix.
 #'
-#' @param neighbor.pairs.idx two columns of redundant "i,j" pairs from nearestNeighbors function
+#' @param neighbor.pairs.mat two columns of redundant "i,j" pairs from nearestNeighbors function
 #' @return  knn.vec vector number of nearest neighbors for each instance
 #'
 #' @export

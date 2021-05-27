@@ -39,6 +39,11 @@ stretch_mat <- function(M) {
 #' @param make.diff.cors logical indicating whether case correlation matrix for differential correlation is being created or not
 #' @param nbias number of functional interaction variables
 #' @param hi.cor.fixed high correlation for network connected/non-functional features
+#' @param hi.cor.tmp high correlation proportion
+#' @param lo.cor.tmp low correlation proportion
+#' @param use.Rcpp logical, whether to use Rcpp or not
+#' 
+#' 
 #' @return A list containing:
 #' \describe{
 #'   \item{cor.mat}{structured correlation matrix}
@@ -2465,22 +2470,16 @@ createSimulation2 <- function(num.samples = 100,
 #' @param label should just be "class" for binary response
 #' @param sim.type a character that determines the type of simulation:
 #' mainEffect/mainEffect_Erdos-Renyi/mainEffect_Scalefree/interactionErdos/interactionScalefree/mixed
-#' @param pct.train fraction of num.samples used for training
-#' @param pct.holdout fraction of num.samples used for holdout
-#' @param pct.validation fraction of num.samples used for validation
-#' @param save.file logical but not currently being used
 #' @param mix.type character that determines the type of mixed effects simulation:
 #' main-interactionErdos/main-interactionScalefree
 #' @param pct.mixed percent of functional variables that are main effects (1 - pct_interaction). Use with sim.type="mixed" and specify mix.type.
-#' @param verbose logical indicating whether to display time required to generate simulation
 #' @param plot.graph logical indicating whether to plot networks
 #' @param use.Rcpp if true use Rcpp to correct negative eigenvalues
 #' @param prob.connected probability of drawing an edge between two arbitrary vertices in Erdos-Renyi graph
 #' @param out.degree out-degree of vertices in Scale-free graph
-#' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
-#' @param avg.maf numeric in (0,1) indicating the desired average MAF for GWAS main effect simulations
 #' @param num.times - (numeric) number of time points for each ROI (same for cases and controls)
 #' @param graph.structure (igraph) graph structure generated from igraph, NULL default
+#' @param data.type character indicating if data is from a "continuous" or "discrete" distribution
 #' @param sim.graph.structure - (logical) set to TRUE for random graph from igraph package. If FALSE, must provide graph structure as input.
 #' @return A list with:
 #' \describe{
@@ -2505,6 +2504,7 @@ createfMRIsimulation <- function(num.samples = 100,
                                  prob.connected = NULL,
                                  out.degree = NULL,
                                  sim.graph.structure = TRUE,
+                                 data.type = "continuous",
                                  graph.structure = NULL) {
   if (sim.graph.structure) {
     nbias <- pct.signals * num.variables # number of functional attributes

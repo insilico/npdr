@@ -7,9 +7,9 @@
 #' @param regression.type (\code{"lm"}, \code{"binomial"})
 #' @param fast.reg logical, whether regression is run with speedlm or speedglm, default as F
 #' @param dof manual input for degrees of freedom, dof=0 lets R stats determine
-#' 
-#' @importFrom stats cor binomial lm glm pt var quantile rnorm pnorm runif rbinom qbinom
-#' 
+#'
+#' @importFrom stats dist p.adjust predict sd cor binomial lm glm pt var quantile rnorm pnorm runif rbinom qbinom
+#'
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @export
@@ -101,7 +101,9 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param dopar.nn logical, whether or not neighborhood is computed in parallel, default as F
 #' @param dopar.reg logical, whether or not regression is run in parallel, default as F
 #' @param unique.dof use unique neighbor pairs for degrees of freedom. FALSE lets R stats determine regression degrees of freedom
-#'
+#' @param verbose logical, whether to print out intermediate steps
+#' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
+#' 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
 #'
 #' @importFrom utils capture.output combn write.table
@@ -110,22 +112,36 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @import dplyr
 #'
 #' @examples
-#' \donttest{
 #' # Data interface options.
-#' # Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
-#' # ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
-#' npdr.results.df <- npdr("qtrait", qtrait.3sets$train, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
+#' # Specify name ("qtrait") of outcome and dataset, 
+#' # which is a data frame including the outcome column.
+#' # ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) 
+#' # if you do not specify k or let k=0.
+#' npdr.results.df <- npdr(
+#'   "qtrait", qtrait.3sets$train, 
+#'   regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+#'   attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
+#'   msurf.sd.frac = 0.5, padj.method = "bonferroni")
 #'
-#' # Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
-#' #  # ReliefF fixed-k nbd, choose a k (knn=10). Or choose msurf.sd.frac
-#' npdr.results.df <- npdr(101, qtrait.3sets$train, regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", knn = 10, padj.method = "bonferroni")
+#' # Specify column index (101) of outcome and dataset, 
+#' # which is a data frame including the outcome column.
+#' # ReliefF fixed-k nbd, choose a k (knn = 10). Or choose msurf.sd.frac
+#' npdr.results.df <- npdr(
+#'   101, qtrait.3sets$train, 
+#'   regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+#'   attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
+#'   knn = 10, padj.method = "bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
-#' # npdr.results.df <- npdr(pheno.vec, predictors.mat, regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan", attr.diff.type = "manhattan", covar.diff.type = "manhattan", msurf.sd.frac = 0.5, padj.method = "bonferroni")
+#' # npdr.results.df <- npdr(
+#' #   pheno.vec, predictors.mat,
+#' #   regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan",
+#' #   attr.diff.type = "manhattan", covar.diff.type = "manhattan",
+#' #   msurf.sd.frac = 0.5, padj.method = "bonferroni"
+#' #   )
 #' # attributes with npdr adjusted p-value less than .05
 #' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) # npdr p.adj<.05
-#' }
 #' @export
 #'
 npdr <- function(outcome, dataset,
@@ -154,14 +170,14 @@ npdr <- function(outcome, dataset,
 
   if (attr.diff.type == "correlation-data") { # corrdata
     mynum <- dim(attr.mat)[2]
-    for (i in seq(1, mynum - 1, by = 1)) {
+    for (i in seq(1, mynum - 1)) {
       mydiv <- i
       if ((mydiv * (mydiv - 1)) == mynum) {
         my.dimension <- mydiv
         break
       }
     }
-    num.attr <- my.dimension 
+    num.attr <- my.dimension
   } else {
     num.attr <- ncol(attr.mat)
   }
