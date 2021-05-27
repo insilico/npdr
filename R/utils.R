@@ -165,7 +165,7 @@ detectionStats <- function(functional, positives) {
 #'
 #' @param results.df dataframe of relief-sorted (high to low) attribute names from CORElearn
 #' @param functional character vector of functional/true attribute names
-#' @param p percentile of top relief scores compared with the functional list
+#' @param top.pct percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
 #' @export
 reliefDetected <- function(results.df, functional, top.pct) {
@@ -185,7 +185,7 @@ reliefDetected <- function(results.df, functional, top.pct) {
 #'
 #' @param results.df dataframe of sorted (high to low) attribute names from randomForest
 #' @param functional character vector of functional/true attribute names
-#' @param p percentile of top relief scores compared with the functional list
+#' @param top.pct percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
 #' @export
 rfDetected <- function(results.df, functional, top.pct) {
@@ -205,7 +205,7 @@ rfDetected <- function(results.df, functional, top.pct) {
 #'
 #' @param results.df dataframe of sorted (low to high P value) attribute names from NPDR
 #' @param functional character vector of functional/true attribute names
-#' @param p percentile of top relief scores compared with the functional list
+#' @param top.pct percentile of top relief scores compared with the functional list
 #' @return True positive rate: number of true postives divided by the number of functional
 #' @export
 npdrDetected <- function(results.df, functional, top.pct) {
@@ -223,7 +223,7 @@ npdrDetected <- function(results.df, functional, top.pct) {
 #' Low variance mask and filtered data for gene expression matrix.
 #'
 #' @param dataMatrix data matrix with predictors only, sample x gene
-#' @param pct percentile of low variance removed
+#' @param percentile percentile of low variance removed
 #' @return mask and filtered data
 #' @export
 geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
@@ -234,4 +234,17 @@ geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
   fdata <- dataMatrix[, mask]
   # return the row mask and filtered data
   list(mask = mask, fdata = fdata)
+}
+
+# =========================================================================#
+#' Hamming distance for a binary matrix
+#' https://johanndejong.wordpress.com/2015/10/02/faster-hamming-distance-in-r-2/
+#' 
+#' @param X 
+#'
+#' @return Distance matrix with the Hamming metric
+#' @export
+hamming.binary <- function(X) {
+  D <- t(1 - X) %*% X
+  D + t(D)
 }
