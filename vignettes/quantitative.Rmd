@@ -1,0 +1,250 @@
+---
+title: "Using NPDR to identify functional features"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Explore treeheatr}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[UTF-8]{inputenc}
+---
+
+<!-- ```{r} -->
+
+<!-- library(privateEC) -->
+<!-- library(broom) -->
+<!-- library(tidyverse) -->
+
+<!-- ## npdr install -->
+<!-- # library(devtools) -->
+<!-- # install_github("insilico/npdr") -->
+<!-- # library(npdr) -->
+<!-- set.seed(1618) -->
+
+<!-- ##### simulate case-control interaction effect data -->
+<!-- n.samples <- 300 # 100 samples in train/holdout/test -->
+<!-- n.variables <- 100 # 100 features -->
+<!-- label <- "qtrait" # tells simulator to do quantitative trait and adds this colname -->
+<!-- type <- "mainEffect" -->
+<!-- bias <- 0.6 # moderate effect size -->
+<!-- pct.signals <- 0.1 # pct functional features -->
+<!-- verbose <- FALSE -->
+<!-- qtrait.3sets <- createSimulation( -->
+<!--   num.samples = n.samples, -->
+<!--   num.variables = n.variables, -->
+<!--   pct.signals = pct.signals, -->
+<!--   label = label, -->
+<!--   bias = bias, -->
+<!--   pct.train = 1 / 3, -->
+<!--   pct.holdout = 1 / 3, -->
+<!--   pct.validation = 1 / 3, -->
+<!--   sim.type = type, -->
+<!--   save.file = NULL, -->
+<!--   verbose = verbose -->
+<!-- ) -->
+<!-- # combine train and holdout into 200 samples x 100 attributes -->
+<!-- # ignore validation set -->
+<!-- qtrait.data <- rbind(qtrait.3sets$train, qtrait.3sets$holdout) -->
+<!-- # validation.data <- data.sets$validation -->
+<!-- n.samples.qtrait <- dim(qtrait.data)[1] -->
+<!-- pheno.qtrait <- qtrait.data[, "qtrait"] -->
+<!-- functional.qtrait <- qtrait.3sets$signal.names # functional attributes -->
+
+<!-- ##### Univariate logistic regression -->
+<!-- # linear regression on all predictors, fdr adjust, check functional hits -->
+<!-- # standardized beta and p-value -->
+<!-- # npdr utulity function -->
+<!-- univariate.results <- uniReg(outcome = "qtrait", dataset = qtrait.data, regression.type = "lm") -->
+<!-- univariate.results[1:10, ] -->
+<!-- # fdr significant. -->
+<!-- univariate.05.fdr <- univariate.results[univariate.results[, "p.adj"] < .05, ] -->
+<!-- univariate.05.fdr -->
+<!-- cat(detectionStats(functional.qtrait, rownames(univariate.05.fdr))$report) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- regression.type <- "lm" -->
+<!-- attr.diff.type <- "numeric-abs" -->
+<!-- nbd.method <- "multisurf" -->
+<!-- nbd.metric <- "manhattan" -->
+<!-- msurf.sd.frac <- .5 -->
+<!-- neighbor.sampling <- "unique" -->
+<!-- speedy <- T -->
+<!-- padj.method <- "bonferroni" -->
+<!-- verbose <- T -->
+<!-- outcome <- "qtrait" -->
+<!-- dataset <- qtrait.data -->
+<!-- rm.attr.from.dist <- c() -->
+<!-- covars <- c() -->
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- if (length(outcome) == 1) { -->
+<!--   # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable -->
+<!--   pheno.vec <- dataset[, outcome] # get phenotype -->
+<!--   if (is.character(outcome)) { # example column name: outcome="qtrait" -->
+<!--     attr.mat <- dataset[, !(names(dataset) %in% outcome)] # drop the outcome/phenotype -->
+<!--   } else { # example column index: outcome=101 -->
+<!--     attr.mat <- dataset[, -outcome] # drop the outcome/phenotype -->
+<!--   } -->
+<!-- } else { # user specifies a separate phenotype vector -->
+<!--   pheno.vec <- outcome # assume users provides a separate outcome data vector -->
+<!--   attr.mat <- dataset # assumes dataset only contains attributes/predictors -->
+<!-- } -->
+<!-- rm(dataset) # cleanup memory -->
+
+<!-- num.attr <- ncol(attr.mat) -->
+<!-- num.samp <- nrow(attr.mat) -->
+
+<!-- ##### get Neighbors (no phenotype used) -->
+<!-- # nbd.method (relieff, multisurf...), nbd.metric (manhattan...), k (for relieff nbd, theoerical surf default) -->
+<!-- # msurf.sd.frac used by surf/multisurf relieff for theoretical k -->
+<!-- if (verbose) { -->
+<!--   cat("Finding nearest neighbor pairs.\n") -->
+<!-- } -->
+<!-- start_time <- Sys.time() -->
+<!-- neighbor.pairs.idx <- nearestNeighbors(attr.mat, -->
+<!--   nb.method = nbd.method, nb.metric = nbd.metric, -->
+<!--   sd.frac = msurf.sd.frac, k = knn, -->
+<!--   attr_removal_vec_from_dist_calc = rm.attr.from.dist -->
+<!-- ) -->
+<!-- num.neighbor.pairs <- nrow(neighbor.pairs.idx) -->
+<!-- k.ave.empirical <- mean(knnVec(neighbor.pairs.idx)) -->
+<!-- if (neighbor.sampling == "unique") { -->
+<!--   if (verbose) { -->
+<!--     cat("Extracting unique neighbors.\n") -->
+<!--   } -->
+<!--   # if you only want to return unique neighbors -->
+<!--   neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx) -->
+<!-- } -->
+<!-- end_time <- Sys.time() -->
+<!-- if (verbose) { -->
+<!--   cat("Neighborhood calculation time: ") -->
+<!--   difftime(end_time, start_time) -->
+<!--   cat("\n", sep = "") -->
+<!--   cat(num.neighbor.pairs, "total neighbor pairs (possible repeats).\n") -->
+<!--   erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1 -->
+<!--   # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group) -->
+<!--   k.msurf.theory <- knnSURF(num.samp, msurf.sd.frac) -->
+<!--   cat("Theoretical (predicted) multiSURF average neighbors: ", k.msurf.theory, ".\n", sep = "") -->
+<!--   cat("Empirical (computed from neighborhood) average neighbors: ", k.ave.empirical, ".\n", sep = "") -->
+<!--   if (neighbor.sampling == "unique") { -->
+<!--     # if you only want to return unique neighbors -->
+<!--     num.neighbor.pairs <- nrow(neighbor.pairs.idx) -->
+<!--     cat(num.neighbor.pairs, "unique neighbor pairs.\n") -->
+<!--     cat("\nPerforming projected distance regression.\n") -->
+<!--   } -->
+<!-- } -->
+<!-- ### pheno diff vector for glm-binomial or lm to use in each attribute's diff regression in for loop. -->
+<!-- # Not needed in loop. -->
+<!-- # create pheno diff vector for linear regression (numeric) -->
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 1]] -->
+<!-- NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 2]] -->
+<!-- if (regression.type == "lm") { -->
+<!--   pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs") -->
+<!-- } else { # regression.type == "binomial" -->
+<!--   # create pheno diff vector for logistic regression (match-mismatch or hit-miss) -->
+<!--   pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "match-mismatch") -->
+<!--   # the reference group is the hit group, so the logistic probability is prob of a pair being a miss -->
+<!--   pheno.diff.vec <- as.factor(pheno.diff.vec) -->
+<!-- } -->
+<!-- ##### run npdr, each attribute is a list, then we do.call rbind to a matrix -->
+<!-- npdr.stats.list <- vector("list", num.attr) # initialize -->
+<!-- for (attr.idx in seq(1, num.attr)) { -->
+<!--   attr.vals <- attr.mat[, attr.idx] -->
+<!--   Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1]] -->
+<!--   NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2]] -->
+<!--   attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type) -->
+<!--   # model data.frame to go into lm or glm-binomial -->
+<!--   design.matrix.df <- data.frame( -->
+<!--     attr.diff.vec = attr.diff.vec, -->
+<!--     pheno.diff.vec = pheno.diff.vec -->
+<!--   ) -->
+<!--   ### diff vector for each covariate -->
+<!--   # optional covariates to add to design.matrix.df model -->
+<!--   if (length(covars) > 1) { # if covars is a vector or matrix -->
+<!--     if (regression.type == "glmnet") { -->
+<!--       message("penalized npdrNET does not currently support covariates.") -->
+<!--     } -->
+<!--     # default value is covar="none" (no covariates) which has length 1 -->
+<!--     covars <- as.matrix(covars) # if covars is just one vector, make sure it's a 1-column matrix -->
+<!--     # covar.diff.type can be a vector of strings because each column of covars may be a different data type -->
+<!--     for (covar.col in (1:length(covar.diff.type))) { -->
+<!--       covar.vals <- covars[, covar.col] -->
+<!--       Ri.covar.vals <- covar.vals[neighbor.pairs.idx[, 1]] -->
+<!--       NN.covar.vals <- covar.vals[neighbor.pairs.idx[, 2]] -->
+<!--       covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals, diff.type = covar.diff.type[covar.col]) -->
+<!--       # add covar diff vector to data.frame -->
+<!--       # these covars will be included in each attribute's model -->
+<!--       if (is.null(colnames(covars)[covar.col])) { # if covar vector has no column name, give it one -->
+<!--         covar.name <- paste("cov", covar.col, sep = "") # cov1, etc. -->
+<!--       } else { -->
+<!--         covar.name <- colnames(covars)[covar.col] # else get the name from covars -->
+<!--       } -->
+<!--       design.matrix.df$temp <- covar.diff.vec # add the diff covar to the design matrix data frame -->
+<!--       colnames(design.matrix.df)[2 + covar.col] <- covar.name # change variable name -->
+<!--     } -->
+<!--     # covar.diff.mat <- do.call(cbind, covar.diff.list)  # all diff covariates as cols of a matrix -->
+<!--   } -->
+<!--   # utility function: RUN regression -->
+<!--   # design.matrix.df = pheno.diff ~ attr.diff + option covar.diff -->
+<!--   npdr.stats.list[[attr.idx]] <- diffRegression(design.matrix.df, regression.type = regression.type, speedy = speedy) -->
+<!-- } # end of for loop, regression done for each attribute -->
+
+
+<!-- if (regression.type != "glmnet") { # sort and format output if you did regular npdr -->
+<!--   # combine non-glmnet result lists into a matrix -->
+<!--   npdr.stats.attr.mat <- bind_rows(npdr.stats.list) -->
+<!--   npdr.stats.df <- npdr.stats.attr.mat %>% -->
+<!--     mutate( -->
+<!--       att = colnames(attr.mat), # add an attribute column -->
+<!--       pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values -->
+<!--     ) %>% -->
+<!--     arrange(pval.adj) %>% -->
+<!--     # order by attribute p-value -->
+<!--     dplyr::select(att, pval.adj, everything()) %>% -->
+<!--     # reorder columns -->
+<!--     as.data.frame() # convert tibbles to df -- can we remove this step? -->
+<!-- } else { # Here we add an option npdrNET regression.type="glmnet" -->
+<!--   # Need to create a data matrix with each column as a vector of diffs for each attribute. -->
+<!--   # Need matrix because npdrNET operates on all attributes at once. -->
+<!--   attr.diff.mat <- matrix(0, nrow = nrow(neighbor.pairs.idx), ncol = num.attr) -->
+<!--   for (attr.idx in seq(1, num.attr)) { -->
+<!--     attr.vals <- attr.mat[, attr.idx] -->
+<!--     Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1]] -->
+<!--     NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2]] -->
+<!--     attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type) -->
+<!--     attr.diff.mat[, attr.idx] <- attr.diff.vec -->
+<!--   } -->
+<!--   # -->
+<!--   Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 1]] -->
+<!--   NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 2]] -->
+<!--   if (glmnet.family == "binomial") { -->
+<!--     pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "match-mismatch") -->
+<!--     pheno.diff.vec <- as.factor(pheno.diff.vec) -->
+<!--     # Run glmnet on the diff attribute columns -->
+<!--     npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec, -->
+<!--       alpha = glmnet.alpha, family = "binomial", -->
+<!--       lower.limits = glmnet.lower, type.measure = "class" -->
+<!--     ) -->
+<!--   } else { # "gaussian" -->
+<!--     pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs") -->
+<!--     # Run glmnet on the diff attribute columns -->
+<!--     npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec, -->
+<!--       alpha = glmnet.alpha, family = "gaussian", -->
+<!--       lower.limits = glmnet.lower, type.measure = "mse" -->
+<!--     ) -->
+<!--   } -->
+<!--   npdrNET.coeffs <- as.matrix(predict(npdrNET.model, type = "coefficients")) -->
+<!--   row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results -->
+<!--   glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort -->
+<!--   npdr.stats.df <- data.frame(scores = glmnet.sorted) %>% -->
+<!--     tibbles:rownames_to_column("att") -->
+<!-- } # end glmnetSTIR option -->
+<!-- ``` -->

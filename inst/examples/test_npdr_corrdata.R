@@ -62,7 +62,7 @@ npdr.cc.results <- npdr(class.vec, case.control.data, regression.type="binomial"
                         attr.diff.type="correlation-data",
                         nbd.method="relieff", nbd.metric = "manhattan", msurf.sd.frac=.5, k=0,
                         neighbor.sampling="none",
-                        dopar.nn = F, padj.method="bonferroni", verbose=T,
+                        dopar.nn = FALSE, padj.method="bonferroni", verbose=TRUE,
                         corr.attr.names=var.names)
 
 data.frame(cbind(att=npdr.cc.results$att,

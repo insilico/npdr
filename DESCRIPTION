@@ -9,6 +9,24 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Suggests: knitr
-Imports: dplyr, speedglm, doParallel, parallel, foreach, flexclust, Matrix, igraph, glmnet, PRROC, Rcpp, tibble, tidyr, wordspace
+Imports: 
+    dplyr, 
+    speedglm, 
+    doParallel, 
+    parallel, 
+    foreach, 
+    flexclust, 
+    Matrix, 
+    igraph, 
+    glmnet, 
+    PRROC, 
+    Rcpp, 
+    tibble, 
+    tidyr, 
+    wordspace,
+    RcppArmadillo
 VignetteBuilder: knitr
 RoxygenNote: 7.1.0
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo

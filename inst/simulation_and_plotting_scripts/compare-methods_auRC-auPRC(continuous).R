@@ -72,9 +72,9 @@ for(iter in 1:num.iter){
                                pct.train=0.5,
                                pct.holdout=0.5,
                                pct.validation=0,
-                               plot.graph=F,
-                               verbose=T,
-                               use.Rcpp=F,
+                               plot.graph=FALSE,
+                               verbose=TRUE,
+                               use.Rcpp=FALSE,
                                prob.connected=0.9,
                                out.degree=(num.variables-2),
                                data.type=data.type)
@@ -97,7 +97,7 @@ for(iter in 1:num.iter){
   functional.vars <- dataset$signal.names
   npdr.positives1 <- npdr.results1 %>% filter(pval.adj<.05) %>% pull(att)
   
-  idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars)==TRUE)
+  idx.func <- which(c(as.character(df1[,"att"]) %in% functional.vars))
   func.betas1 <- df1[idx.func,"beta"]
   neg.betas1 <- df1[-idx.func,"beta"]
   
@@ -124,7 +124,7 @@ for(iter in 1:num.iter){
                     pval=npdr.results2$pval.adj)
   df2 <- na.omit(df2)
   
-  idx.func <- which(c(as.character(df2[,"att"]) %in% functional.vars)==TRUE)
+  idx.func <- which(c(as.character(df2[,"att"]) %in% functional.vars))
   func.betas2 <- df2[idx.func,"beta"]
   neg.betas2 <- df2[-idx.func,"beta"]
   
@@ -141,7 +141,7 @@ for(iter in 1:num.iter){
   rf.sorted<-sort(rf.importance, decreasing=T, index.return=T)
   rf.df <-data.frame(att=rownames(rf.importance)[rf.sorted$ix],rf.scores=rf.sorted$x)
   
-  idx.func <- which(c(as.character(rf.df$att) %in% functional.vars)==TRUE)
+  idx.func <- which(c(as.character(rf.df$att) %in% functional.vars))
   func.scores.rf <- rf.df[idx.func,"rf.scores"]
   neg.scores.rf <- rf.df[-idx.func,"rf.scores"]
   
@@ -160,7 +160,7 @@ for(iter in 1:num.iter){
   relief.order <- order(relief, decreasing = T)
   relief.df <- data.frame(att=names(relief)[relief.order], rrelief=relief[relief.order])
   
-  idx.func <- which(c(as.character(relief.df$att) %in% functional.vars)==TRUE)
+  idx.func <- which(c(as.character(relief.df$att) %in% functional.vars))
   func.scores.relief <- relief.df[idx.func,"rrelief"]
   neg.scores.relief <- relief.df[-idx.func,"rrelief"]
   

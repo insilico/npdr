@@ -50,9 +50,9 @@ dataset <- createSimulation2(num.samples=m,
                              pct.train=0.5,
                              pct.holdout=0.5,
                              pct.validation=0,
-                             plot.graph=F,
-                             verbose=T,
-                             use.Rcpp=T,
+                             plot.graph=FALSE,
+                             verbose=TRUE,
+                             use.Rcpp=TRUE,
                              prob.connected=prob.connected,
                              out.degree=out.degree,
                              data.type=data.type)
@@ -72,7 +72,7 @@ out <- vwok(dats=dats,
             signal.names=signal.names,
             label="class")
 
-idx.func <- which((as.character(out$vwok.out[,"att"]) %in% signal.names)==T)
+idx.func <- which((as.character(out$vwok.out[,"att"]) %in% signal.names))
 func.betas <- out$vwok.out[idx.func,"betas"]
 neg.betas <- out$vwok.out[-idx.func,"betas"]
 pr.vwok <- PRROC::pr.curve(scores.class0 = func.betas,
