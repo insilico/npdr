@@ -27,9 +27,12 @@
 #' or one (FLASE).
 #' @param verbose \code{logical} to send messages to stdout.
 #' @return results \code{matrix} of variable by variable differential coexpression values.
-#' @examples
+#' @examples 
+#' \donttest{
 #' data(testdata10)
 #' rinbixDcgain <- dcgain(testdata10)
+#' }
+
 #' @export
 dcgain <- function(labelledDataFrame, computeDiagP = FALSE, verbose = FALSE) {
   phenos <- labelledDataFrame[, ncol(labelledDataFrame)] + 1
@@ -114,8 +117,10 @@ dcgain <- function(labelledDataFrame, computeDiagP = FALSE, verbose = FALSE) {
 #' and classLabel in the last column.
 #' @return results \code{matrix} of variable by variable differential modularity values.
 #' @examples
+#' \donttest{
 #' data(testdata10)
 #' rinbixDmgain <- dmgain(testdata10)
+#' }
 #' @export
 dmgain <- function(labelledDataFrame) {
   phenos <- labelledDataFrame[, ncol(labelledDataFrame)] + 1
@@ -341,9 +346,11 @@ fitMainEffectModel <- function(labelledDataFrame, variableName, depVarName,
 #' @param gainMatrix \code{matrix} GAIN matrix.
 #' @return sifDF \code{data.frame} of node1 weight node2.
 #' @examples
+#' \donttest{
 #' data(testdata100ME4)
 #' rinbixRegain <- regainParallel(testdata100ME4, stdBetas = TRUE, absBetas = TRUE)
 #' gainSIF <- gainToSimpleSIF(rinbixRegain)
+#' }
 #' @export
 gainToSimpleSIF <- function(gainMatrix) {
   matrixDim <- dim(gainMatrix)[1]
@@ -698,8 +705,10 @@ getMainEffects <- function(labelledDataFrame,
 #' @param regressionFamily \code{string} glm regression family name.
 #' @return regainMatrix \code{matrix} of variable by variable regression coefficients.
 #' @examples
+#' \donttest{
 #' data(testdata10)
 #' rinbixRegain <- regain(testdata10, stdBetas = TRUE, absBetas = TRUE)
+#' }
 #' @export
 regain <- function(depVarName, labelledDataFrame, 
                    stdBetas = FALSE, 
@@ -758,8 +767,10 @@ regain <- function(depVarName, labelledDataFrame,
 #' @param interactOutput \code{string} output in return matrix, "indicating betas "Betas", "stdBetas", "Pvals".
 #' @return regainMatrix \code{matrix} of variable by variable regression coefficients.
 #' @examples
+#' \donttest{
 #' data(testdata10)
 #' rinbixRegain <- regainParallel(testdata10, stdBetas = TRUE, absBetas = TRUE)
+#' }
 #' @export
 regainParallel <- function(depVarName="class", labelledDataFrame, 
                            stdBetas = FALSE, 

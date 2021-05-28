@@ -23,8 +23,8 @@ createSimulation2(
   mix.type = NULL,
   pct.mixed = 0.5,
   verbose = FALSE,
-  plot.graph = F,
-  use.Rcpp = F,
+  plot.graph = FALSE,
+  use.Rcpp = FALSE,
   prob.connected = NULL,
   out.degree = NULL,
   data.type = "continuous",
@@ -104,7 +104,7 @@ Changes: only an additional input with conditional if/else statements
          an igraph object specifically for now.
 }
 \details{
-New Parameter: 
+New Parameter:
 
    graph.structure - (igraph) graph structure generated from igraph. If NULL,
                      then createSimulation2() typically generates one on its own.
@@ -115,51 +115,55 @@ New Parameter:
 }
 \examples{
 
-main effects with correlation from Erdos-Renyi network (continuous)
+# main effects with correlation from Erdos-Renyi network (continuous)
 
 num.samples <- 100
 num.variables <- 10
 
-dataset <- createSimulation2(num.samples=num.samples,
-                            num.variables=num.variables,
-                            pct.imbalance=0.5,
-                            pct.signals=0.2,
-                            main.bias=0.4,
-                            interaction.bias=1,
-                            hi.cor=0.8,
-                            lo.cor=0.2,
-                            mix.type="main-interactionErdos",
-                            label="class",
-                            sim.type="mainEffect_Erdos-Renyi",
-                            pct.mixed=0.5,
-                            pct.train=0.5,
-                            pct.holdout=0.5,
-                            pct.validation=0,
-                            plot.graph=F,
-                            verbose=T,
-                            data.type="continuous")
-                            
-main effects with correlation from Erdos-Renyi network
+dataset <- createSimulation2(
+  num.samples = num.samples,
+  num.variables = num.variables,
+  pct.imbalance = 0.5,
+  pct.signals = 0.2,
+  main.bias = 0.4,
+  interaction.bias = 1,
+  hi.cor = 0.8,
+  lo.cor = 0.2,
+  mix.type = "main-interactionErdos",
+  label = "class",
+  sim.type = "mainEffect_Erdos-Renyi",
+  pct.mixed = 0.5,
+  pct.train = 0.5,
+  pct.holdout = 0.5,
+  pct.validation = 0,
+  plot.graph = FALSE,
+  verbose = TRUE,
+  data.type = "continuous"
+)
+
+# main effects with correlation from Erdos-Renyi network
 
 num.samples <- 100
 num.variables <- 10
-                            
-dataset <- createSimulation2(num.samples=num.samples,
-                            num.variables=num.variables,
-                            pct.imbalance=0.5,
-                            pct.signals=0.2,
-                            main.bias=0.4,
-                            interaction.bias=1,
-                            hi.cor=0.8,
-                            lo.cor=0.2,
-                            mix.type="main-interactionErdos",
-                            label="class",
-                            sim.type="mainEffect_Erdos-Renyi",
-                            pct.mixed=0.5,
-                            pct.train=0.5,
-                            pct.holdout=0.5,
-                            pct.validation=0,
-                            plot.graph=F,
-                            verbose=T,
-                            data.type="discrete")
+
+dataset <- createSimulation2(
+  num.samples = num.samples,
+  num.variables = num.variables,
+  pct.imbalance = 0.5,
+  pct.signals = 0.2,
+  main.bias = 0.4,
+  interaction.bias = 1,
+  hi.cor = 0.8,
+  lo.cor = 0.2,
+  mix.type = "main-interactionErdos",
+  label = "class",
+  sim.type = "mainEffect_Erdos-Renyi",
+  pct.mixed = 0.5,
+  pct.train = 0.5,
+  pct.holdout = 0.5,
+  pct.validation = 0,
+  plot.graph = FALSE,
+  verbose = TRUE,
+  data.type = "discrete"
+)
 }

@@ -79,9 +79,9 @@ for(iter in 1:length(imbalances)){
                                  pct.train=0.5,
                                  pct.holdout=0.5,
                                  pct.validation=0,
-                                 plot.graph=F,
-                                 verbose=T,
-                                 use.Rcpp=F,
+                                 plot.graph=FALSE,
+                                 verbose=TRUE,
+                                 use.Rcpp=FALSE,
                                  prob.connected=0.95,
                                  out.degree=(num.variables-2),
                                  data.type=data.type)
@@ -91,7 +91,7 @@ for(iter in 1:length(imbalances)){
     # run vwak on data set to give beta and p-value matrices
     out <- vwak(dats=dats,                       
                 k.grid=NULL,                                 # can provide custom grid of k's
-                verbose=T,                       
+                verbose=TRUE,                       
                 attr.diff.type="allele-sharing",             # attribute diff used by npdr
                 separate.hitmiss.nbds=separate.hitmiss.nbds, # set = T for equal size hit/miss nbds
                 label="class")
@@ -124,7 +124,7 @@ for(iter in 1:length(imbalances)){
     
     accu.vec[i] <- sum(npdr.detected)/length(npdr.detected) # area under the recall curve
   
-    idx.func <- which(c(as.character(df.betas[,"att"]) %in% functional.vars)==T)
+    idx.func <- which(c(as.character(df.betas[,"att"]) %in% functional.vars))
     func.betas <- df.betas[idx.func,"betas"] # functional variable betas
     neg.betas <- df.betas[-idx.func,"betas"] # noise variable betas
     

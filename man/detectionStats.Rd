@@ -18,9 +18,3 @@ list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (
 Given a vector functional (true) attribute names and a vector of positive
 association attribute names, returns detection statistics like recall and precision.
 }
-\examples{
-functional <- case.control.3sets$signal.names  
-positives <- row.names(npdr.cc.results.df[npdr.cc.results.df[,1]<.05,]) # p.adj<.05
-npdr.cc.detect.stats <- detectionStats(functional.case.control, positives)
-cat(npdr.cc.detect.stats$summary.msg)on(outcome="class", dataset=case.control.data)
-}

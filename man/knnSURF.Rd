@@ -18,5 +18,5 @@ knn Number of neighbors.
 Theoretical value for the number of expected neighbors for SURF or multiSURF
 }
 \examples{
-k.surf <- knnSURF(200,.5)
+k.surf <- knnSURF(200, .5)
 }

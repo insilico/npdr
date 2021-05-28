@@ -9,16 +9,11 @@ geneLowVarianceFilter(dataMatrix, percentile = 0.5)
 \arguments{
 \item{dataMatrix}{data matrix with predictors only, sample x gene}
 
-\item{pct}{percentile of low variance removed}
+\item{percentile}{percentile of low variance removed}
 }
 \value{
 mask and filtered data
 }
 \description{
 Low variance mask and filtered data for gene expression matrix.
-}
-\examples{
-pct <- 0.7 # higher value more strict
-filter <- geneLowVarianceFilter(unfiltered.predictors.mat, pct)
-filtered.data.df <- data.frame(filter$fdata, class = rnaseq.mdd.phenotype)
 }

@@ -126,7 +126,7 @@ test_acc <- test_results$accuracy
 cat("\n Train Accuracy [",test_acc,"]\n")
 
 #=======================consenses nested CV from pEC library ===========================#
-if("caret" %in% rownames(installed.packages()) == FALSE) {
+if(!"caret" %in% rownames(utils::installed.packages())) {
   warning("You might need to install *caret* package for privateEC::consensus_nestedCV function, which uses confusionMatrix.", call. = FALSE)
   }
 # caret needed for confusionMatrix in consensus_nestedCV (privateEC library)

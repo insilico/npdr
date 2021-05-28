@@ -11,20 +11,12 @@ rfDetected(results.df, functional, top.pct)
 
 \item{functional}{character vector of functional/true attribute names}
 
-\item{p}{percentile of top relief scores compared with the functional list}
+\item{top.pct}{percentile of top relief scores compared with the functional list}
 }
 \value{
 True positive rate: number of true postives divided by the number of functional
 }
 \description{
-Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile 
+Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile
 threshold, returns true positive rate.
-}
-\examples{
-functional.vars <- dataset$signal.names  
-ranfor.fit <- randomForest(as.factor(class) ~ ., data = dats) 
-rf.importance <- importance(ranfor.fit)  
-rf.sorted<-sort(rf.importance, decreasing=T, index.return=T)
-rf.df <-data.frame(att=rownames(rf.importance)[rf.sorted$ix],rf.scores=rf.sorted$x)
-rfDetected(rf.df,functional.vars,p=.1)
 }

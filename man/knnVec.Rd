@@ -7,15 +7,11 @@
 knnVec(neighbor.pairs.mat)
 }
 \arguments{
-\item{neighbor.pairs.idx}{two columns of redundant "i,j" pairs from nearestNeighbors function}
+\item{neighbor.pairs.mat}{two columns of redundant "i,j" pairs from nearestNeighbors function}
 }
 \value{
 knn.vec vector number of nearest neighbors for each instance
 }
 \description{
 Number of neighbors for each sample (vector) from a neighbor-pair matrix.
-}
-\examples{
-mean(knnVec(neighbor.pairs.idx))  # average number of neighbors
-
 }

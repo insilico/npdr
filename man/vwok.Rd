@@ -26,6 +26,8 @@ vwok(
 
 \item{corr.attr.names}{character indicating names of ROIs for attr.diff.type='correlation-data'. Default is NULL.}
 
+\item{signal.names}{variable names with simulated signals}
+
 \item{separate.hitmiss.nbds}{logical indicating whether to compute hit/miss neighborhoods separately. Default is FALSE.}
 
 \item{label}{character indicating type of response. Default is "class" and should not change as of yet.}
@@ -41,36 +43,4 @@ A list with:
 Variable-Wise Optimized k
 method for optimizing NPDR scores for each attribute as a function of k
 Computes p x k beta and P value matrices for a data set with p attributes
-}
-\examples{
-# Main effect simulation for standard m x p data set
-num.samples <- 100
-num.variables <- 100
-pct.imbalance <- 0.5
-pct.signals <- 0.1
-main.bias <- 0.5
-sim.type <- "mainEffect"
-
-dataset <- createSimulation2(num.samples=num.samples,
-                             num.variables=num.variables,
-                             pct.imbalance=pct.imbalance,
-                             pct.signals=pct.signals,
-                             main.bias=main.bias,
-                             label="class",
-                             sim.type=sim.type,
-                             pct.mixed=0.5,
-                             pct.train=0.5,
-                             pct.holdout=0.5,
-                             pct.validation=0,
-                             verbose=T,
-                             data.type="continuous")
-dats <- rbind(dataset$train, dataset$holdout, dataset$validation)
-dats <- dats[order(dats[,ncol(dats)]),]
-
-# run Variable-Wise Optimized k function
-out <- vwok(dats=dats,
-            k.grid=NULL,
-            verbose=T,
-            attr.diff.type="numeric-abs",
-            label="class")
 }

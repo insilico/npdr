@@ -56,6 +56,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{padj.method}{for p.adjust (\code{"fdr"}, \code{"bonferroni"}, ...)}
 
+\item{verbose}{logical, whether to print out intermediate steps}
+
 \item{use.glmnet}{logical, whether glmnet is employed}
 
 \item{glmnet.alpha}{penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2)}
@@ -72,6 +74,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 
 \item{fast.reg}{logical, whether regression is run with speedlm or speedglm, default as F}
 
+\item{fast.dist}{whether or not distance is computed by faster algorithm in wordspace, default as F}
+
 \item{dopar.nn}{logical, whether or not neighborhood is computed in parallel, default as F}
 
 \item{dopar.reg}{logical, whether or not regression is run in parallel, default as F}
@@ -82,25 +86,42 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
 }
 \description{
-Nearest-Neighbor Projected-Distance Regression (npdr) 
+Nearest-Neighbor Projected-Distance Regression (npdr)
 generalized linear model (GLM) extension of STatistical Inference Relief (STIR)
 Computes attribute statistical signficance with logistic for case/control and linear model for quantitative outcomes.
-NPDR allows for categorical (SNP) or numeric (expession) predictor data types. 
+NPDR allows for categorical (SNP) or numeric (expession) predictor data types.
 NPDR allows for covariate correction.
 Observations in the model are projected-distance differences between neighbors.
 }
 \examples{
 # Data interface options.
-# Specify name ("qtrait") of outcome and dataset, which is a data frame including the outcome column.
-# ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) if you do not specify k or let k=0
-npdr.results.df <- npdr("qtrait", train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, padj.method="bonferroni")
+# Specify name ("qtrait") of outcome and dataset, 
+# which is a data frame including the outcome column.
+# ReliefF fixed-k neighborhood, uses surf theoretical default (with msurf.sd.frac=.5) 
+# if you do not specify k or let k=0.
+npdr.results.df <- npdr(
+  "qtrait", qtrait.3sets$train, 
+  regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+  attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
+  msurf.sd.frac = 0.5, padj.method = "bonferroni")
 
-# Specify column index (101) of outcome and dataset, which is a data frame including the outcome column.
-npdr.results.df <- npdr(101, train.data, regression.type="lm", nbd.method="relieff", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", knn=10, padj.method="bonferroni")
+# Specify column index (101) of outcome and dataset, 
+# which is a data frame including the outcome column.
+# ReliefF fixed-k nbd, choose a k (knn = 10). Or choose msurf.sd.frac
+npdr.results.df <- npdr(
+  101, qtrait.3sets$train, 
+  regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+  attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
+  knn = 10, padj.method = "bonferroni")
 
 # if outcome vector (pheno.vec) is separate from attribute matrix
 # multisurf
-npdr.results.df <- npdr(pheno.vec, predictors.mat, regression.type="lm", nbd.method="multisurf", nbd.metric = "manhattan", attr.diff.type="manhattan", covar.diff.type="manhattan", msurf.sd.frac=0.5, padj.method="bonferroni")
-# attributes with npdr adjusted p-value less than .05 
-npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj<.05,]) # npdr p.adj<.05
+# npdr.results.df <- npdr(
+#   pheno.vec, predictors.mat,
+#   regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan",
+#   attr.diff.type = "manhattan", covar.diff.type = "manhattan",
+#   msurf.sd.frac = 0.5, padj.method = "bonferroni"
+#   )
+# attributes with npdr adjusted p-value less than .05
+npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) # npdr p.adj<.05
 }
