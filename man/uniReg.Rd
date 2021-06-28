@@ -29,3 +29,12 @@ matrix of beta, p-value and adjusted p-value, sorted by p-value.
 \description{
 Univariate logistic or linear regression for a dataset.
 }
+\examples{
+out_univariate <- uniReg(
+  outcome = "class",
+  dataset = case.control.3sets$train,
+  regression.type = "binomial"
+)
+head(out_univariate)
+
+}

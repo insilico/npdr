@@ -17,3 +17,13 @@ unique neighbor pairs
 Find pairs of unique nearest neighbors pairs from possible redundant pairs.
 Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functions.
 }
+\examples{
+neighbor.pairs.idx <- nearestNeighbors(
+  predictors.mat, 
+  nbd.method = "multisurf", 
+  nbd.metric = "manhattan", 
+  sd.frac = 0.5
+)
+head(uniqueNeighbors(neighbor.pairs.idx))
+
+}

@@ -44,3 +44,18 @@ Variable-Wise Optimized k
 method for optimizing NPDR scores for each attribute as a function of k
 Computes p x k beta and P value matrices for a data set with p attributes
 }
+\examples{
+dats <- do.call(rbind, case.control.3sets[c("train", "holdout")])
+
+# run Variable-Wise Optimized k function
+\dontrun{
+out <- vwok(
+  dats = dats,
+  k.grid = NULL,
+  verbose = T,
+  attr.diff.type = "numeric-abs",
+  label = "class"
+)
+}
+
+}

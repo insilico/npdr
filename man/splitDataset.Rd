@@ -39,6 +39,10 @@ default is a 50-50 split into training and holdout, no testing set
 code class/label/phenotypes as 1 and -1.
 User can manage the simulation data to be dichotomious/quantitative using label (class/qtrait)
 }
+\examples{
+data.sets <- splitDataset(case.control.3sets$train, label = "class")
+
+}
 \seealso{
 Other simulation: 
 \code{\link{createMainEffects}()}

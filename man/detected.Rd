@@ -33,8 +33,11 @@ out_npdr <- npdr("class", case.control.3sets$train)
 functional_feats <- case.control.3sets$signal.names
 detected(0.2, out_npdr, functional_feats, "pval.att", TRUE)
 
+\dontrun{
 ranfor_fit <- randomForest(as.factor(class) ~ ., case.control.3sets$train)
 rf_imp <- data.frame(importance(ranfor_fit)) \%>\%
   tibble::rownames_to_column("att") 
 detected(0.1, rf_imp, functional_feats, "MeanDecreaseGini")
+}
+
 }

@@ -536,6 +536,16 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #' @return new neighborhood pair matrix of only unique pairs
 #' unique neighbor pairs
 #' @export
+#' 
+#' @examples
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "multisurf", 
+#'   nbd.metric = "manhattan", 
+#'   sd.frac = 0.5
+#' )
+#' head(uniqueNeighbors(neighbor.pairs.idx))
+#' 
 uniqueNeighbors <- function(neighbor.pairs) {
   # input: two columns of redundant "i,j" pairs
   # return: two columns of unique pairs from the redundant input
@@ -558,10 +568,20 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #' @param neighbor.pairs.mat two columns of redundant "i,j" pairs from nearestNeighbors function
 #' @return  knn.vec vector number of nearest neighbors for each instance
 #'
+#' @examples
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "multisurf", 
+#'   nbd.metric = "manhattan", 
+#'   sd.frac = 0.5
+#' )
+#' mean(knnVec(neighbor.pairs.idx)) # average number of neighbors
+#' 
 #' @export
+#' 
 knnVec <- function(neighbor.pairs.mat) {
   knn.vec <- data.frame(neighbor.pairs.mat) %>%
     dplyr::count(Ri_idx) %>%
     pull(n)
-  return(knn.vec)
+  knn.vec
 }

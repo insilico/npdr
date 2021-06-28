@@ -14,12 +14,27 @@
 #' @param separate.hitmiss.nbds logical indicating whether to compute hit/miss neighborhoods separately. Default is FALSE.
 #' @param label character indicating type of response. Default is "class" and should not change as of yet.
 #'
+#' @importFrom foreach foreach `%dopar%`
 #' @return A list with:
 #' \describe{
 #'   \item{vwok.out}{p x 4 data.frame of sorted beta coefficients, atts, vwok ks, and p-values from NPDR}
 #'   \item{best.auPRC.k}{1 x 2 data.frame of auPRC-optimal fixed k (if signal.names provided) and corresponding auPRC}
 #' }
 #'
+#' @examples
+#' dats <- do.call(rbind, case.control.3sets[c("train", "holdout")])
+#'
+#' # run Variable-Wise Optimized k function
+#' \dontrun{
+#' out <- vwok(
+#'   dats = dats,
+#'   k.grid = NULL,
+#'   verbose = T,
+#'   attr.diff.type = "numeric-abs",
+#'   label = "class"
+#' )
+#' }
+#' 
 #' @export
 #'
 vwok <- function(dats = NULL,
@@ -135,7 +150,6 @@ vwok <- function(dats = NULL,
       )
 
       auPRC <- pr.npdr$auc.integral # area under the precision-recall curve
-
 
       list(
         betas = beta.mat,

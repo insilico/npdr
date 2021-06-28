@@ -29,7 +29,7 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.
 #' @export
-#' @example
+#' @examples
 #' out_univariate <- uniReg(
 #'   outcome = "class",
 #'   dataset = case.control.3sets$train,
@@ -192,10 +192,13 @@ detectionStats <- function(functional, positives) {
 #' functional_feats <- case.control.3sets$signal.names
 #' detected(0.2, out_npdr, functional_feats, "pval.att", TRUE)
 #'
+#' \dontrun{
 #' ranfor_fit <- randomForest(as.factor(class) ~ ., case.control.3sets$train)
 #' rf_imp <- data.frame(importance(ranfor_fit)) %>%
 #'   tibble::rownames_to_column("att") 
 #' detected(0.1, rf_imp, functional_feats, "MeanDecreaseGini")
+#' }
+#' 
 detected <- function(top.pct, results.df, functional, sort_col, get_min = FALSE) {
   sort_col <- sym(sort_col)
   slice_fun <- if (get_min) slice_min else slice_max
@@ -216,7 +219,6 @@ detected <- function(top.pct, results.df, functional, sort_col, get_min = FALSE)
 #' @param dataMatrix data matrix with predictors only, sample x gene
 #' @param percentile percentile of low variance removed
 #' @return mask and filtered data
-#' @export
 geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
   variances <- apply(as.matrix(dataMatrix), 2, var)
   threshold <- quantile(variances, c(percentile))
