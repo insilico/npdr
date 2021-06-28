@@ -152,7 +152,6 @@
 #' dist.mat <- npdrDistances(predictors.mat, metric = "manhattan")
 #' 
 #' 
-#' add npdrLearner back in.
 #' 
 #' #' npdr
 #'

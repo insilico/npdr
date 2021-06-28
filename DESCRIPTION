@@ -25,8 +25,7 @@ Imports:
     wordspace,
     RcppArmadillo
 Suggests: knitr, CORElearn, ggplot2
-VignetteBuilder: knitr
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 LinkingTo: 
     Rcpp,
     RcppArmadillo
