@@ -17,9 +17,16 @@ and for GWAS \code{"allele-sharing-manhattan"}).}
 \item{fast.dist}{whether or not distance is computed by faster algorithm in wordspace, default as F}
 }
 \value{
-distancesmat, matrix of m x m (instances x intances) pairwise distances.
+matrix of m x m (instances x intances) pairwise distances.
 }
 \description{
 Create m x m distance matrix from m instances and p attributes using different metrics. Used by nearestNeighbors().
 Note: Probably best to standardize data before manhattan and euclidean.
+}
+\examples{
+train_dat <- case.control.3sets$train
+dist.mat <- npdrDistances(
+  train_dat[, names(train_dat) != "class"], 
+  metric = "manhattan"
+)
 }

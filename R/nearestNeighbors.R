@@ -44,8 +44,14 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
 #' and for GWAS \code{"allele-sharing-manhattan"}).
 #' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
 #'
-#' @return  distancesmat, matrix of m x m (instances x intances) pairwise distances.
+#' @return  matrix of m x m (instances x intances) pairwise distances.
 #' @export
+#' @examples
+#' train_dat <- case.control.3sets$train
+#' dist.mat <- npdrDistances(
+#'   train_dat[, names(train_dat) != "class"], 
+#'   metric = "manhattan"
+#' )
 npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
   if (fast.dist) {
     npdr.dist.fn <- wordspace::dist.matrix
@@ -92,8 +98,8 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' Used for npdr (no hits or misses specified in neighbor function).
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes
-#' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
+#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
 #' @param sd.vec vector of standard deviations
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
@@ -105,9 +111,39 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
 #' @export
+#' @examples
+
+#' # multisurf neighborhood with sigma/2 (sd.frac=0.5) "dead-band" boundary
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "multisurf", 
+#'   nbd.metric = "manhattan", 
+#'   sd.frac = 0.5
+#' )
+#' head(neighbor.pairs.idx)
+#' 
+#' # reliefF (fixed-k) neighborhood using default `k` equal to 
+#' # theoretical surf expected value.
+#' # One can change the theoretical value by changing sd.frac (default 0.5).
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "relieff", 
+#'   nbd.metric = "manhattan"
+#' )
+#' head(neighbor.pairs.idx)
+#' 
+#' # reliefF (fixed-k) neighborhood with a user-specified k
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "relieff", 
+#'   nbd.metric = "manhattan", 
+#'   k = 10
+#' )
+#' head(neighbor.pairs.idx)
+#' 
 nearestNeighbors <- function(attr.mat,
-                             nb.method = "multisurf",
-                             nb.metric = "manhattan",
+                             nbd.method = "multisurf",
+                             nbd.metric = "manhattan",
                              sd.vec = NULL, sd.frac = 0.5, k = 0,
                              neighbor.sampling = "none",
                              att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
@@ -127,11 +163,11 @@ nearestNeighbors <- function(attr.mat,
   dist.mat <- attr.mat %>%
     as.matrix() %>%
     unname() %>%
-    npdrDistances(metric = nb.metric, fast.dist = fast.dist) %>%
+    npdrDistances(metric = nbd.metric, fast.dist = fast.dist) %>%
     as.data.frame()
   colnames(dist.mat) <- seq.int(num.samp)
 
-  if (nb.method == "relieff") {
+  if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
@@ -183,7 +219,7 @@ nearestNeighbors <- function(attr.mat,
       Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
     }
   } else {
-    if (nb.method == "surf") {
+    if (nbd.method == "surf") {
       num.pair <- num.samp * (num.samp - 1) / 2 # number of paired distances
       radius.surf <- sum(dist.mat) / (2 * num.pair) # const r = mean(all distances)
       sd.const <- sd(dist.mat[upper.tri(dist.mat)])
@@ -191,7 +227,7 @@ nearestNeighbors <- function(attr.mat,
       Ri.radius <- rep(radius.surf - sd.frac * sd.const, num.samp)
       names(Ri.radius) <- as.character(1:num.samp)
     }
-    if (nb.method == "multisurf") {
+    if (nbd.method == "multisurf") {
       if (is.null(sd.vec)) {
         sd.vec <- sapply(1:num.samp, function(x) sd(dist.mat[-x, x]))
       }
@@ -259,8 +295,8 @@ nearestNeighbors <- function(attr.mat,
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes
 #' @param pheno.vec vector of class values for m instances
-#' @param nb.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
+#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
@@ -271,9 +307,19 @@ nearestNeighbors <- function(attr.mat,
 #' @return  Ri_NN.idxmat, matrix of Ri's (first column) and their NN's (second column)
 #'
 #' @export
+#' @examples
+#' # reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
+#' # One can change the theoretical value by changing sd.frac (default 0.5)
+#' neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
+#'   predictors.mat, case.control.3sets$train$class, # need attributes and pheno
+#'   nbd.method = "relieff", nbd.metric = "manhattan",
+#'   sd.frac = .5, k = 0
+#' )
+#' head(neighbor.pairs.idx)
+
 nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
-                                            nb.method = "relieff",
-                                            nb.metric = "manhattan",
+                                            nbd.method = "relieff",
+                                            nbd.metric = "manhattan",
                                             sd.frac = 0.5, k = 0,
                                             neighbor.sampling = "none",
                                             att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
@@ -298,11 +344,11 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
   dist.mat <- attr.mat %>%
     as.matrix() %>%
     unname() %>%
-    npdrDistances(metric = nb.metric, fast.dist = fast.dist) %>%
+    npdrDistances(metric = nbd.metric, fast.dist = fast.dist) %>%
     as.data.frame()
   colnames(dist.mat) <- seq.int(num.samp)
 
-  if (nb.method == "relieff") {
+  if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
@@ -385,7 +431,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
     # For treating hit/miss distance distributions separately, compute separate hit and miss radii
     # User might want to shrink alpha standard deviation fraction. Unlike relieff, the hit and miss
     # neighborhoods are not balanced.
-    if (nb.method == "surf") { # compute surf radii
+    if (nbd.method == "surf") { # compute surf radii
 
       hit.dist.rows <- vector("list", num.samp)
       for (i in seq(1, num.samp)) {
@@ -409,7 +455,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       names(Ri.miss.radii) <- as.character(1:num.samp)
     } # end surf radius calc
 
-    if (nb.method == "multisurf") { # compute multisurf radii
+    if (nbd.method == "multisurf") { # compute multisurf radii
 
       Ri.hit.radii <- vector("numeric", num.samp)
       Ri.miss.radii <- vector("numeric", num.samp)
@@ -490,6 +536,16 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #' @return new neighborhood pair matrix of only unique pairs
 #' unique neighbor pairs
 #' @export
+#' 
+#' @examples
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "multisurf", 
+#'   nbd.metric = "manhattan", 
+#'   sd.frac = 0.5
+#' )
+#' head(uniqueNeighbors(neighbor.pairs.idx))
+#' 
 uniqueNeighbors <- function(neighbor.pairs) {
   # input: two columns of redundant "i,j" pairs
   # return: two columns of unique pairs from the redundant input
@@ -512,10 +568,20 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #' @param neighbor.pairs.mat two columns of redundant "i,j" pairs from nearestNeighbors function
 #' @return  knn.vec vector number of nearest neighbors for each instance
 #'
+#' @examples
+#' neighbor.pairs.idx <- nearestNeighbors(
+#'   predictors.mat, 
+#'   nbd.method = "multisurf", 
+#'   nbd.metric = "manhattan", 
+#'   sd.frac = 0.5
+#' )
+#' mean(knnVec(neighbor.pairs.idx)) # average number of neighbors
+#' 
 #' @export
+#' 
 knnVec <- function(neighbor.pairs.mat) {
   knn.vec <- data.frame(neighbor.pairs.mat) %>%
     dplyr::count(Ri_idx) %>%
     pull(n)
-  return(knn.vec)
+  knn.vec
 }

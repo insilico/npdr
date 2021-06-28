@@ -7,8 +7,8 @@
 nearestNeighborsSeparateHitMiss(
   attr.mat,
   pheno.vec,
-  nb.method = "relieff",
-  nb.metric = "manhattan",
+  nbd.method = "relieff",
+  nbd.metric = "manhattan",
   sd.frac = 0.5,
   k = 0,
   neighbor.sampling = "none",
@@ -22,9 +22,9 @@ nearestNeighborsSeparateHitMiss(
 
 \item{pheno.vec}{vector of class values for m instances}
 
-\item{nb.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
+\item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
 
-\item{nb.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
+\item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
 
 \item{sd.frac}{multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
 
@@ -47,4 +47,14 @@ Find nearest neighbors of each instance using relief.method.
 Treat the hit and miss distributions separately to circument potential hit bias.
 ReliefF version makes hit/miss neighborhoods balanced. Surf and MultiSurf are still imbalanced.
 Used for npdr (no hits or misses specified in neighbor function).
+}
+\examples{
+# reliefF (fixed-k) neighborhood using default k equal to theoretical surf expected value
+# One can change the theoretical value by changing sd.frac (default 0.5)
+neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
+  predictors.mat, case.control.3sets$train$class, # need attributes and pheno
+  nbd.method = "relieff", nbd.metric = "manhattan",
+  sd.frac = .5, k = 0
+)
+head(neighbor.pairs.idx)
 }

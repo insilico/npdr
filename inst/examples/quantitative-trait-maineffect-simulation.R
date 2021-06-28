@@ -282,8 +282,8 @@ my.attrs <- qtrait.data[,colnames(qtrait.data)!="qtrait"]
 my.pheno <- as.numeric(as.character(qtrait.data[,colnames(qtrait.data)=="qtrait"]))
 
 my.qtrait.nbrs <- nearestNeighbors(my.attrs, 
-                               nb.method="multisurf", 
-                               nb.metric = "manhattan", 
+                               nbd.method="multisurf", 
+                               nbd.metric = "manhattan", 
                                sd.frac = 0.5, k=0,
                                neighbor.sampling="none")
 dim(my.qtrait.nbrs)

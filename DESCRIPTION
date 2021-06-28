@@ -24,9 +24,8 @@ Imports:
     tidyr, 
     wordspace,
     RcppArmadillo
-Suggests: knitr
-VignetteBuilder: knitr
-RoxygenNote: 7.1.0
+Suggests: knitr, CORElearn, ggplot2
+RoxygenNote: 7.1.1
 LinkingTo: 
     Rcpp,
     RcppArmadillo

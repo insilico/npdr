@@ -314,7 +314,7 @@ ggplot(test.cc.df, aes(x=MeanDecreaseGini,y=npdr.beta)) + geom_point(aes(colour 
 my.cc.attrs <- case.control.data[,colnames(case.control.data)!="class"]
 my.cc.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
 neighbor.cc.pairs.idx <- nearestNeighbors(my.cc.attrs, 
-                                       nb.method="relieff", nb.metric="manhattan", 
+                                       nbd.method="relieff", nbd.metric="manhattan", 
                                        sd.frac = .5, k=0)
 
 Ridx_vec <- neighbor.cc.pairs.idx[,"Ri_idx"]
@@ -357,8 +357,8 @@ pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)
 
 predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
 my.cc.nbrs <- nearestNeighbors(predictors.cc.mat, 
-                             nb.method="multisurf", 
-                             nb.metric = "manhattan", 
+                             nbd.method="multisurf", 
+                             nbd.metric = "manhattan", 
                              sd.frac = 0.5, k=0,
                              neighbor.sampling="none")
 length(my.cc.nbrs[,1])

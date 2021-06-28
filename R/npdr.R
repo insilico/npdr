@@ -127,21 +127,22 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' # which is a data frame including the outcome column.
 #' # ReliefF fixed-k nbd, choose a k (knn = 10). Or choose msurf.sd.frac
 #' npdr.results.df <- npdr(
-#'   101, qtrait.3sets$train, 
-#'   regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+#'   101, case.control.3sets$train, 
+#'   regression.type = "binomial", nbd.method = "relieff", nbd.metric = "manhattan", 
 #'   attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
 #'   knn = 10, padj.method = "bonferroni")
 #'
 #' # if outcome vector (pheno.vec) is separate from attribute matrix
 #' # multisurf
-#' # npdr.results.df <- npdr(
-#' #   pheno.vec, predictors.mat,
-#' #   regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan",
-#' #   attr.diff.type = "manhattan", covar.diff.type = "manhattan",
-#' #   msurf.sd.frac = 0.5, padj.method = "bonferroni"
-#' #   )
+#' pheno.vec <- case.control.3sets$train$class
+#' npdr.results.df <- npdr(
+#'  pheno.vec, predictors.mat,
+#'  regression.type = "binomial", nbd.method = "multisurf", nbd.metric = "manhattan",
+#'  attr.diff.type = "manhattan", covar.diff.type = "manhattan",
+#'  msurf.sd.frac = 0.5, padj.method = "bonferroni"
+#'  )
 #' # attributes with npdr adjusted p-value less than .05
-#' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) # npdr p.adj<.05
+#' npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) 
 #' @export
 #'
 npdr <- function(outcome, dataset,
@@ -184,7 +185,7 @@ npdr <- function(outcome, dataset,
   num.samp <- nrow(attr.mat)
 
   # create a list of attribute indices for selecting columns in stretched matrix
-  ###################################################################################################
+  ##############################################################################
   if (attr.diff.type == "correlation-data") { # corrdata
     attr.idx.list <- list()
     for (i in 1:num.attr) {
@@ -203,18 +204,20 @@ npdr <- function(outcome, dataset,
   start_time <- Sys.time()
   if (separate.hitmiss.nbds) { # separate hit and miss neighborhoods
     neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(attr.mat, pheno.vec,
-      nb.method = nbd.method,
-      nb.metric = nbd.metric,
+      nbd.method = nbd.method,
+      nbd.metric = nbd.metric,
       sd.frac = msurf.sd.frac, k = knn,
       att_to_remove = rm.attr.from.dist,
       fast.dist = fast.dist,
       dopar.nn = dopar.nn
     )
-  } else { # allow neighborhoods to be imbalanced, often nearest hits are closer then misses,
+  } else { 
+    # allow neighborhoods to be imbalanced, 
+    # often nearest hits are closer than misses,
     # which could dilute the effect of misses
     neighbor.pairs.idx <- nearestNeighbors(attr.mat,
-      nb.method = nbd.method,
-      nb.metric = nbd.metric,
+      nbd.method = nbd.method,
+      nbd.metric = nbd.metric,
       sd.frac = msurf.sd.frac, k = knn,
       att_to_remove = rm.attr.from.dist,
       fast.dist = fast.dist,
@@ -503,8 +506,6 @@ npdr <- function(outcome, dataset,
       row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
       npdr.stats.df <- data.frame(scores = glmnet.sorted)
-      # %>%
-      # tibble::rownames_to_column('att')
     } else { # glmnet.alpha == "cluster", so don't do regression and return the attribute diff vectors
       # might not need the phenotype diff for clustering, but add anyway.
       if (regression.type == "binomial") {
