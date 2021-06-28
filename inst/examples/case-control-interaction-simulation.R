@@ -10,7 +10,7 @@ library(npdr)
 set.seed(1618)
 ##### simulate case-control interaction effect data 
 n.samples <- 300     # 100 samples in train/holdout/test
-n.variables <- 100   # 100 features
+n.variables <- 1000   # 100 features
 label <- "class" # tells simulator to do case/control and adds this colname
 type <- "interactionErdos" # or mainEffect
 #type <-"mainEffect"
@@ -40,17 +40,34 @@ functional.case.control <- case.control.3sets$signal.names # functional attribut
 # linear regression on all predictors, fdr adjust, check functional hits
 # standardized beta and p-value
 # npdr utulity function
+
 univariate.cc.results <- uniReg(outcome="class", dataset=case.control.data, regression.type="binomial")
 univariate.cc.results[1:10,]
+
 # don't expect any less than .05 for interaction simulations
-univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
+# univariate.cc.results[univariate.cc.results[,"p.adj"]<.05,]
 
 ##### Run npdr
+system.time(
+  npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
+                          nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                          neighbor.sampling="none", fast.reg = T, dopar.nn = T, dopar.reg = T,
+                          padj.method="bonferroni", verbose=T)
+)
+head(npdr.cc.results)
+system.time(
+  npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
+                          nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
+                          neighbor.sampling="none", fast.dist = F, dopar.nn = T, dopar.reg = F,
+                          padj.method="bonferroni", verbose=T)
+)
+head(npdr.cc.results)
 
 npdr.cc.results <- npdr("class", case.control.data, regression.type="binomial", attr.diff.type="numeric-abs",
                             nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5, 
                             neighbor.sampling="none", dopar.nn = T,
                             padj.method="bonferroni", verbose=T)
+
 # attributes with npdr adjusted p-value less than .05 
 npdr.cc.results[npdr.cc.results$pval.adj<.05,] # pval.adj, first column
 # attributes with npdr raw/nominal p-value less than .05

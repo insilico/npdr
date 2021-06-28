@@ -1,0 +1,178 @@
+---
+title: "NPDR identifies functional features given case/control status"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{NPDR identifies functional features given case/control status}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[UTF-8]{inputenc}
+---
+
+```{r message=FALSE, warnings=FALSE}
+library(npdr)
+library(dplyr)
+library(tidyr) # pivot_longer
+library(ggplot2)
+
+theme_set(theme_minimal())
+theme_update(panel.grid.minor = element_blank())
+```
+
+Let's examine the `case.control.3sets` simulated dataset provided in the NPDR package,
+focusing on the train and holdout set for now.
+More details on the simulation can be found [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4326454/).
+
+```{r}
+dat <- bind_rows(case.control.3sets[c("train", "holdout")])
+functional_feats <- case.control.3sets$signal.names # known functional attributes
+```
+
+Functional features in `dat` are named `simvar*`.
+Non-functional features are labeled `var*`.
+
+## Univariate logistic regression
+Perform a linear regression on all predictors, adjusted p-values, check functional hits
+
+```{r}
+# standardized beta and p-value
+out_univariate <- uniReg(
+  outcome = "class", dataset = dat, regression.type = "binomial"
+) %>%
+  data.frame()
+
+uni_feats <- out_univariate %>%
+  filter(p.adj < 0.05) %>%
+  rownames()
+
+out_univariate %>%
+  slice_min(p.adj, n = 10, with_ties = FALSE)
+```
+
+## Run NPDR
+
+If you have a reasonably-sized dataset, we recommend not using any parallelization option.
+
+```{r}
+system.time(
+  out_npdr <- npdr("class", dat,
+    regression.type = "binomial", attr.diff.type = "numeric-abs",
+    nbd.method = "multisurf", nbd.metric = "manhattan", msurf.sd.frac = .5,
+    neighbor.sampling = "none", fast.reg = F, dopar.nn = F, dopar.reg = F,
+    padj.method = "bonferroni", verbose = T
+  )
+)
+
+head(out_npdr)
+```
+
+Find attributes with NPDR-adjusted p-value less than 0.05.
+
+```{r}
+out_npdr %>% filter(pval.adj < .05)
+```
+
+How accurate was NPDR in detecting the underlying functional attributes?
+
+```{r}
+npdr_feats <- out_npdr %>%
+  filter(pval.adj < .05) %>%
+  pull(att)
+
+cat(detectionStats(functional_feats, npdr_feats)$report)
+```
+
+```{r}
+detectionStats(functional_feats, npdr_feats)$TPR
+detectionStats(functional_feats, uni_feats)$TPR # nan
+```
+
+## NPDR vs. Relief
+Relief scores estimated by CORElearn
+
+```{r}
+pcts <- seq(0, 1, .05)
+out_corelearn <- CORElearn::attrEval(
+  "class",
+  data = dat,
+  estimator = "ReliefFequalK",
+  costMatrix = NULL,
+  outputNumericSplits = FALSE,
+  kNearestEqual = knnSURF(nrow(dat), .5)
+) %>%
+  data.frame(rrelief = .) %>%
+  arrange(desc(rrelief)) %>%
+  tibble::rownames_to_column("att")
+
+detected <- function(top.pct, results.df, functional, method) {
+  top.num <- floor(top.pct * nrow(results.df))
+  top.vars <- results.df %>%
+    data.frame() %>%
+    {
+      if (method == "relief") {
+        top_n(., top.num, rrelief)
+      } else {
+        top_n(., -top.num, pval.att)
+      }
+    } %>%
+    pull(att)
+  power <- detectionStats(functional, top.vars)$TP # how many of top.pct are true
+  ifelse(is.nan(power), 0, power) / length(functional)
+}
+
+compare_df <- data.frame(pcts = pcts) %>%
+  mutate(
+    Relief = sapply(pcts, detected,
+      results.df = out_corelearn,
+      functional = functional_feats,
+      method = "relief"
+    ),
+    NPDR = sapply(pcts, detected,
+      results.df = out_npdr,
+      functional = functional_feats,
+      method = "npdr"
+    )
+  ) %>%
+  tidyr::pivot_longer(NPDR:Relief)
+
+compare_df %>%
+  ggplot(aes(x = pcts, y = value, color = name)) +
+  geom_line(aes(linetype = name)) +
+  geom_point(aes(shape = name), size = 2) +
+  guides(shape = FALSE, linetype = FALSE) +
+  scale_color_manual(values = c("#2887a1", "#A16928")) +
+  labs(x = "Percent selected", y = "Percent correct", color = NULL) +
+  ggtitle("Power to detect functional variables")
+```
+
+## auDC: area under the detection curve
+```{r}
+compare_df %>%
+  group_by(name) %>%
+  summarise(auDC = mean(value))
+```
+
+```{r echo=FALSE}
+knitr::knit_exit()
+```
+
+```{r}
+system.time(
+  out_npdr <- npdr("class", case.control.data,
+    regression.type = "binomial", attr.diff.type = "numeric-abs",
+    nbd.method = "multisurf", nbd.metric = "manhattan", msurf.sd.frac = .5,
+    neighbor.sampling = "none", fast.dist = T, dopar.nn = T, dopar.reg = T,
+    padj.method = "bonferroni", verbose = T
+  )
+)
+head(out_npdr)
+```
+
+```{r}
+# don't expect any less than .05 for interaction simulations
+# out_univariate[out_univariate[,"p.adj"]<.05,]
+
+# attributes with npdr raw/nominal p-value less than .05
+# rownames(out_npdr)[out_npdr$pval.attr<.05] # pval.attr, second column
+
+# functional attribute detection stats
+# npdr_feats <- row.names(out_npdr[out_npdr$pval.adj<.05,]) # p.adj<.05
+```
