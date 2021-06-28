@@ -18,3 +18,8 @@ list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (
 Given a vector functional (true) attribute names and a vector of positive
 association attribute names, returns detection statistics like recall and precision.
 }
+\examples{
+functional <- c("var1", "var2", "var3")
+detected <- c("var1", "var2", "var4")
+detectionStats(functional, detected)
+}

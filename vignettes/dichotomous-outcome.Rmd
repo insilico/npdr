@@ -103,33 +103,18 @@ out_corelearn <- CORElearn::attrEval(
   arrange(desc(rrelief)) %>%
   tibble::rownames_to_column("att")
 
-detected <- function(top.pct, results.df, functional, method) {
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>%
-    data.frame() %>%
-    {
-      if (method == "relief") {
-        top_n(., top.num, rrelief)
-      } else {
-        top_n(., -top.num, pval.att)
-      }
-    } %>%
-    pull(att)
-  power <- detectionStats(functional, top.vars)$TP # how many of top.pct are true
-  ifelse(is.nan(power), 0, power) / length(functional)
-}
-
 compare_df <- data.frame(pcts = pcts) %>%
   mutate(
     Relief = sapply(pcts, detected,
       results.df = out_corelearn,
       functional = functional_feats,
-      method = "relief"
+      sort_col = "rrelief"
     ),
     NPDR = sapply(pcts, detected,
       results.df = out_npdr,
       functional = functional_feats,
-      method = "npdr"
+      sort_col = "pval.att",
+      get_min = TRUE
     )
   ) %>%
   tidyr::pivot_longer(NPDR:Relief)
