@@ -120,38 +120,47 @@ ggplot(test.cc.df, aes(x=univ.log10,y=npdr.cc.log10)) + geom_point(aes(colour = 
 ##### original (pseudo t-test) STIR
 # impression is that npdr gives same resutls as original t-STIR
 #install_github("insilico/stir")
-library(stir)
-# stir interface requires splitting phenotype and predictor matrix, 
-# and requires finding the neighborhood separately.
-predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
-case.control.data[, "class"] <- as.factor(case.control.data[, "class"]) 
-pheno.case.control <- case.control.data[, "class"]
-neighbor.idx.observed <- find.neighbors(predictors.cc.mat, pheno.case.control, k = 0, method = "multisurf")
-results.list <- stir(predictors.cc.mat, neighbor.idx.observed, k = 0, metric = "manhattan", method = "multisurf")
-t_sorted_multisurf <- results.list$STIR_T[, -3]  # remove cohen-d
-colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir", sep=".")
-(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,])
-
-# functional attribute detection stats
-tstat_stir.detect.stats <- detectionStats(functional.case.control, 
-                                          row.names(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,]))
-cat(tstat_stir.detect.stats$report)
-
-### Compare STIR and npdr
-stir.log10.df <- data.frame(vars=rownames(t_sorted_multisurf),stir.log10=-log10(t_sorted_multisurf$t.pval.stir))
-npdr.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.log10=-log10(npdr.cc.results$pval.att))
-
-stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
-npdr.pcutoff <- -log10(npdr.cc.results$pval.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
-
-library(ggplot2)
-test.df <- merge(stir.log10.df,npdr.log10.df)
-functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
-ggplot(test.df, aes(x=stir.log10,y=npdr.log10)) + geom_point(aes(colour = functional), size=4) +
-  theme(text = element_text(size = 20)) +
-  # geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
-  # geom_hline(yintercept=npdr.pcutoff, linetype="dashed") +
-  xlab("STIR -log10(P)") + ylab("NPDR -log10(P)") 
+tryCatch(
+  {
+  library(stir)
+  # stir interface requires splitting phenotype and predictor matrix, 
+  # and requires finding the neighborhood separately.
+  predictors.cc.mat <- case.control.data[, - which(colnames(case.control.data) == "class")]
+  case.control.data[, "class"] <- as.factor(case.control.data[, "class"]) 
+  pheno.case.control <- case.control.data[, "class"]
+  neighbor.idx.observed <- find.neighbors(predictors.cc.mat, pheno.case.control, k = 0, method = "multisurf")
+  results.list <- stir(predictors.cc.mat, neighbor.idx.observed, k = 0, metric = "manhattan", method = "multisurf")
+  t_sorted_multisurf <- results.list$STIR_T[, -3]  # remove cohen-d
+  colnames(t_sorted_multisurf) <- paste(c("t.stat", "t.pval", "t.pval.adj"), "stir", sep=".")
+  (t_sorted_multisurf[t_sorted_multisurf[,3]<.05,])
+  
+  # functional attribute detection stats
+  tstat_stir.detect.stats <- detectionStats(functional.case.control, 
+                                            row.names(t_sorted_multisurf[t_sorted_multisurf[,3]<.05,]))
+  cat(tstat_stir.detect.stats$report)
+  
+  ### Compare STIR and npdr
+  stir.log10.df <- data.frame(vars=rownames(t_sorted_multisurf),stir.log10=-log10(t_sorted_multisurf$t.pval.stir))
+  npdr.log10.df <- data.frame(vars=npdr.cc.results$att,npdr.log10=-log10(npdr.cc.results$pval.att))
+  
+  stir.pcutoff <- -log10(t_sorted_multisurf$t.pval.stir[which(t_sorted_multisurf$t.pval.adj.stir>.05)[1]-1])
+  npdr.pcutoff <- -log10(npdr.cc.results$pval.att[which(npdr.cc.results$pval.adj>.05)[1]-1])
+  
+  library(ggplot2)
+  test.df <- merge(stir.log10.df,npdr.log10.df)
+  functional <- factor(c(rep("Func",length(functional.case.control)),rep("Non-Func",n.variables-length(functional.case.control))))
+  ggplot(test.df, aes(x=stir.log10,y=npdr.log10)) + geom_point(aes(colour = functional), size=4) +
+    theme(text = element_text(size = 20)) +
+    # geom_vline(xintercept=stir.pcutoff, linetype="dashed") +
+    # geom_hline(yintercept=npdr.pcutoff, linetype="dashed") +
+    xlab("STIR -log10(P)") + ylab("NPDR -log10(P)") 
+  },
+  error=function(cond) {
+    message("Trying to use stir. Need to run the following.")
+    message('devtools::install_github("insilico/stir")')
+    message(cond)
+  }
+)  # end try stir
 
 ##### CORElearn ReliefF with surf fixed k
 # fixed k with theoretical surf value
@@ -192,8 +201,11 @@ ggplot(test.cc.df, aes(x=rrelief,y=npdr.beta)) + geom_point(aes(colour = functio
 
 ##### Consensus Nested Cross Validation with ReliefF with surf fixed k
 # selects features and learns classification model.
-
-cncv.case.control <- consensus_nestedCV(train.ds = case.control.data, 
+tryCatch(
+  {
+    library(cncv)
+    library(caret)
+  cncv.case.control <- consensus_nestedCV(train.ds = case.control.data, 
                                   validation.ds =  case.control.3sets$validation, 
                                   label = "class",
                                   method.model = "classification",
@@ -206,33 +218,42 @@ cncv.case.control <- consensus_nestedCV(train.ds = case.control.data,
                                   num_tree = 500,
                                   verbose = F)
 
-cat("\n Train Accuracy [",cncv.case.control$cv.acc,"]\n")
-cat("\n Validation Accuracy [",cncv.case.control$Validation,"]\n")
-cat("\n Selected Features \n [",cncv.case.control$Features,"]\n")
-cat("\n Elapsed Time [",cncv.case.control$Elapsed,"]\n")
-cat(detectionStats(functional.case.control, cncv.case.control$Features)$report)
+  cat("\n Train Accuracy [",cncv.case.control$cv.acc,"]\n")
+  cat("\n Validation Accuracy [",cncv.case.control$Validation,"]\n")
+  cat("\n Selected Features \n [",cncv.case.control$Features,"]\n")
+  cat("\n Elapsed Time [",cncv.case.control$Elapsed,"]\n")
+  cat(detectionStats(functional.case.control, cncv.case.control$Features)$report)
+  },
+  error=function(cond) {
+    message("Trying to use cncv. Need to run the following.")
+    message('devtools::install_github("insilico/cncv")')
+    message(cond)
+  }
+)  # end try cncv
+
 
 ##### Regular Nested Cross Validation with ReliefF with surf fixed k
 # selects features and learns classification model.
-
-rncv.case.control <- regular_nestedCV(train.ds = case.control.data, 
-                                        validation.ds =  case.control.3sets$validation, 
-                                        label = "class",
-                                        method.model = "classification",
-                                        is.simulated = TRUE,
-                                        ncv_folds = c(10, 10),
-                                        param.tune = FALSE,
-                                        learning_method = "rf", 
-                                        importance.algorithm = "ReliefFequalK",
-                                        relief.k.method = "k_half_sigma",     # surf k
-                                        num_tree = 500,
-                                        verbose = F)
-
-cat("\n Train Accuracy [",rncv.case.control$cv.acc,"]\n")
-cat("\n Validation Accuracy [",rncv.case.control$Validation,"]\n")
-cat("\n Selected Features \n [",rncv.case.control$Features,"]\n")
-cat("\n Elapsed Time [",rncv.case.control$Elapsed,"]\n")
-cat(detectionStats(functional.case.control, rncv.case.control$Features)$report)
+## insilico/cncv error
+## Error in summary.connection(connection) : invalid connection
+# rncv.case.control <- regular_nestedCV(train.ds = case.control.data, 
+#                                         validation.ds =  case.control.3sets$validation, 
+#                                         label = "class",
+#                                         method.model = "classification",
+#                                         is.simulated = TRUE,
+#                                         ncv_folds = c(10, 10),
+#                                         param.tune = FALSE,
+#                                         learning_method = "rf", 
+#                                         importance.algorithm = "ReliefFequalK",
+#                                         relief.k.method = "k_half_sigma",     # surf k
+#                                         num_tree = 500,
+#                                         verbose = F)
+# 
+# cat("\n Train Accuracy [",rncv.case.control$cv.acc,"]\n")
+# cat("\n Validation Accuracy [",rncv.case.control$Validation,"]\n")
+# cat("\n Selected Features \n [",rncv.case.control$Features,"]\n")
+# cat("\n Elapsed Time [",rncv.case.control$Elapsed,"]\n")
+# cat(detectionStats(functional.case.control, rncv.case.control$Features)$report)
 
 ##### GLMnet (penalized regression) comparison. Don't expect good performance for interaction models. 
 
@@ -261,26 +282,30 @@ glmnet.cc.sorted[abs(glmnet.cc.sorted)>0,]
 #####
 ## EXPERIMENTAL Needs penalty for ordinal regression (not part of glmnet)
 ##### Run npdrNET, penalized npdr
-npdrNET.cc.results <- npdr("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
-                               nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
-                               glmnet.alpha=1, glmnet.lower=0, glmnet.family="binomial", verbose=T)
-npdrNET.cc.results.mat <- as.matrix(npdrNET.cc.results)
-# .05 regression coefficient threshold is arbitrary
-# not sure why glment did not force zeros
-# Negative coefficients mean irrelevant attributes for Relief scores.
-# However, glmnet does not include ordinal models. 
-nonzero.npdrNET.mask <- abs(npdrNET.cc.results.mat[,1])>0 
-cbind(shrunk.betas=npdrNET.cc.results.mat[nonzero.npdrNET.mask,1])  # rownames and 1 column of shrunk betas
-
-dim(npdrNET.cc.results.mat)
-# Naively remove negative coefficients, but would be better to modify shrinkage model.
-#pos.npdrNET.mask <- npdrNET.cc.results.mat[,1]>0.05  
-#as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1) 
-
-# functional attribute detection stats
-npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
-npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
-cat(npdrNET.cc.detect.stats$report)
+# bam: regression.type="glmnet" currently doesn't work
+# npdrNET.cc.results <- npdr("class", case.control.data, regression.type="glmnet", attr.diff.type="numeric-abs",
+#                                nbd.method="multisurf", nbd.metric = "manhattan", msurf.sd.frac=.5,
+#                                glmnet.alpha=1, glmnet.lower=0, 
+#                       # argument removed from function?
+#                       #glmnet.family="binomial",
+#                       verbose=T)
+# npdrNET.cc.results.mat <- as.matrix(npdrNET.cc.results)
+# # .05 regression coefficient threshold is arbitrary
+# # not sure why glment did not force zeros
+# # Negative coefficients mean irrelevant attributes for Relief scores.
+# # However, glmnet does not include ordinal models. 
+# nonzero.npdrNET.mask <- abs(npdrNET.cc.results.mat[,1])>0 
+# cbind(shrunk.betas=npdrNET.cc.results.mat[nonzero.npdrNET.mask,1])  # rownames and 1 column of shrunk betas
+# 
+# dim(npdrNET.cc.results.mat)
+# # Naively remove negative coefficients, but would be better to modify shrinkage model.
+# #pos.npdrNET.mask <- npdrNET.cc.results.mat[,1]>0.05  
+# #as.matrix(npdrNET.cc.results.mat[pos.npdrNET.mask,],ncol=1) 
+# 
+# # functional attribute detection stats
+# npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask,]) # p.adj<.05
+# npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
+# cat(npdrNET.cc.detect.stats$report)
 
 ## Random Forest
 library(randomForest)
@@ -346,7 +371,7 @@ for (Ridx in 1:num.samp){
   neighborhood.cc.betas[Ridx] <- beta_zscore_a
   neighborhood.cc.pvals[Ridx] <- pval_beta_a
 }
-cbind(neighborhood.cc.betas, neighborhood.cc.pvals, my.cc.pheno)
+#cbind(neighborhood.cc.betas, neighborhood.cc.pvals, my.cc.pheno)
 beta_zscore_ave <- mean(neighborhood.cc.betas)
 mean(neighborhood.cc.pvals)
 pt(beta_zscore_ave, knnSURF(num.samp,.5), lower = FALSE) 
@@ -362,9 +387,9 @@ my.cc.nbrs <- nearestNeighbors(predictors.cc.mat,
                              sd.frac = 0.5, k=0,
                              neighbor.sampling="none")
 length(my.cc.nbrs[,1])
-my.cc.nbrs[my.cc.nbrs[,1]==23,2]
-my.cc.nbrs[my.cc.nbrs[,1]==31,2]
-my.cc.nbrs[my.cc.nbrs[,1]==102,2]
+#my.cc.nbrs[my.cc.nbrs[,1]==23,2]
+#my.cc.nbrs[my.cc.nbrs[,1]==31,2]
+#my.cc.nbrs[my.cc.nbrs[,1]==102,2]
 
 # knnVec <- function(neighbor.pairs.mat){
 #   # number of neighbors for each sample
@@ -385,6 +410,6 @@ my.cc.unique.nbrs <- uniqueNeighbors(my.cc.nbrs)
 plot(knnVec(my.cc.unique.nbrs))
 mean(knnVec(my.cc.unique.nbrs))
 length(my.cc.unique.nbrs[,1])
-my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==2,2]
-my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==31,2]
-my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==102,2]
+#my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==2,2]
+#my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==31,2]
+#my.cc.unique.nbrs[my.cc.unique.nbrs[,1]==102,2]

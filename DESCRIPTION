@@ -22,7 +22,6 @@ Imports:
     Rcpp, 
     tibble, 
     tidyr, 
-    wordspace,
     RcppArmadillo
 Suggests: knitr, CORElearn, ggplot2
 RoxygenNote: 7.1.1
