@@ -214,6 +214,9 @@ generate_structured_corrmat <- function(g = NULL,
 #' }
 #' @family simulation
 #' @export
+#' @examples
+#' data.sets <- splitDataset(case.control.3sets$train, label = "class")
+#' 
 ##########################################################################################
 splitDataset <- function(all.data = NULL,
                          pct.train = 0.5,

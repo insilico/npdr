@@ -1,40 +1,52 @@
 # =========================================================================#
 #' npdrLearner
 #'
-#' Uses npdr neighorhoods to learn a nearest neighbor classification or regression model (latter not implemented but easy).
-#' Finds the nearest neighbors of test instances to a training dataset. Uses majority class of training
-#' neighbors for test prediction. Allows adaptive Relief neighborhoods or specify k. Regression would simply use the average value of the neighbor phenotypes.
+#' Uses npdr neighorhoods to learn a nearest neighbor classification or 
+#' regression model (latter not implemented but easy).
+#' Finds the nearest neighbors of test instances to a training dataset. 
+#' Uses majority class of training neighbors for test prediction.
+#' Allows adaptive Relief neighborhoods or specify k.
+#' Regression would simply use the average value of the neighbor phenotypes.
 #' Uses functions npdrDistances2 and nearestNeighbors2.
 #'
-#' @param train.outcome character name or length-m numeric outcome vector train data
-#' @param train.data m x p matrix of m instances and p attributes for training data. May also include outcome vector but then outcome should be a name. Include attr names as colnames.
-#' @param test.outcome character name or length-m numeric outcome vector for test data
-#' @param test.data m x p matrix of m instances and p attributes for test data. May also include outcome vector but then outcome should be a name. Include attr names as colnames.
-#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors2().
-#' @param nbd.metric used in npdrDistances2 for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors2().
-#' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors2().
-#' The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)
-#' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
-#' The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbors2().
-#' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
-#' @return  list: neighborhoods for each test instance, prediction for each test instance, accuracy on test set
+#' @param train.outcome character name or length-m numeric outcome vector for 
+#' train data
+#' @param train.data m x p matrix of m instances and p attributes of train data.
+#' May also include outcome vector but then outcome should be a name. 
+#' Include attr names as colnames.
+#' @param test.outcome character name or length-m numeric outcome vector of test data
+#' @param test.data m x p matrix of m instances and p attributes for test data.
+#' May also include outcome vector but then outcome should be a name. 
+#' Include attr names as colnames.
+#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or 
+#' `relieff` (specify k). Used by nearestNeighbors2().
+#' @param nbd.metric used in npdrDistances2 for distance matrix between 
+#' instances, default: `manhattan` (numeric). Used by nearestNeighbors2().
+#' @param knn number of constant nearest hits/misses for `relieff` (fixed-k).
+#' Used by nearestNeighbors2().
+#' The default knn=0 means use the expected SURF theoretical `k` with 
+#' `msurf.sd.frac` (0.5 by default)
+#' @param msurf.sd.frac multiplier of the standard deviation from the mean 
+#' distances; subtracted from mean for SURF or multiSURF.
+#' The multiSURF default is `msurf.sd.frac=0.5`: mean - sd/2. 
+#' Used by nearestNeighbors2().
+#' @param dopar.nn whether or not neighborhood is computed in parallel, 
+#' default as FALSE.
+#' @return  list: neighborhoods for each test instance, prediction for each 
+#' test instance, accuracy on test set
 #'
 #' @examples
 #' test.results <- npdrLearner(
 #'   train.outcome = "class", train.data = case.control.3sets$train,
 #'   test.outcome = "class", test.data = case.control.3sets$validation,
-#'   nb.method = "relieff",
-#'   nb.metric = "manhattan",
-#'   sd.vec = NULL, sd.frac = 0.5, dopar.nn = FALSE,
-#'   knn = 0
-#' ) # knn=0 uses multisurf k estimate or specify a value
-#' test_acc <- test.results$accuracy
+#'   nbd.method = "relieff", nbd.metric = "manhattan",
+#'   dopar.nn = FALSE, knn = 0
+#' )
+#' test.results$accuracy
 #' @export
 npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
-                        nbd.method = "relieff",
-                        nbd.metric = "manhattan",
-                        msurf.sd.frac = 0.5, dopar.nn = FALSE,
-                        knn = 0) {
+                        nbd.method = "relieff", nbd.metric = "manhattan",
+                        msurf.sd.frac = 0.5, dopar.nn = FALSE, knn = 0) {
   if (length(train.outcome) == 1) {
     # e.g., outcome="class" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
     train.pheno <- train.data[, train.outcome] %>%
@@ -59,8 +71,8 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
   # number of elements in test.neighbors list equal to test.data sample size
   # each element has nearest neighbors from train.data
   test.neighbors <- nearestNeighbors2(train.data, test.data,
-    nb.method = nbd.method,
-    nb.metric = nbd.metric,
+    nbd.method = nbd.method,
+    nbd.metric = nbd.metric,
     sd.vec = NULL, sd.frac = msurf.sd.frac,
     k = knn, dopar.nn = dopar.nn
   )
@@ -82,17 +94,27 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
 # =========================================================================#
 #' npdrDistances2
 #'
-#' Create m1 x m2 distance matrix between two dataasets, where m1 instances and p attributes in dataset1 and m2 instances
-#' and p attributes in dataset2. Datasets should not include phenotype column. Uses function dist2 from flexclust.
+#' Create m1 x m2 distance matrix between two datasets,
+#' (m1 instances and p attributes in dataset1 and
+#' m2 instances and p attributes in dataset2).
+#' Datasets should not include phenotype column.
+#' Uses function dist2 from flexclust.
 #' Used by nearestNeighbors2().
 #'
 #' @param attr.mat1 m1 x p matrix of m instances and p attributes
 #' @param attr.mat2 m2 x p matrix of m instances and p attributes
-#' @param metric for distance matrix between instances (default: \code{"manhattan"}, others include \code{"euclidean"},
+#' @param metric for distance matrix between instances 
+#' (default: \code{"manhattan"}, others include \code{"euclidean"},
 #' and for GWAS \code{"allele-sharing-manhattan"}).
-#' @return  distance.mat, matrix of m1 x m2 (instances x intances) pairwise distances.
+#' @return matrix of m1 instances x m2 instances pairwise distances.
 #' @examples
-#' dist.mat <- npdrDistances2(train.data, test.data, metric = "manhattan")
+#' train_dat <- case.control.3sets$train
+#' valid_dat <- case.control.3sets$validation
+#' dist.mat <- npdrDistances2(
+#'   train_dat[, names(train_dat) != "class"], 
+#'   valid_dat[, names(valid_dat) != "class"], 
+#'   metric = "manhattan"
+#' )
 #' @export
 npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
   # first mat is rows and second is columns
@@ -113,34 +135,43 @@ npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
 # =========================================================================#
 #' nearestNeighbors2
 #'
-#' Find nearest neighbors of each instance in attr.mat2 (test) to instances in attr.mat1 (train)
-#' using relief neighborhood methods. Used by npdrLearner, nearest neighbor classifier. Input data
-#' should not include phenotype column.
+#' Find nearest neighbors of each instance in attr.mat2 (test) to instances in
+#' attr.mat1 (train) using relief neighborhood methods.
+#' Used by npdrLearner, nearest neighbor classifier.
+#' Input data should not include phenotype column.
 #'
 #' @param attr.mat1 m1 x p matrix of m instances and p attributes (training data)
 #' @param attr.mat2 m2 x p matrix of m instances and p attributes (test data)
-#' @param nb.metric used in npdrDistances2 for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nb.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
-#' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
-#' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
-#' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
+#' @param nbd.metric used in npdrDistances2 for distance matrix between 
+#' instances, default: `manhattan` (numeric)
+#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or 
+#' `relieff` (specify k)
+#' @param sd.vec vector of standard deviations
+#' @param sd.frac multiplier of the standard deviation from the mean distances, 
+#' subtracted from mean distance to create for SURF or multiSURF radius. 
+#' The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
+#' @param k number of constant nearest hits/misses for `relieff` (fixed k).
+#' The default k=0 means use the expected SURF theoretical k with sd.frac 
+#' (0.5 by default) for relieff nbd.
 #' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
-#' @return  Ri.nearestNeighbors.list: list of Ri's (data2 test instances) NN's in data1 (train instances)
+#' @return list of Ri's (data2 test instances) NN's in data1 (train instances)
 #'
 #' @examples
+#' train_dat <- case.control.3sets$train
+#' valid_dat <- case.control.3sets$validation
 #' test.neighbors <- nearestNeighbors2(
-#'   case.control.3sets$train, 
-#'   case.control.3sets$validation, # no phenotype column
-#'   nb.method = "relieff",
-#'   nb.metric = "manhattan",
+#'   train_dat[, names(train_dat) != "class"],
+#'   valid_dat[, names(valid_dat) != "class"], # no phenotype column
+#'   nbd.method = "relieff",
+#'   nbd.metric = "manhattan",
 #'   sd.vec = NULL, sd.frac = 0.5,
 #'   k = 0, # uses multisurf k estimate
 #'   dopar.nn = FALSE
 #' )
 #' @export
 nearestNeighbors2 <- function(attr.mat1, attr.mat2,
-                              nb.method = "multisurf",
-                              nb.metric = "manhattan",
+                              nbd.method = "multisurf",
+                              nbd.metric = "manhattan",
                               sd.vec = NULL, sd.frac = 0.5, dopar.nn = FALSE,
                               k = 0) {
   # create a matrix with num.samp rows and two columns
@@ -148,12 +179,16 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
   num.samp1 <- nrow(attr.mat1) # training set, rows of dist mat
   num.samp2 <- nrow(attr.mat2) # testing set, cols of dist mat
 
-  dist.mat <- npdrDistances2(as.matrix(attr.mat1), as.matrix(attr.mat2), metric = nb.metric)
+  dist.mat <- npdrDistances2(
+    as.matrix(attr.mat1),
+    as.matrix(attr.mat2),
+    metric = nbd.metric
+  )
   dist.df <- dist.mat %>% as.data.frame()
   colnames(dist.df) <- seq.int(num.samp2)
   rownames(dist.df) <- seq.int(num.samp1)
 
-  if (nb.method == "relieff") {
+  if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
@@ -196,14 +231,14 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       } # end for
     }
   } else {
-    if (nb.method == "surf") {
+    if (nbd.method == "surf") {
       radius.surf <- mean(dist.mat) # const r = mean(all distances)
       sd.const <- sd(dist.mat)
       # bam: orignal surf does not subtract sd-frac but should for fair multisurf comparison
       Ri.radius <- rep(radius.surf - sd.frac * sd.const, num.samp2)
       names(Ri.radius) <- as.character(1:num.samp2)
     }
-    if (nb.method == "multisurf") {
+    if (nbd.method == "multisurf") {
       if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp2, function(i) sd(dist.mat[, i]))
       Ri.radius <- colMeans(dist.mat) - sd.frac * sd.vec # use adaptive radius
       names(Ri.radius) <- as.character(1:num.samp2)

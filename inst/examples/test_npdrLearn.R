@@ -90,10 +90,10 @@ selected.features <- npdr.cc.results %>% filter(pval.adj<.05) %>% pull(att)
 cc.attrs <- case.control.data[,colnames(case.control.data)!="class"]
 cc.pheno <- as.numeric(as.character(case.control.data[,colnames(case.control.data)=="class"]))
 cc.nbpairs.idx <- nearestNeighbors(cc.attrs, 
-                                          nb.method="multisurf", nb.metric="manhattan", 
+                                          nbd.method="multisurf", nbd.metric="manhattan", 
                                           sd.frac = .5, k=0)
 cc.nbpairs.idx <- nearestNeighborsSeparateHitMiss(cc.attrs, cc.pheno, 
-                                   nb.method="multisurf", nb.metric="manhattan", 
+                                   nbd.method="multisurf", nbd.metric="manhattan", 
                                    sd.frac = .5, k=0)
 Ri.phenos <- cc.pheno[cc.nbpairs.idx$Ri_idx]
 NN.phenos <- cc.pheno[cc.nbpairs.idx$NN_idx]

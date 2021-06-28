@@ -29,6 +29,14 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 #' @param covars optional vector or matrix of covariate columns for correction. Or separate data matrix of covariates.
 #' @return matrix of beta, p-value and adjusted p-value, sorted by p-value.
 #' @export
+#' @examples
+#' out_univariate <- uniReg(
+#'   outcome = "class",
+#'   dataset = case.control.3sets$train,
+#'   regression.type = "binomial"
+#' )
+#' head(out_univariate)
+#'
 uniReg <- function(outcome, dataset, regression.type = "lm", padj.method = "fdr", covars = "none") {
   ## parse input
   if (length(outcome) == 1) {
@@ -131,6 +139,10 @@ uniReg <- function(outcome, dataset, regression.type = "lm", padj.method = "fdr"
 #' @param functional character vector of functional/true attribute names.
 #' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
 #' @return list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (string).
+#' @examples
+#' functional <- c("var1", "var2", "var3")
+#' detected <- c("var1", "var2", "var4")
+#' detectionStats(functional, detected)
 #' @export
 detectionStats <- function(functional, positives) {
   TP <- sum(positives %in% functional)
@@ -157,64 +169,46 @@ detectionStats <- function(functional, positives) {
   ))
 }
 
-# =========================================================================#
-#' reliefDetected
-#'
-#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile
-#' threshold, returns true positive rate.
-#'
-#' @param results.df dataframe of relief-sorted (high to low) attribute names from CORElearn
-#' @param functional character vector of functional/true attribute names
-#' @param top.pct percentile of top relief scores compared with the functional list
-#' @return True positive rate: number of true postives divided by the number of functional
-#' @export
-reliefDetected <- function(results.df, functional, top.pct) {
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>%
-    top_n(top.num, rrelief) %>%
-    pull(att) # rrelief column of results.df
-  power <- detectionStats(functional, top.vars)$TP # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power), 0, power) / length(functional) # if nan, return 0, normalize by num of functional
-}
 
 # =========================================================================#
-#' rfDetected
+#' detected
 #'
-#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile
-#' threshold, returns true positive rate.
+#' Given a vector functional (true) attribute names, a vector of
+#' sorted attribute names, and percentile threshold, returns true positive rate.
 #'
-#' @param results.df dataframe of sorted (high to low) attribute names from randomForest
+#' @param results.df dataframe of sorted attribute names (column `att`)
+#' (e.g., feature important scores or low to high P value)
+#' from either CORElearn, NPDR, or random forest.
 #' @param functional character vector of functional/true attribute names
 #' @param top.pct percentile of top relief scores compared with the functional list
+#' @param sort_col column to sort importance score on.
+#' e.g., `rrelief`, `rf.scores`, or `pval.att`.
+#' @param get_min Boolean. Whether to reverse the sort, e.g., for p value.
+#' Default to FALSE (i.e., sort by importance scores).
 #' @return True positive rate: number of true postives divided by the number of functional
 #' @export
-rfDetected <- function(results.df, functional, top.pct) {
+#' @examples
+#' out_npdr <- npdr("class", case.control.3sets$train)
+#' functional_feats <- case.control.3sets$signal.names
+#' detected(0.2, out_npdr, functional_feats, "pval.att", TRUE)
+#'
+#' \dontrun{
+#' ranfor_fit <- randomForest(as.factor(class) ~ ., case.control.3sets$train)
+#' rf_imp <- data.frame(importance(ranfor_fit)) %>%
+#'   tibble::rownames_to_column("att") 
+#' detected(0.1, rf_imp, functional_feats, "MeanDecreaseGini")
+#' }
+#' 
+detected <- function(top.pct, results.df, functional, sort_col, get_min = FALSE) {
+  sort_col <- sym(sort_col)
+  slice_fun <- if (get_min) slice_min else slice_max
   top.num <- floor(top.pct * nrow(results.df))
   top.vars <- results.df %>%
-    top_n(top.num, rf.scores) %>%
-    pull(att) # rf.scores column for rf results
-  power <- detectionStats(functional, top.vars)$TP # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power), 0, power) / length(functional) # if nan, return 0, normalize by num of functional
-}
-
-# =========================================================================#
-#' npdrDetected
-#'
-#' Given a vector functional (true) attribute names, a vector of sorted attribute names, and percentile
-#' threshold, returns true positive rate.
-#'
-#' @param results.df dataframe of sorted (low to high P value) attribute names from NPDR
-#' @param functional character vector of functional/true attribute names
-#' @param top.pct percentile of top relief scores compared with the functional list
-#' @return True positive rate: number of true postives divided by the number of functional
-#' @export
-npdrDetected <- function(results.df, functional, top.pct) {
-  top.num <- floor(top.pct * nrow(results.df))
-  top.vars <- results.df %>%
-    top_n(-top.num, pval.att) %>%
-    pull(att) # pval.att is npdr specific
-  power <- detectionStats(functional, top.vars)$TP # npdr:: fn, how many of top.pct are true
-  ifelse(is.nan(power), 0, power) / length(functional) # if nan, return 0, normalize by num of functional
+    data.frame() %>%
+    slice_fun(!!sort_col, n = top.num) %>%
+    pull(att)
+  power <- detectionStats(functional, top.vars)$TP # how many of top.pct are true
+  ifelse(is.nan(power), 0, power) / length(functional)
 }
 
 # =========================================================================#
@@ -225,7 +219,6 @@ npdrDetected <- function(results.df, functional, top.pct) {
 #' @param dataMatrix data matrix with predictors only, sample x gene
 #' @param percentile percentile of low variance removed
 #' @return mask and filtered data
-#' @export
 geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
   variances <- apply(as.matrix(dataMatrix), 2, var)
   threshold <- quantile(variances, c(percentile))
@@ -239,7 +232,7 @@ geneLowVarianceFilter <- function(dataMatrix, percentile = 0.5) {
 # =========================================================================#
 #' Hamming distance for a binary matrix
 #' https://johanndejong.wordpress.com/2015/10/02/faster-hamming-distance-in-r-2/
-#' 
+#'
 #' @param X Original matrix.
 #'
 #' @return Distance matrix with the Hamming metric.
@@ -252,11 +245,13 @@ hamming.binary <- function(X) {
 #' =========================================================================#
 #' Compute denominator of the diff formula
 #' for each attribute x (column) in my.mat, max(x) - min(x)
-#' 
+#'
 #' @param my.mat attribute matrix
 #'
 #' @return Numeric vectors representing the denominators in the diff formula
-#' 
+#'
 attr.range <- function(my.mat) {
-  apply(as.matrix(my.mat), 2, function(x) {max(x) - min(x)})
+  apply(as.matrix(my.mat), 2, function(x) {
+    max(x) - min(x)
+  })
 }

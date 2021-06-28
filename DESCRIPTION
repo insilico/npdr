@@ -8,7 +8,6 @@ Depends: R (>= 3.3.2)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Suggests: knitr
 Imports: 
     dplyr, 
     speedglm, 
@@ -25,8 +24,9 @@ Imports:
     tidyr, 
     wordspace,
     RcppArmadillo
-VignetteBuilder: knitr
-RoxygenNote: 7.1.0
+Suggests: knitr, CORElearn, ggplot2
+RoxygenNote: 7.1.1
 LinkingTo: 
     Rcpp,
     RcppArmadillo
+VignetteBuilder: knitr

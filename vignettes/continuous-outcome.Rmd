@@ -1,0 +1,416 @@
+---
+title: "Using NPDR to identify functional features given quantitative trait"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{Using NPDR to identify functional features given quantitative trait}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[UTF-8]{inputenc}
+---
+
+```{r message=FALSE, warnings=FALSE}
+library(npdr)
+library(dplyr) # data wrangling
+library(CORElearn) # for comparison
+library(ggplot2) # visualize results
+
+theme_set(theme_minimal())
+theme_update(panel.grid.minor = element_blank())
+```
+
+Let's exmine the `qtrait.3sets` simulated dataset provided in the NPDR package,
+focusing on the train and holdout set for now (ignore validation set).
+More details on the simulation can be found [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4326454/).
+
+```{r}
+# combine train and holdout into 200 samples x 100 attributes
+dat <- bind_rows(qtrait.3sets[c("train", "holdout")])
+# validation.data <- data.sets$validation
+n_feats <- ncol(dat) - 1
+n_samples <- nrow(dat)
+phenotype <- dat$qtrait
+functional_feats <- qtrait.3sets$signal.names # functional attributes
+```
+
+## Univariate logistic regression
+Perform a linear regression on all predictors, adjusted p-values, check functional hits
+
+```{r}
+out_univariate <- uniReg(outcome = "qtrait", dataset = dat, regression.type = "lm") %>%
+  data.frame()
+
+out_univariate %>%
+  slice_min(p.adj, n = 10)
+```
+
+```{r}
+uni_feats <- out_univariate %>%
+  filter(p.adj < 0.05) %>%
+  rownames()
+cat(detectionStats(functional_feats, uni_feats)$report)
+```
+
+## Run NPDR
+
+```{r}
+### clustering
+library(glmnet)
+npdr.cluster <- npdr("qtrait", dat,
+  regression.type = "lm", attr.diff.type = "numeric-abs",
+  nbd.method = "multisurf", nbd.metric = "manhattan", msurf.sd.frac = .5,
+  neighbor.sampling = "unique", fast.reg = F, dopar.nn = F,
+  use.glmnet = T, glmnet.alpha = "cluster",
+  padj.method = "bonferroni", verbose = T
+)
+
+pheno.diff <- npdr.cluster$pheno.diff
+attr.diff.mat <- as.matrix(npdr.cluster[, !(names(npdr.cluster) %in% "pheno.diff")])
+cormat <- cor(attr.diff.mat)
+distmat <- dist(t(attr.diff.mat))
+hc <- hclust(distmat)
+plot(hc)
+```
+
+### NPDR with unique neighbor pairs
+
+```{r}
+npdr_unique <- npdr("qtrait", dat,
+  regression.type = "lm", attr.diff.type = "numeric-abs",
+  nbd.method = "multisurf", nbd.metric = "manhattan", msurf.sd.frac = .5,
+  neighbor.sampling = "unique", fast.reg = F, dopar.nn = F,
+  padj.method = "bonferroni", verbose = T
+)
+
+# attributes with npdr adjusted p-value less than .05
+npdr_unique[npdr_unique$pval.adj < .05, ] # pval.adj, first column
+
+# functional attribute detection stats
+npdr_unique_feats <- npdr_unique %>%
+  filter(pval.adj < .05) %>%
+  pull(att)
+
+cat(detectionStats(functional_feats, npdr_unique_feats)$report)
+```
+
+### Normal NPDR
+
+```{r}
+npdr_out <- npdr("qtrait", dat,
+  regression.type = "lm", attr.diff.type = "numeric-abs",
+  nbd.method = "multisurf", nbd.metric = "manhattan",
+  msurf.sd.frac = .5, neighbor.sampling = "none",
+  padj.method = "bonferroni", verbose = T
+)
+# attributes with npdr adjusted p-value less than .05
+npdr_out %>%
+  filter(pval.adj < 0.05)
+
+# functional attribute detection stats
+npdr_feats <- npdr_out %>%
+  filter(pval.adj < .05) %>%
+  pull(att)
+
+cat(detectionStats(functional_feats, npdr_feats)$report)
+```
+
+
+## CORElearn ReliefF with surf fixed k
+Does NPDR rank the attributes better than RReliefF?
+Let's try NPDR with fixed k and theoretical SURF value
+
+```{r}
+arbitrary_threshold <- 0.005
+corelearn_out <- CORElearn::attrEval("qtrait",
+  data = dat,
+  estimator = "RReliefFequalK",
+  costMatrix = NULL,
+  outputNumericSplits = FALSE,
+  kNearestEqual = knnSURF(n_samples, .5)
+)
+
+data.frame(corelearn_out) %>%
+  slice_max(corelearn_out, n = 20)
+
+corelearn_feats <- data.frame(corelearn_out) %>%
+  filter(corelearn_out > arbitrary_threshold) %>%
+  rownames()
+
+# functional attribute detection stats
+
+cat(detectionStats(
+  functional_feats,
+  corelearn_feats
+)$report)
+```
+
+### Compare CORElearn and NPDR
+
+Setting an arbitrary threshold of 0.005, 
+```{r}
+corelearn.df <- data.frame(att = names(corelearn_out), rrelief = corelearn_out)
+npdr.beta.df <- npdr_out %>% select(att, beta.Z.att)
+corelearn.cutoff <- arbitrary_threshold
+npdr.pcutoff <- npdr_out %>%
+  filter(pval.adj < 0.05) %>%
+  tail(1) %>%
+  pull(beta.Z.att)
+
+left_join(corelearn.df, npdr.beta.df, by = "att") %>%
+  mutate(functional = grepl("sim", att)) %>%
+  ggplot(aes(x = rrelief, y = beta.Z.att)) +
+  # theme(text = element_text(size = 20)) +
+  geom_vline(xintercept = corelearn.cutoff, linetype = "dashed") +
+  geom_hline(yintercept = npdr.pcutoff, linetype = "dashed") +
+  geom_point(aes(colour = functional), alpha = 0.8) +
+  xlab("RRelief scores") +
+  ylab("NPDR coefficients")
+```
+
+
+```{r echo=FALSE}
+knitr::knit_exit()
+```
+
+```{r}
+##### Consensus Nested Cross Validation with ReliefF with surf fixed k
+# selects features and learns regression model.
+
+cncv.qtrait <- consensus_nestedCV(
+  train.ds = dat,
+  validation.ds = NULL,
+  label = "qtrait",
+  method.model = "regression",
+  is.simulated = TRUE,
+  ncv_folds = c(10, 10),
+  param.tune = FALSE,
+  learning_method = "rf",
+  importance.algorithm = "RReliefFequalK",
+  relief.k.method = "k_half_sigma", # surf k
+  num_tree = 500,
+  verbose = F
+)
+
+cat("\n Train R^2 [", cncv.qtrait$cv.acc, "]\n")
+cat("\n Validation R^2 [", cncv.qtrait$Validation, "]\n")
+cat("\n Selected Features \n [", cncv.qtrait$Features, "]\n")
+cat("\n Elapsed Time [", cncv.qtrait$Elapsed, "]\n")
+cat(detectionStats(functional_feats, cncv.qtrait$Features)$report)
+```
+
+
+```{r}
+##### Regular Nested Cross Validation with ReliefF with surf fixed k
+# selects features and learns regression model.
+
+rncv.qtrait <- regular_nestedCV(
+  train.ds = dat,
+  validation.ds = qtrait.3sets$validation,
+  label = "qtrait",
+  method.model = "regression",
+  is.simulated = TRUE,
+  ncv_folds = c(5, 5),
+  param.tune = FALSE,
+  learning_method = "rf",
+  importance.algorithm = "RReliefFequalK",
+  relief.k.method = "k_half_sigma", # surf k
+  num_tree = 500,
+  verbose = F
+)
+
+cat("\n Train R^2 [", rncv.qtrait$cv.acc, "]\n")
+cat("\n Validation R^2 [", rncv.qtrait$Validation, "]\n")
+cat("\n Selected Features \n [", rncv.qtrait$Features, "]\n")
+cat("\n Elapsed Time [", rncv.qtrait$Elapsed, "]\n")
+cat(detectionStats(functional_feats, rncv.qtrait$Features)$report)
+
+##### GLMnet (penalized regression) comparison.
+# Impression for main effects is that TP is similar npdr, but npdr has higher FP
+
+library(glmnet)
+predictors.qtrait.mat <- dat[, -which(colnames(dat) == "qtrait")]
+
+glmnet.qtrait.model <- cv.glmnet(as.matrix(predictors.qtrait.mat), phenotype, alpha = .1, type.measure = "mse")
+glmnet.qtrait.coeffs <- predict(glmnet.qtrait.model, type = "coefficients")
+# glmnet.cc.coeffs  # maybe 3 is most important, Excess kurtosis
+model.qtrait.terms <- colnames(predictors.qtrait.mat) # glmnet includes an intercept but we are going to ignore
+nonzero.glmnet.qtrait.coeffs <- model.qtrait.terms[glmnet.qtrait.coeffs@i[which(glmnet.qtrait.coeffs@i != 0)]] # skip intercept if there, 0-based counting
+nonzero.glmnet.qtrait.coeffs
+cat(detectionStats(functional_feats, nonzero.glmnet.qtrait.coeffs)$report)
+```
+
+
+```{r}
+##### Run npdrNET, penalized npdr
+npdrNET.qtrait.results <- npdr("qtrait", dat,
+  regression.type = "glmnet", attr.diff.type = "numeric-abs",
+  nbd.method = "multisurf", nbd.metric = "manhattan", msurf.sd.frac = .5,
+  glmnet.alpha = 1, glmnet.lower = 0, glmnet.family = "gaussian", verbose = T
+)
+# attributes with npdr adjusted p-value less than .05
+npdrNET.qtrait.results.mat <- as.matrix(npdrNET.qtrait.results)
+# .05 regression coefficient threshold is arbitrary
+# not sure why glment did not force zeros
+# Finds more interactions than regular glmnet, but not nearly as good as regular npdr
+nonzero.npdrNET.qtrait.mask <- abs(npdrNET.qtrait.results.mat[, 1]) > 0
+as.matrix(npdrNET.qtrait.results.mat[nonzero.npdrNET.qtrait.mask, ], ncol = 1)
+
+# functional attribute detection stats
+npdrNET.cc.positives <- names(npdrNET.cc.results.mat[nonzero.npdrNET.mask, ]) # p.adj<.05
+npdrNET.cc.detect.stats <- detectionStats(functional.case.control, npdrNET.cc.positives)
+cat(npdrNET.cc.detect.stats$report)
+
+## Unique pairs
+
+testUnique <- function(neighbor.pairs.idx) {
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length = num.all.pairs) # redundant vector of "i,j" pairs
+  for (i in 1:num.all.pairs) {
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i, ]
+    curr.pair <- sort(curr.pair, decreasing = F)
+    pairs.sorted[i] <- paste(curr.pair, collapse = ",")
+  }
+  # unique.idx <- which(!duplicated(pairs.sorted))
+  # unique.idx <- which(!duplicated(pairs.sorted, nmax=floor(num.all.pairs/2))) # nmax too low
+  unique.pairs.collapsed <- distinct(data.frame(pairs = pairs.sorted))
+  unique.pairs.split <- strsplit(as.character(unique.pairs.collapsed$pairs), ",")
+  unique.pairs.char <- do.call(rbind, unique.pairs.split)
+  pairs1 <- as.matrix(mapply(unique.pairs.char[, 1], FUN = as.numeric), ncol = 2, byrow = F)
+  pairs2 <- as.matrix(mapply(unique.pairs.char[, 2], FUN = as.numeric), ncol = 2, byrow = F)
+  unique.pairs.list <- cbind(pairs1, pairs2)
+  dimnames(unique.pairs.list) <- dimnames(neighbor.pairs.idx)
+  return(unique.pairs.list)
+}
+
+testUnique2 <- function(neighbor.pairs.idx) {
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length = num.all.pairs) # redundant vector of "i,j" pairs
+  for (i in 1:num.all.pairs) {
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i, ]
+    curr.pair <- sort(curr.pair, decreasing = F)
+    pairs.sorted[i] <- paste(curr.pair, collapse = ",")
+  }
+  keep <- c()
+  pair.row <- 1
+  while (!is.na(pairs.sorted[pair.row])) { # do until we run out of pairs to check
+    curr.pair <- pairs.sorted[pair.row]
+    repeat.rows <- sort(which(curr.pair == pairs.sorted))
+    # cat(repeat.rows,"\n")
+    if (length(repeat.rows) == 2) { # found a repeat
+      keep <- c(keep, pair.row) # add first to keep list
+      pairs.sorted <- pairs.sorted[-repeat.rows[2]] # remove the second redundant row from checking
+    } else { # no repeat
+      keep <- c(keep, pair.row) # add unique to keep list
+    }
+    pair.row <- pair.row + 1
+  }
+  return(neighbor.pairs.idx[keep, ])
+}
+
+pastePairs <- function(neighbor.pairs.idx) {
+  # input: two columns of redundant "i,j" pairs
+  # return: two columns of unique pairs from the redundant input
+  num.all.pairs <- nrow(neighbor.pairs.idx)
+  pairs.sorted <- numeric(length = num.all.pairs) # redundant vector of "i,j" pairs
+  for (i in 1:num.all.pairs) {
+    # make all pairs ordered
+    curr.pair <- neighbor.pairs.idx[i, ]
+    curr.pair <- sort(curr.pair, decreasing = F)
+    pairs.sorted[i] <- paste(curr.pair, collapse = ",")
+  }
+  return(pairs.sorted)
+}
+
+my.attrs <- dat[, colnames(dat) != "qtrait"]
+my.pheno <- as.numeric(as.character(dat[, colnames(dat) == "qtrait"]))
+
+my.qtrait.nbrs <- nearestNeighbors(my.attrs,
+  nbd.method = "multisurf",
+  nbd.metric = "manhattan",
+  sd.frac = 0.5, k = 0,
+  neighbor.sampling = "none"
+)
+dim(my.qtrait.nbrs)
+str(my.qtrait.unique.nbrs)
+start_time <- Sys.time()
+my.qtrait.unique.nbrs <- testUnique(my.qtrait.nbrs)
+end_time <- Sys.time()
+end_time - start_time
+dim(my.qtrait.unique.nbrs)
+
+test.pairs <- pastePairs(my.qtrait.nbrs)
+which(test.pairs == "1,188")
+start_time <- Sys.time()
+temp2 <- testUnique2(my.qtrait.nbrs)
+end_time <- Sys.time()
+end_time - start_time
+dim(temp2)
+cbind(temp2, my.qtrait.unique.nbrs)
+
+x <- do.call(rbind, my.qtrait.unique.nbrs)
+dim(x)
+pair1 <- as.matrix(mapply(x[, 1], FUN = as.numeric), ncol = 2, byrow = F)
+pair2 <- as.matrix(mapply(x[, 2], FUN = as.numeric), ncol = 2, byrow = F)
+cbind(pair1, pair2)
+
+# knnVec <- function(neighbor.pairs.mat){
+#   # number of neighbors for each sample (vector) from neighbor-pair matrix
+#   sample.ids <- unique(neighbor.pairs.mat[,1])
+#   n.samp <- length(sample.ids)
+#   knn.vec <- numeric(length=n.samp) # k for each sample's neighborhood
+#   for (i in 1:n.samp){
+#     knn.vec[i] <- length(neighbor.pairs.mat[neighbor.pairs.mat[,1]==i,2])
+#   }
+#   return(knn.vec)
+# }
+plot(knnVec(my.qtrait.nbrs))
+mean(knnVec(my.qtrait.nbrs))
+
+knnSURF(200, .5)
+
+my.qtrait.unique.nbrs <- uniqueNeighbors(my.qtrait.nbrs)
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[, 1] == 1, 2]
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[, 1] == 74, 2]
+my.qtrait.unique.nbrs[my.qtrait.unique.nbrs[, 1] == 119, 2]
+plot(knnVec(my.qtrait.unique.nbrs))
+
+### regress each sample's neighborhood:
+
+Ridx_vec <- neighbor.pairs.idx[, "Ri_idx"]
+NNidx_vec <- neighbor.pairs.idx[, "NN_idx"]
+
+attr.idx <- 1
+my.attr <- my.attrs[, attr.idx]
+
+num.samp <- nrow(my.attrs)
+knnSURF(num.samp, .5)
+neighborhood.betas <- rep(0, num.samp)
+neighborhood.pvals <- rep(0, num.samp)
+for (Ridx in 1:num.samp) {
+  # Ridx <- 51
+  Ri.attr.vals <- my.attr[Ridx]
+  NN.attr.vals <- my.attr[NNidx_vec[Ridx_vec == Ridx]]
+  attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = "numeric-abs")
+
+  Ri.pheno.vals <- my.pheno[Ridx]
+  NN.pheno.vals <- my.pheno[NNidx_vec[Ridx_vec == Ridx]]
+  pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
+  mod <- lm(pheno.diff.vec ~ attr.diff.vec)
+  fit <- summary(mod)
+  beta_a <- coef(fit)[2, 1] # raw beta coefficient, slope (not standardized)
+  beta_zscore_a <- coef(fit)[2, 3] # standardized beta coefficient (col 3)
+  ## use one-side p-value to test H1: beta>0 for case-control npdr scores
+  pval_beta_a <- pt(beta_zscore_a, mod$df.residual, lower = FALSE) # one-sided p-val
+  neighborhood.betas[Ridx] <- beta_zscore_a
+  neighborhood.pvals[Ridx] <- pval_beta_a
+}
+cbind(neighborhood.betas, neighborhood.pvals, my.pheno)
+beta_zscore_ave <- mean(neighborhood.betas)
+mean(neighborhood.pvals)
+pt(beta_zscore_ave, knnSURF(num.samp, .5), lower = FALSE)
+pnorm(beta_zscore_ave, mean = 0, sd = 1, lower.tail = FALSE, log.p = FALSE)
+```

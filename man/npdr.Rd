@@ -109,19 +109,20 @@ npdr.results.df <- npdr(
 # which is a data frame including the outcome column.
 # ReliefF fixed-k nbd, choose a k (knn = 10). Or choose msurf.sd.frac
 npdr.results.df <- npdr(
-  101, qtrait.3sets$train, 
-  regression.type = "lm", nbd.method = "relieff", nbd.metric = "manhattan", 
+  101, case.control.3sets$train, 
+  regression.type = "binomial", nbd.method = "relieff", nbd.metric = "manhattan", 
   attr.diff.type = "manhattan", covar.diff.type = "manhattan", 
   knn = 10, padj.method = "bonferroni")
 
 # if outcome vector (pheno.vec) is separate from attribute matrix
 # multisurf
-# npdr.results.df <- npdr(
-#   pheno.vec, predictors.mat,
-#   regression.type = "lm", nbd.method = "multisurf", nbd.metric = "manhattan",
-#   attr.diff.type = "manhattan", covar.diff.type = "manhattan",
-#   msurf.sd.frac = 0.5, padj.method = "bonferroni"
-#   )
+pheno.vec <- case.control.3sets$train$class
+npdr.results.df <- npdr(
+ pheno.vec, predictors.mat,
+ regression.type = "binomial", nbd.method = "multisurf", nbd.metric = "manhattan",
+ attr.diff.type = "manhattan", covar.diff.type = "manhattan",
+ msurf.sd.frac = 0.5, padj.method = "bonferroni"
+ )
 # attributes with npdr adjusted p-value less than .05
-npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) # npdr p.adj<.05
+npdr.positives <- row.names(npdr.results.df[npdr.results.df$pva.adj < .05, ]) 
 }
