@@ -32,6 +32,18 @@
 #' 100 features with moderate (main) effect size.
 "qtrait.3sets"
 
+#' case-control interaction effect data, features only
+#'
+#' @docType data
+#' @keywords datasets
+#' @name predictors.mat
+#' @usage data(predictors.mat)
+#' @format
+#' Data frame with 100 samples (100 samples in train/holdout/test) and 
+#' 100 features/predictors with moderate (main) effect size.
+#' No "class" column.
+"predictors.mat"
+
 #' Test data from Rinbix
 #'
 #' @docType data

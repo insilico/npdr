@@ -1,4 +1,4 @@
-load("data/mdd.RNAseq.rda")
+load("data-raw/mdd.RNAseq.rda")
 
 # randomly select 500 genes
 set.seed(1)
@@ -37,7 +37,10 @@ qtrait.3sets <- privateEC::createSimulation(
   verbose = FALSE
 )
 
-usethis::use_data(mdd.RNAseq.small, case.control.3sets, qtrait.3sets, overwrite = TRUE)
+predictors.mat <- case.control.3sets$train
+predictors.mat <- predictors.mat[, names(predictors.mat) != "class"]
+
+usethis::use_data(mdd.RNAseq.small, case.control.3sets, qtrait.3sets, predictors.mat, overwrite = TRUE)
 
 ### correlation data
 # p <- 100
