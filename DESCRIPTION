@@ -16,16 +16,10 @@ Imports:
     foreach, 
     flexclust, 
     Matrix, 
-    igraph, 
     glmnet, 
     PRROC, 
-    Rcpp, 
     tibble, 
-    tidyr, 
-    RcppArmadillo
+    tidyr
 Suggests: knitr, CORElearn, ggplot2
 RoxygenNote: 7.1.1
-LinkingTo: 
-    Rcpp,
-    RcppArmadillo
 VignetteBuilder: knitr
