@@ -22,7 +22,7 @@ nearestNeighborsSeparateHitMiss(
 
 \item{pheno.vec}{vector of class values for m instances}
 
-\item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
+\item{nbd.method}{neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)}
 
 \item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
 

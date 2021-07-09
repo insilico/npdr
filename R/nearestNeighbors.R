@@ -99,7 +99,7 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)
 #' @param sd.vec vector of standard deviations
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
@@ -296,7 +296,7 @@ nearestNeighbors <- function(attr.mat,
 #' @param attr.mat m x p matrix of m instances and p attributes
 #' @param pheno.vec vector of class values for m instances
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]
+#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2

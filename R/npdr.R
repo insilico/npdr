@@ -81,7 +81,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames.
 #' @param regression.type (\code{"lm"} or \code{"binomial"})
 #' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs.
-#' @param nbd.method neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]. Used by nearestNeighbors().
+#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k). Used by nearestNeighbors().
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 #' The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)
