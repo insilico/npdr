@@ -42,4 +42,4 @@ importFrom(stats,var)
 importFrom(utils,capture.output)
 importFrom(utils,combn)
 importFrom(utils,write.table)
-
+useDynLib(npdr)
