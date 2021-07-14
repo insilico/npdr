@@ -9,7 +9,8 @@
 #' @param dof manual input for degrees of freedom, dof=0 lets R stats determine
 #'
 #' @importFrom stats dist p.adjust predict sd cor binomial lm glm pt var quantile rnorm pnorm runif rbinom qbinom
-#'
+#' @importFrom rlang check_installed
+#' 
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @export

@@ -117,6 +117,8 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
 #' )
 #' @export
 npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
+  check_installed("flexclust", reason = "for matrix distance computation `dist2()`")
+  
   # first mat is rows and second is columns
   npdr.dist.fn <- flexclust::dist2
   # Compute distance matrix between all samples (rows) between test and training data

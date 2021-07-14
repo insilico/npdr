@@ -10,11 +10,9 @@ Encoding: UTF-8
 LazyData: true
 Imports: 
     dplyr, 
+    rlang,
     speedglm, 
-    doParallel, 
-    parallel, 
     foreach, 
-    flexclust, 
     Matrix, 
     igraph, 
     glmnet, 
@@ -24,7 +22,13 @@ Imports:
     tidyr, 
     wordspace,
     RcppArmadillo
-Suggests: knitr, CORElearn, ggplot2
+Suggests: 
+    knitr, 
+    CORElearn, 
+    ggplot2, 
+    doParallel, 
+    parallel,
+    flexclust
 RoxygenNote: 7.1.1
 LinkingTo: 
     Rcpp,
