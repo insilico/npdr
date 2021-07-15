@@ -11,21 +11,19 @@ LazyData: true
 Imports: 
     dplyr, 
     rlang,
-    speedglm, 
-    foreach, 
-    Matrix, 
-    glmnet, 
-    PRROC, 
-    tibble, 
-    tidyr, 
-    wordspace,
-    RcppArmadillo
+    PRROC
 Suggests: 
     knitr, 
     CORElearn, 
+    speedglm, 
     ggplot2, 
     doParallel, 
     parallel,
-    flexclust
+    foreach,
+    flexclust,
+    glmnet, 
+    wordspace,
+    tibble,
+    tidyr
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
