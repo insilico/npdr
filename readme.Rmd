@@ -30,12 +30,13 @@ install.packages(c("speedglm", "wordspace", "glmnet"))
 
 If an issue arises with updating `openssl`, try updating it on your own system, e.g. for MacOS `brew install openssl@1.1`.
 
-If you still have trouble installing Rcpp and RcppArmadillo, please make sure you have `fortran` installed.
-Also, you may [need](https://gallery.rcpp.org/articles/first-steps-with-C++11/) to explicitly enable C++11 support which we can do here from R:
+<!-- Old issues with Rcpp and Rcpp Armadillo -->
+<!-- If you still have trouble installing Rcpp and RcppArmadillo, please make sure you have `fortran` installed. -->
+<!-- Also, you may [need](https://gallery.rcpp.org/articles/first-steps-with-C++11/) to explicitly enable C++11 support which we can do here from R: -->
 
-```{r eval=FALSE}
-Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
-```
+<!-- ```{r eval=FALSE} -->
+<!-- Sys.setenv("PKG_CXXFLAGS"="-std=c++11") -->
+<!-- ``` -->
 
 ## Details
 

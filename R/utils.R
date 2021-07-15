@@ -195,7 +195,7 @@ detectionStats <- function(functional, positives) {
 #' \dontrun{
 #' ranfor_fit <- randomForest(as.factor(class) ~ ., case.control.3sets$train)
 #' rf_imp <- data.frame(importance(ranfor_fit)) %>%
-#'   tibble::rownames_to_column("att") 
+#'   rownames2columns("att") 
 #' detected(0.1, rf_imp, functional_feats, "MeanDecreaseGini")
 #' }
 #' 
@@ -254,4 +254,20 @@ attr.range <- function(my.mat) {
   apply(as.matrix(my.mat), 2, function(x) {
     max(x) - min(x)
   })
+}
+
+#' Convert rownames to column.
+#' 
+#' Adapted from https://github.com/tidyverse/tibble/blob/516449bbb0c76925b93b703b68d7979a53d7cdee/R/rownames.R.
+#'
+#' @param df Input dataframe.
+#' @param var Name of new column.
+#'
+#' @return A data frame with a new column of row names.
+rownames2columns <- function(df, var = "rowname"){
+  df <- df %>% 
+    mutate(!!var := rownames(df)) %>% 
+    select(!!var, everything())
+  rownames(df) <- NULL
+  df
 }
