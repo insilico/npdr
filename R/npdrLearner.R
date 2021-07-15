@@ -110,11 +110,14 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
 #' @examples
 #' train_dat <- case.control.3sets$train
 #' valid_dat <- case.control.3sets$validation
+#' 
+#' if (require("flexclust")) {
 #' dist.mat <- npdrDistances2(
 #'   train_dat[, names(train_dat) != "class"], 
 #'   valid_dat[, names(valid_dat) != "class"], 
 #'   metric = "manhattan"
 #' )
+#' }
 #' @export
 npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
   check_installed("flexclust", reason = "for matrix distance computation `dist2()`")
@@ -176,6 +179,13 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
                               nbd.metric = "manhattan",
                               sd.vec = NULL, sd.frac = 0.5, dopar.nn = FALSE,
                               k = 0) {
+  if (dopar.nn) {
+    check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
+    check_installed("doParallel", reason = "for `registerDoParallel()`")
+    check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
+    `%dopar%` <- foreach::`%dopar%`
+  }
+  
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp1 <- nrow(attr.mat1) # training set, rows of dist mat
@@ -204,11 +214,11 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       doParallel::registerDoParallel(cl)
       Ri.nearestNeighbors.list <- vector("list", num.samp2)
       Ri.nearestNeighbors.list <-
-        foreach::foreach(Ri.int = seq.int(num.samp2), .packages = c("dplyr", "tibble")) %dopar% {
+        foreach::foreach(Ri.int = seq.int(num.samp2), .packages = c("dplyr")) %dopar% {
           Ri <- as.character(Ri.int)
           Ri.nearest.idx <- dist.df %>%
             dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-            tibble::rownames_to_column() %>% # push the neighbors from rownames to a column named rowname
+            rownames2columns() %>% # push the neighbors from rownames to a column named rowname
             top_n(-k, !!sym(Ri)) %>% # select the k closest neighbors in train data1, top_n does not sort output
             pull(rowname) %>% # get the neighbors
             as.integer() # convert from string (rownames - not factors) to integers
@@ -222,7 +232,7 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
         Ri.int <- as.integer(Ri)
         Ri.nearest.idx <- dist.df %>%
           dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>% # push the rowname indices to an extra column called rowname
+          rownames2columns() %>% # push the rowname indices to an extra column called rowname
           dplyr::top_n(-k, !!sym(Ri)) %>% # select the k closest (-) neighbors of Ri in train data1
           dplyr::pull(rowname) %>% # get the neighbors
           as.integer() # convert from string (rownames - not factors) to integers
@@ -252,13 +262,13 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       Ri.nearestNeighbors.list <- vector("list", num.samp2)
       Ri.nearestNeighbors.list <-
         foreach::foreach(
-          Ri.int = seq.int(num.samp2), .packages = c("dplyr", "tibble")
+          Ri.int = seq.int(num.samp2), .packages = c("dplyr")
         ) %dopar% {
           Ri <- as.character(Ri.int)
           Ri.nearest.idx <- dist.df %>%
             dplyr::select(!!Ri) %>%
             # select the column Ri, hopefully reduce processing power
-            tibble::rownames_to_column() %>%
+            rownames2columns() %>%
             # push the neighbors from rownames to columns
             dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
             dplyr::pull(rowname) %>%
@@ -275,7 +285,7 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
         Ri.int <- as.integer(Ri)
         Ri.nearest.idx <- dist.df %>%
           dplyr::select(!!Ri) %>%
-          tibble::rownames_to_column() %>%
+          rownames2columns() %>%
           filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
           pull(rowname) %>%
           as.integer()
