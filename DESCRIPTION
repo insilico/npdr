@@ -14,10 +14,8 @@ Imports:
     speedglm, 
     foreach, 
     Matrix, 
-    igraph, 
     glmnet, 
     PRROC, 
-    Rcpp, 
     tibble, 
     tidyr, 
     wordspace,
@@ -30,7 +28,4 @@ Suggests:
     parallel,
     flexclust
 RoxygenNote: 7.1.1
-LinkingTo: 
-    Rcpp,
-    RcppArmadillo
 VignetteBuilder: knitr

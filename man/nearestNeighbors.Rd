@@ -20,7 +20,7 @@ nearestNeighbors(
 \arguments{
 \item{attr.mat}{m x p matrix of m instances and p attributes}
 
-\item{nbd.method}{neighborhood method [\code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)]}
+\item{nbd.method}{neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)}
 
 \item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)}
 
