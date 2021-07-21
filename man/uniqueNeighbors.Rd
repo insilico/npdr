@@ -19,11 +19,10 @@ Used as options (neighbor.sampling="unique") in nearestNeighbors and npdr functi
 }
 \examples{
 neighbor.pairs.idx <- nearestNeighbors(
-  predictors.mat, 
-  nbd.method = "multisurf", 
-  nbd.metric = "manhattan", 
+  predictors.mat,
+  nbd.method = "multisurf",
+  nbd.metric = "manhattan",
   sd.frac = 0.5
 )
 head(uniqueNeighbors(neighbor.pairs.idx))
-
 }

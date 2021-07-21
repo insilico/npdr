@@ -7,28 +7,24 @@
 #'
 #' @param a value of attribute for first instance. Vector for correlation-data.
 #' @param b value of attribute for second instance. Vector for correlation-data.
-#' @param type diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.
 #' @param diff.type Metric for the difference computation.
 #' @param norm.fac Normalization factor.
-#' 
-#' @return val diff or vector of diffs
+#'
+#' @return Value or vector of differences between two vectors element-wise.
 #' @export
-npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
-  # compute the difference between two vectors element-wise
-  if (diff.type == "numeric-sqr") { # numeric squared difference
-    val <- abs(a - b)^2 / norm.fac
-  } else if (diff.type == "allele-sharing") { # snps
-    val <- abs(a - b) / 2
-  } else if (diff.type == "match-mismatch") {
-    # used automatically for case-control pheno, optional genotype mismatch diff for snps
-    val <- ifelse(a == b, 0, 1) # hit pairs are 0 and miss pairs are 1
-    # val <- as.character(a==b) # convert this to factor in glmSTIR
-  } else if (diff.type == "correlation-data") { # correlation data (e.g., fmri)      # corrdata
-    val <- rowSums(abs(a - b) / norm.fac) # a and b are vectors in this case   # corrdata
-  } else { # numeric abs difference
-    val <- abs(a - b) / norm.fac
-  }
-  return(val)
+npdrDiff <- function(a, b, diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "allele-sharing", "match-mismatch", "correlation-data"), norm.fac = 1) {
+  if (is.null(diff.type) || diff.type == "manhattan") diff.type <- "numeric-abs"
+
+  diff.type <- match.arg(diff.type)
+
+  val <- switch(diff.type,
+    `numeric-sqr` = abs(a - b)^2 / norm.fac, # numeric squared difference
+    `allele-sharing` = abs(a - b) / 2, # snps
+    `match-mismatch` = ifelse(a == b, 0, 1), # hit pairs = 0, miss = 1
+    `correlation-data` = rowSums(abs(a - b) / norm.fac), # a and b are vectors
+    `numeric-abs` = abs(a - b) / norm.fac # numeric abs difference
+  )
+  val
 }
 
 # =========================================================================#
@@ -49,48 +45,48 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
 #' @examples
 #' train_dat <- case.control.3sets$train
 #' dist.mat <- npdrDistances(
-#'   train_dat[, names(train_dat) != "class"], 
+#'   train_dat[, names(train_dat) != "class"],
 #'   metric = "manhattan"
 #' )
 npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
+  npdr.dist.fn <- dist
   if (fast.dist) {
     check_installed("wordspace", reason = "for fast distance computation with `dist.matrix()`")
-    
     npdr.dist.fn <- wordspace::dist.matrix
-  } else {
-    npdr.dist.fn <- dist
   }
 
   # Compute distance matrix between all samples (rows)
   # default is numeric manhattan ("manhattan"), max-min scaling is only needed for relief
   if (metric == "hamming") {
-    distance.mat <- hamming.binary(attr.mat)
-  } else if (metric == "allele-sharing-manhattan") {
+    return(as.matrix(hamming.binary(attr.mat)))
+  }
+
+  if (metric == "allele-sharing-manhattan") {
     # allele-sharing-manhattan, AM for SNPs
+    
     attr.mat.scale <- attr.mat / 2
     distance.mat <- npdr.dist.fn(attr.mat.scale, method = "manhattan")
-  } else if (metric == "relief-scaled-manhattan") {
+    return(as.matrix(distance.mat))
+  }
+
+  if (metric == "relief-scaled-euclidean" ||
+    metric == "relief-scaled-manhattan") {
     # value of metric, euclidean, manhattan or maximum
-    maxminVec <- attr.range(attr.mat)
-    minVec <- apply(attr.mat, 2, function(x) {
-      min(x)
-    })
-    attr.mat.centered <- t(attr.mat) - minVec
-    attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- npdr.dist.fn(attr.mat.scale, method = "manhattan")
-  } else if (metric == "relief-scaled-euclidean") {
-    # value of metric, euclidean, manhattan or maximum
+    
+    method <- strsplit(metric, "-")[[1]][3]
     maxminVec <- attr.range(attr.mat)
     minVec <- apply(attr.mat, 2, min)
     attr.mat.centered <- t(attr.mat) - minVec
     attr.mat.scale <- t(attr.mat.centered / maxminVec)
-    distance.mat <- npdr.dist.fn(attr.mat.scale, method = "euclidean")
-  } else if (metric == "euclidean") {
-    distance.mat <- npdr.dist.fn(attr.mat, method = "euclidean")
-  } else {
-    distance.mat <- npdr.dist.fn(attr.mat, method = "manhattan")
+    distance.mat <- npdr.dist.fn(attr.mat.scale, method = method)
+    return(as.matrix(distance.mat))
   }
-  as.matrix(distance.mat)
+
+  if (metric == "euclidean" || metric == "manhattan") {
+    distance.mat <- npdr.dist.fn(attr.mat, method = metric)
+    return(as.matrix(distance.mat))
+  }
+
 }
 
 # =========================================================================#
@@ -114,35 +110,34 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #'
 #' @export
 #' @examples
-
+#'
 #' # multisurf neighborhood with sigma/2 (sd.frac=0.5) "dead-band" boundary
 #' neighbor.pairs.idx <- nearestNeighbors(
-#'   predictors.mat, 
-#'   nbd.method = "multisurf", 
-#'   nbd.metric = "manhattan", 
+#'   predictors.mat,
+#'   nbd.method = "multisurf",
+#'   nbd.metric = "manhattan",
 #'   sd.frac = 0.5
 #' )
 #' head(neighbor.pairs.idx)
-#' 
-#' # reliefF (fixed-k) neighborhood using default `k` equal to 
+#'
+#' # reliefF (fixed-k) neighborhood using default `k` equal to
 #' # theoretical surf expected value.
 #' # One can change the theoretical value by changing sd.frac (default 0.5).
 #' neighbor.pairs.idx <- nearestNeighbors(
-#'   predictors.mat, 
-#'   nbd.method = "relieff", 
+#'   predictors.mat,
+#'   nbd.method = "relieff",
 #'   nbd.metric = "manhattan"
 #' )
 #' head(neighbor.pairs.idx)
-#' 
+#'
 #' # reliefF (fixed-k) neighborhood with a user-specified k
 #' neighbor.pairs.idx <- nearestNeighbors(
-#'   predictors.mat, 
-#'   nbd.method = "relieff", 
-#'   nbd.metric = "manhattan", 
+#'   predictors.mat,
+#'   nbd.method = "relieff",
+#'   nbd.metric = "manhattan",
 #'   k = 10
 #' )
 #' head(neighbor.pairs.idx)
-#' 
 nearestNeighbors <- function(attr.mat,
                              nbd.method = "multisurf",
                              nbd.metric = "manhattan",
@@ -155,7 +150,7 @@ nearestNeighbors <- function(attr.mat,
     check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
     `%dopar%` <- foreach::`%dopar%`
   }
-  
+
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp <- nrow(attr.mat)
@@ -325,7 +320,6 @@ nearestNeighbors <- function(attr.mat,
 #'   sd.frac = .5, k = 0
 #' )
 #' head(neighbor.pairs.idx)
-
 nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
                                             nbd.method = "relieff",
                                             nbd.metric = "manhattan",
@@ -338,7 +332,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
     check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
     `%dopar%` <- foreach::`%dopar%`
   }
-  
+
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp <- nrow(attr.mat)
@@ -552,16 +546,15 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #' @return new neighborhood pair matrix of only unique pairs
 #' unique neighbor pairs
 #' @export
-#' 
+#'
 #' @examples
 #' neighbor.pairs.idx <- nearestNeighbors(
-#'   predictors.mat, 
-#'   nbd.method = "multisurf", 
-#'   nbd.metric = "manhattan", 
+#'   predictors.mat,
+#'   nbd.method = "multisurf",
+#'   nbd.metric = "manhattan",
 #'   sd.frac = 0.5
 #' )
 #' head(uniqueNeighbors(neighbor.pairs.idx))
-#' 
 uniqueNeighbors <- function(neighbor.pairs) {
   # input: two columns of redundant "i,j" pairs
   # return: two columns of unique pairs from the redundant input
@@ -571,7 +564,7 @@ uniqueNeighbors <- function(neighbor.pairs) {
     xmin = pmin(neighbor.pairs[, 1], neighbor.pairs[, 2]),
     xmax = pmax(neighbor.pairs[, 1], neighbor.pairs[, 2])
   )
-  pair_str <- transmute(sorted_pairs, combined = paste0(xmin, ',', xmax))
+  pair_str <- transmute(sorted_pairs, combined = paste0(xmin, ",", xmax))
   unique.idx <- !duplicated(pair_str)
   return(neighbor.pairs[unique.idx, ])
 }
@@ -586,15 +579,14 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #'
 #' @examples
 #' neighbor.pairs.idx <- nearestNeighbors(
-#'   predictors.mat, 
-#'   nbd.method = "multisurf", 
-#'   nbd.metric = "manhattan", 
+#'   predictors.mat,
+#'   nbd.method = "multisurf",
+#'   nbd.metric = "manhattan",
 #'   sd.frac = 0.5
 #' )
 #' mean(knnVec(neighbor.pairs.idx)) # average number of neighbors
-#' 
 #' @export
-#' 
+#'
 knnVec <- function(neighbor.pairs.mat) {
   knn.vec <- data.frame(neighbor.pairs.mat) %>%
     dplyr::count(Ri_idx) %>%

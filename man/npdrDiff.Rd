@@ -4,7 +4,13 @@
 \alias{npdrDiff}
 \title{npdrDiff}
 \usage{
-npdrDiff(a, b, diff.type = "numeric-abs", norm.fac = 1)
+npdrDiff(
+  a,
+  b,
+  diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "allele-sharing",
+    "match-mismatch", "correlation-data"),
+  norm.fac = 1
+)
 }
 \arguments{
 \item{a}{value of attribute for first instance. Vector for correlation-data.}
@@ -14,11 +20,9 @@ npdrDiff(a, b, diff.type = "numeric-abs", norm.fac = 1)
 \item{diff.type}{Metric for the difference computation.}
 
 \item{norm.fac}{Normalization factor.}
-
-\item{type}{diff rule for the given attribute data type, such as numeric, categorical or correlation-data vector.}
 }
 \value{
-val diff or vector of diffs
+Value or vector of differences between two vectors element-wise.
 }
 \description{
 A diff is a function that computes the difference of values for an attribute between two instances.

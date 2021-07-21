@@ -6,3 +6,4 @@
 R/^inbixGAIN\.R$
 ^R/inbixGAIN\.R$
 ^\.DS_Store$
+^dev\.R$
