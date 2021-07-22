@@ -21,7 +21,7 @@ npdrDiff <- function(a, b, diff.type = c("manhattan", "numeric-abs", "numeric-sq
     `numeric-sqr` = abs(a - b)^2 / norm.fac, # numeric squared difference
     `allele-sharing` = abs(a - b) / 2, # snps
     `match-mismatch` = ifelse(a == b, 0, 1), # hit pairs = 0, miss = 1
-    `correlation-data` = rowSums(abs(a - b) / norm.fac), # a and b are vectors
+    `correlation-data` = rowSums(abs(a - b) / norm.fac), # a and b are matrices
     `numeric-abs` = abs(a - b) / norm.fac # numeric abs difference
   )
   val
@@ -96,8 +96,10 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' Used for npdr (no hits or misses specified in neighbor function).
 #'
 #' @param attr.mat m x p matrix of m instances and p attributes
-#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric)
-#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k)
+#' @param nbd.metric used in npdrDistances for distance matrix between instances, 
+#' default to `manhattan` (numeric input).
+#' @param nbd.method neighborhood method `multisurf` or `surf` (no k) or `relieff` 
+#' (require k).
 #' @param sd.vec vector of standard deviations
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
@@ -168,8 +170,8 @@ nearestNeighbors <- function(attr.mat,
     as.matrix() %>%
     unname() %>%
     npdrDistances(metric = nbd.metric, fast.dist = fast.dist) %>%
-    as.data.frame()
-  colnames(dist.mat) <- seq.int(num.samp)
+    as.data.frame() %>% 
+    `colnames<-`(seq.int(num.samp))
 
   if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
@@ -286,7 +288,7 @@ nearestNeighbors <- function(attr.mat,
   }
 
   # matrix of Ri's (first column) and their NN's (second column)
-  return(Ri_NN.idxmat)
+  Ri_NN.idxmat
 }
 
 # =========================================================================#
