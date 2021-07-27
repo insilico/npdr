@@ -14,7 +14,6 @@
 #' @param separate.hitmiss.nbds logical indicating whether to compute hit/miss neighborhoods separately. Default is FALSE.
 #' @param label character indicating type of response. Default is "class" and should not change as of yet.
 #'
-#' @importFrom foreach foreach `%dopar%`
 #' @return A list with:
 #' \describe{
 #'   \item{vwok.out}{p x 4 data.frame of sorted beta coefficients, atts, vwok ks, and p-values from NPDR}
@@ -45,6 +44,12 @@ vwok <- function(dats = NULL,
                  signal.names = NULL,
                  separate.hitmiss.nbds = FALSE,
                  label = "class") {
+  
+  check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
+  check_installed("doParallel", reason = "for `registerDoParallel()`")
+  check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
+  `%dopar%` <- foreach::`%dopar%`
+  
   start_time <- Sys.time()
 
   m <- dim(dats)[1]
@@ -96,7 +101,7 @@ vwok <- function(dats = NULL,
 
   beta.mat <- matrix(0, nrow = num.attr, ncol = length(ks))
   pval.mat <- matrix(0, nrow = num.attr, ncol = length(ks))
-  out.list <- foreach(
+  out.list <- foreach::foreach(
     k = ks,
     .export = c("npdr"),
     .packages = c("npdr")
@@ -172,7 +177,7 @@ vwok <- function(dats = NULL,
   doParallel::registerDoParallel(cl)
 
   beta.mat <- NULL
-  out.betas <- foreach(k = 1:length(ks), .combine = "cbind") %dopar% {
+  out.betas <- foreach::foreach(k = 1:length(ks), .combine = "cbind") %dopar% {
     out.list[[k]]$betas
   }
   parallel::stopCluster(cl)
@@ -182,7 +187,7 @@ vwok <- function(dats = NULL,
   doParallel::registerDoParallel(cl)
 
   pval.mat <- NULL
-  out.pvals <- foreach(k = 1:length(ks), .combine = "cbind") %dopar% {
+  out.pvals <- foreach::foreach(k = 1:length(ks), .combine = "cbind") %dopar% {
     out.list[[k]]$pvals
   }
   parallel::stopCluster(cl)
@@ -193,7 +198,7 @@ vwok <- function(dats = NULL,
     doParallel::registerDoParallel(cl)
 
     auPRC.mat <- NULL
-    out.auPRC <- foreach(k = 1:length(ks), .combine = "rbind") %dopar% {
+    out.auPRC <- foreach::foreach(k = 1:length(ks), .combine = "rbind") %dopar% {
       matrix(c(k, out.list[[k]]$auPRC), nrow = 1, ncol = 2)
     }
     parallel::stopCluster(cl)

@@ -9,7 +9,8 @@
 #' @param dof manual input for degrees of freedom, dof=0 lets R stats determine
 #'
 #' @importFrom stats dist p.adjust predict sd cor binomial lm glm pt var quantile rnorm pnorm runif rbinom qbinom
-#'
+#' @importFrom rlang check_installed
+#' 
 #' @return vector of regression stats to put into list for npdr and combine into matrix
 #'
 #' @export
@@ -19,6 +20,8 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
   # otherwise ~. model is pheno.diff.vec ~ attr.diff.vec + covariates
   # design.matrix.df must have column named 'pheno.diff.vec'
   if (fast.reg) {
+    check_installed("speedglm", reason = "for `speedlm()` and `speedglm()`")
+    
     if (regression.type == "lm") {
       mod <- speedglm::speedlm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
@@ -107,8 +110,6 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
 #'
 #' @importFrom utils capture.output combn write.table
-#' @importFrom foreach foreach `%dopar%`
-#' @importFrom glmnet glmnet cv.glmnet
 #' @import dplyr
 #'
 #' @examples
@@ -305,11 +306,16 @@ npdr <- function(outcome, dataset,
 
   if (!use.glmnet) { # combine non-glmnet result lists into a matrix
     if (dopar.reg) { # perform regressions in parallel
+      check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
+      check_installed("doParallel", reason = "for `registerDoParallel()`")
+      check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
+      `%dopar%` <- foreach::`%dopar%`
+      
       avai.cors <- parallel::detectCores() - 2
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
 
-      npdr.stats.attr.mat <- foreach(
+      npdr.stats.attr.mat <- foreach::foreach(
         attr.idx = seq.int(num.attr), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {
         if (attr.diff.type == "correlation-data") { # corrdata
@@ -468,6 +474,8 @@ npdr <- function(outcome, dataset,
     # Run glmnet on the diff attribute columns
     # Need to create a data matrix with each column as a vector of diffs for each attribute.
     # Need matrix because npdrNET operates on all attributes at once.
+    check_installed("glmnet", reason = "for `glmnet()` and `cv.glmnet()`")
+    
     attr.diff.mat <- matrix(0, nrow = nrow(neighbor.pairs.idx), ncol = num.attr)
     for (attr.idx in seq(1, num.attr)) {
       if (attr.diff.type == "correlation-data") { # corrdata
@@ -491,14 +499,14 @@ npdr <- function(outcome, dataset,
         pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "match-mismatch")
         pheno.diff.vec <- as.factor(pheno.diff.vec)
         # Run glmnet on the diff attribute columns
-        npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
+        npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
           alpha = glmnet.alpha, family = "binomial",
           lower.limits = glmnet.lower, type.measure = "class"
         )
       } else { # "gaussian"
         pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
         # Run glmnet on the diff attribute columns
-        npdrNET.model <- cv.glmnet(attr.diff.mat, pheno.diff.vec,
+        npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
           alpha = glmnet.alpha, family = "gaussian",
           lower.limits = glmnet.lower, type.measure = "mse"
         )

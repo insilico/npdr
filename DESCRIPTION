@@ -10,16 +10,20 @@ Encoding: UTF-8
 LazyData: true
 Imports: 
     dplyr, 
+    rlang,
+    PRROC
+Suggests: 
+    knitr, 
+    CORElearn, 
     speedglm, 
+    ggplot2, 
     doParallel, 
-    parallel, 
-    foreach, 
-    flexclust, 
-    Matrix, 
+    parallel,
+    foreach,
+    flexclust,
     glmnet, 
-    PRROC, 
-    tibble, 
+    wordspace,
+    tibble,
     tidyr
-Suggests: knitr, CORElearn, ggplot2
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr

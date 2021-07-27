@@ -64,6 +64,8 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
 #' )
 npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
   if (fast.dist) {
+    check_installed("wordspace", reason = "for fast distance computation with `dist.matrix()`")
+    
     npdr.dist.fn <- wordspace::dist.matrix
   } else {
     npdr.dist.fn <- dist
@@ -157,6 +159,13 @@ nearestNeighbors <- function(attr.mat,
                              sd.vec = NULL, sd.frac = 0.5, k = 0,
                              neighbor.sampling = "none",
                              att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
+  if (dopar.nn) {
+    check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
+    check_installed("doParallel", reason = "for `registerDoParallel()`")
+    check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
+    `%dopar%` <- foreach::`%dopar%`
+  }
+  
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp <- nrow(attr.mat)
@@ -190,12 +199,12 @@ nearestNeighbors <- function(attr.mat,
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
       Ri_NN.idxmat <- foreach::foreach(
-        Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr", "tibble")
+        Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {
         Ri <- as.character(Ri.int)
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>% # push the neighbors from rownames to a column named rowname
+          rownames2columns() %>% # push the neighbors from rownames to a column named rowname
           top_n(-(k + 1), !!sym(Ri)) %>% # select the k closest neighbors, include self
           filter((!!sym(Ri)) > 0) %>% # top_n does not sort output, so make sure remove self
           pull(rowname) %>% # get the neighbors
@@ -212,7 +221,7 @@ nearestNeighbors <- function(attr.mat,
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>%
           # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>%
+          rownames2columns() %>%
           # push the neighbors from rownames to columns
           dplyr::top_n(-(k + 1), !!sym(Ri)) %>%
           # select the k closest neighbors, include self
@@ -248,13 +257,13 @@ nearestNeighbors <- function(attr.mat,
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
       Ri_NN.idxmat <- foreach::foreach(
-        Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr", "tibble")
+        Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {
         Ri <- as.character(Ri.int)
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>%
           # select the column Ri, hopefully reduce processing power
-          tibble::rownames_to_column() %>%
+          rownames2columns() %>%
           # push the neighbors from rownames to columns
           dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
           dplyr::pull(rowname) %>%
@@ -272,7 +281,7 @@ nearestNeighbors <- function(attr.mat,
         Ri.int <- as.integer(Ri)
         Ri.nearest.idx <- dist.mat %>%
           dplyr::select(!!Ri) %>%
-          tibble::rownames_to_column() %>%
+          rownames2columns() %>%
           filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
           pull(rowname) %>%
           as.integer()
@@ -333,6 +342,13 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
                                             sd.frac = 0.5, k = 0,
                                             neighbor.sampling = "none",
                                             att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
+  if (dopar.nn) {
+    check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
+    check_installed("doParallel", reason = "for `registerDoParallel()`")
+    check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
+    `%dopar%` <- foreach::`%dopar%`
+  }
+  
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp <- nrow(attr.mat)
@@ -375,7 +391,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
       Ri.nearestPairs.list <- foreach::foreach(
-        Ri.int = seq.int(num.samp), .packages = c("dplyr", "tibble")
+        Ri.int = seq.int(num.samp), .packages = c("dplyr")
       ) %dopar% {
         # Ri <- as.character(Ri.int)
         # Ri.int <- as.integer(Ri)
@@ -502,7 +518,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       cl <- parallel::makeCluster(avai.cors)
       doParallel::registerDoParallel(cl)
       Ri.nearestPairs.list <- foreach::foreach(
-        Ri.int = seq.int(num.samp), .packages = c("dplyr", "tibble")
+        Ri.int = seq.int(num.samp), .packages = c("dplyr")
       ) %dopar% {
         Ri.distances <- dist.mat[Ri.int, ]
         Ri.nearest.hits <- which((pheno.vec[Ri.int] == pheno.vec) & (Ri.distances < Ri.hit.radii[Ri.int]) &
@@ -576,7 +592,7 @@ uniqueNeighbors <- function(neighbor.pairs) {
     xmin = pmin(neighbor.pairs[, 1], neighbor.pairs[, 2]),
     xmax = pmax(neighbor.pairs[, 1], neighbor.pairs[, 2])
   )
-  pair_str <- tidyr::unite(sorted_pairs, "combined", xmin, xmax, sep = ",")
+  pair_str <- transmute(sorted_pairs, combined = paste0(xmin, ',', xmax))
   unique.idx <- !duplicated(pair_str)
   return(neighbor.pairs[unique.idx, ])
 }

@@ -29,9 +29,12 @@ Used by nearestNeighbors2().
 \examples{
 train_dat <- case.control.3sets$train
 valid_dat <- case.control.3sets$validation
+
+if (require("flexclust")) {
 dist.mat <- npdrDistances2(
   train_dat[, names(train_dat) != "class"], 
   valid_dat[, names(valid_dat) != "class"], 
   metric = "manhattan"
 )
+}
 }

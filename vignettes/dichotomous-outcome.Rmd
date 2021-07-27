@@ -12,10 +12,7 @@ library(npdr)
 library(dplyr)
 library(tidyr) # pivot_longer
 library(ggplot2)
-<<<<<<< HEAD
-=======
 library(CORElearn) # for comparison
->>>>>>> 0264859570d98cdd30c76b89cb2539b9668f1b44
 
 theme_set(theme_minimal())
 theme_update(panel.grid.minor = element_blank())
