@@ -407,17 +407,17 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
           # if majority class Ri, 
           # get neighbors up to the theoretical k_alpha
           # proper adjust for the class imbalance.
-          Ri.nearest.idx <- Ri.hits[2:k.alpha(floor(num.samp*majority.frac), sd.frac) + 1]
+          Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)]
           # concatenate misses
           #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1 - majority.frac) * k + 1)])
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1])
+          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)])
         } else {
           # if Ri is the minority class
           #Ri.nearest.idx <- Ri.hits[2:floor((1 - majority.frac) * k + 1)] # (2) skip Ri self
-          Ri.nearest.idx <- Ri.hits[2:k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1]
+          Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)]
           # concatenate misses
           #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac * k + 1)])
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.alpha(floor(num.samp*majority.frac), sd.frac) + 1])
+          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)])
         }
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
