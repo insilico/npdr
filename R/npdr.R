@@ -206,7 +206,8 @@ npdr <- function(outcome, dataset,
     neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(attr.mat, pheno.vec,
       nbd.method = nbd.method,
       nbd.metric = nbd.metric,
-      sd.frac = msurf.sd.frac, k = knn,
+      sd.frac = msurf.sd.frac,  # .5 is good
+      k = knn, # 0 is good, use k_alpha theoretical
       att_to_remove = rm.attr.from.dist,
       fast.dist = fast.dist,
       dopar.nn = dopar.nn

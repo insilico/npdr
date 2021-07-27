@@ -24,7 +24,17 @@ npdrDiff <- function(a, b, diff.type = "numeric-abs", norm.fac = 1) {
     val <- ifelse(a == b, 0, 1) # hit pairs are 0 and miss pairs are 1
     # val <- as.character(a==b) # convert this to factor in glmSTIR
   } else if (diff.type == "correlation-data") { # correlation data (e.g., fmri)      # corrdata
-    val <- rowSums(abs(a - b) / norm.fac) # a and b are vectors in this case   # corrdata
+    # For correlation data, a and b are matrices 
+    # with m*k rows and numvars-1 cols.
+    # m*k rows because looking at all neighbor pairs 
+    # (fixed k not required).
+    # nvars-1 because for a given var, 
+    # we are looking at all other correlation partners. 
+    # a represents the first of neighbor pairs
+    # b represents the second of neighbor pairs
+    # See Eq. 157 and Fig. 9 from
+    # https://doi.org/10.1371/journal.pone.0246761
+    val <- rowSums(abs(a - b) / norm.fac) 
   } else { # numeric abs difference
     val <- abs(a - b) / norm.fac
   }
@@ -353,7 +363,11 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-      k <- floor((num.samp - 1) * (1 - erf(sd.frac / sqrt(2))) / 2) # uses sd.frac
+      k.alpha <- function(m,alpha){
+        floor((m - 1) * (1 - erf(alpha / sqrt(2))) / 2)
+      }
+      k <- k.alpha(num.samp,sd.frac) # uses sd.frac
+      # we will use different k for imbalanced data
     }
 
     if (dopar.nn) {
@@ -373,15 +387,22 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
         if (pheno.vec[Ri.int] == majority.pheno) {
-          Ri.nearest.idx <- Ri.hits[2:floor(majority.frac * k + 1)] # (2) skip Ri self
+          #Ri.nearest.idx <- Ri.hits[2:floor(majority.frac * k + 1)] # start at 2, skip Ri self
+          # if majority class Ri, 
+          # get neighbors up to the theoretical k_alpha
+          # proper adjust for the class imbalance.
+          Ri.nearest.idx <- Ri.hits[2:k.alpha(floor(num.samp*majority.frac), sd.frac) + 1]
           # concatenate misses
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1 - majority.frac) * k + 1)])
+          #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1 - majority.frac) * k + 1)])
+          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1])
         } else {
-          Ri.nearest.idx <- Ri.hits[2:floor((1 - majority.frac) * k + 1)] # (2) skip Ri self
+          # if Ri is the minority class
+          #Ri.nearest.idx <- Ri.hits[2:floor((1 - majority.frac) * k + 1)] # (2) skip Ri self
+          Ri.nearest.idx <- Ri.hits[2:k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1]
           # concatenate misses
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac * k + 1)])
+          #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac * k + 1)])
+          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.alpha(floor(num.samp*majority.frac), sd.frac) + 1])
         }
-
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
           return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
