@@ -379,10 +379,10 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-      k.alpha <- function(m,alpha){
-        floor((m - 1) * (1 - erf(alpha / sqrt(2))) / 2)
-      }
-      k <- k.alpha(num.samp,sd.frac) # uses sd.frac
+      #k.alpha <- function(m,alpha){
+      #  floor((m - 1) * (1 - erf(alpha / sqrt(2))) / 2)
+      #}
+      k <- knnSURF(num.samp,sd.frac) # uses sd.frac
       # we will use different k for imbalanced data
     }
 
@@ -400,25 +400,40 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # consider distance distributions of hits and misses separately
         Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]]
         Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]]
+        
+        # fix imbalance 7-28-21
+        m.hits <- length(Ri.hits) - 1
+        m.miss <- length(Ri.misses)
+        
+        pheno.tab <- as.numeric(table(as.character(pheno.vec)))
+        if(pheno.tab[1]==pheno.tab[2]){
+          k.hits <- floor(0.5*knnSURF(num.samp - 1, sd.frac))
+          k.miss <- k.hits
+        }else{
+          k.hits <- knnSURF(m.hits, sd.frac)
+          k.miss <- knnSURF(m.miss, sd.frac)
+        }
+        
+        # remove 7-28-21
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
-        if (pheno.vec[Ri.int] == majority.pheno) {
-          #Ri.nearest.idx <- Ri.hits[2:floor(majority.frac * k + 1)] # start at 2, skip Ri self
-          # if majority class Ri, 
-          # get neighbors up to the theoretical k_alpha
-          # proper adjust for the class imbalance.
-          Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)]
-          # concatenate misses
-          #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1 - majority.frac) * k + 1)])
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)])
-        } else {
-          # if Ri is the minority class
-          #Ri.nearest.idx <- Ri.hits[2:floor((1 - majority.frac) * k + 1)] # (2) skip Ri self
-          Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)]
-          # concatenate misses
-          #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac * k + 1)])
-          Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)])
-        }
+        # if (pheno.vec[Ri.int] == majority.pheno) {
+        #   #Ri.nearest.idx <- Ri.hits[2:floor(majority.frac * k + 1)] # start at 2, skip Ri self
+        #   # if majority class Ri, 
+        #   # get neighbors up to the theoretical k_alpha
+        #   # proper adjust for the class imbalance.
+        #   Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)]
+        #   # concatenate misses
+        #   #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor((1 - majority.frac) * k + 1)])
+        #   Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)])
+        # } else {
+        #   # if Ri is the minority class
+        #   #Ri.nearest.idx <- Ri.hits[2:floor((1 - majority.frac) * k + 1)] # (2) skip Ri self
+        #   Ri.nearest.idx <- Ri.hits[seq(2,k.alpha(floor(num.samp*(1-majority.frac)), sd.frac) + 1)]
+        #   # concatenate misses
+        #   #Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:floor(majority.frac * k + 1)])
+        #   Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[seq(1,k.alpha(floor(num.samp*majority.frac), sd.frac) + 1)])
+        # }
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
           return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
