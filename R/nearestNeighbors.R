@@ -414,6 +414,10 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
           k.miss <- knnSURF(m.miss, sd.frac)
         }
         
+        Ri.nearest.idx <- Ri.hits[2:(k.hits + 1)]
+        
+        Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.miss])
+        
         # remove 7-28-21
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
