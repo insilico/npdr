@@ -29,7 +29,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
     }
     #              use R d.o.f       use input dof
     res_df <- if (dof == 0) mod$df else dof
-  } else { # non-speedy version -- but why?
+  } else { # non-speedy version
     if (regression.type == "lm") {
       mod <- lm(pheno.diff.vec ~ ., data = design.matrix.df)
     } else { # regression.type == "binomial"
@@ -66,8 +66,8 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
   if (regression.type == "lm") {
     stats.vec <- c(stats.vec, fit$r.squared)
   } # add R^2 of fit, R.sqr for continuous outcomes
-  # cat(res_df,"\n")
-  return(stats.vec)
+
+  stats.vec
 }
 
 # =========================================================================#
@@ -171,15 +171,15 @@ npdr <- function(outcome, dataset,
   rm(dataset) # cleanup memory
 
   if (attr.diff.type == "correlation-data") { # corrdata
-    mynum <- dim(attr.mat)[2]
-    for (i in seq(1, mynum - 1)) {
-      mydiv <- i
-      if ((mydiv * (mydiv - 1)) == mynum) {
-        my.dimension <- mydiv
-        break
-      }
-    }
-    num.attr <- my.dimension
+    # mynum <- dim(attr.mat)[2]
+    # for (i in seq(1, mynum - 1)) {
+    #   mydiv <- i
+    #   if ((mydiv * (mydiv - 1)) == mynum) {
+    #     my.dimension <- mydiv
+    #     break
+    #   }
+    # }
+    num.attr <- ceiling(sqrt(dim(attr.mat)[2]))
   } else {
     num.attr <- ncol(attr.mat)
   }
@@ -189,7 +189,7 @@ npdr <- function(outcome, dataset,
   ##############################################################################
   if (attr.diff.type == "correlation-data") { # corrdata
     attr.idx.list <- list()
-    for (i in 1:num.attr) {
+    for (i in seq.int(num.attr)) {
       lo.idx <- (i - 1) * (num.attr - 1) + 1
       hi.idx <- i * (num.attr - 1)
       attr.idx.list[[i]] <- c(lo.idx:hi.idx)
@@ -204,7 +204,8 @@ npdr <- function(outcome, dataset,
   }
   start_time <- Sys.time()
   if (separate.hitmiss.nbds) { # separate hit and miss neighborhoods
-    neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(attr.mat, pheno.vec,
+    neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
+      attr.mat, pheno.vec,
       nbd.method = nbd.method,
       nbd.metric = nbd.metric,
       sd.frac = msurf.sd.frac, k = knn,
@@ -216,7 +217,8 @@ npdr <- function(outcome, dataset,
     # allow neighborhoods to be imbalanced, 
     # often nearest hits are closer than misses,
     # which could dilute the effect of misses
-    neighbor.pairs.idx <- nearestNeighbors(attr.mat,
+    neighbor.pairs.idx <- nearestNeighbors(
+      attr.mat,
       nbd.method = nbd.method,
       nbd.metric = nbd.metric,
       sd.frac = msurf.sd.frac, k = knn,
@@ -287,12 +289,13 @@ npdr <- function(outcome, dataset,
     }
 
     covar.diff.df <- data.frame(matrix(, nrow = nrow(neighbor.pairs.idx), ncol = 0))
-    for (covar.col in (1:num.covs)) {
+    for (covar.col in seq.int(num.covs)) {
       covar.name <- covar.names[covar.col]
       covar.vals <- covars[, covar.col]
       Ri.covar.vals <- covar.vals[neighbor.pairs.idx[, 1]]
       NN.covar.vals <- covar.vals[neighbor.pairs.idx[, 2]]
-      covar.diff.vec <- npdrDiff(Ri.covar.vals, NN.covar.vals,
+      covar.diff.vec <- npdrDiff(
+        Ri.covar.vals, NN.covar.vals,
         diff.type = covar.diff.type[covar.col]
       )
       # add covar diff vector to data.frame
@@ -321,13 +324,13 @@ npdr <- function(outcome, dataset,
           attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]
           Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1], ]
           NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2], ]
-          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
         } else {
           attr.vals <- attr.mat[, attr.idx]
           Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1]]
           NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2]]
-          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
         }
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
+        
         attr.diff.mat[, attr.idx] <- attr.diff.vec
         design.matrix.df <- data.frame(
           attr.diff.vec = attr.diff.vec,
@@ -351,13 +354,12 @@ npdr <- function(outcome, dataset,
           attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]
           Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1], ]
           NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2], ]
-          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
         } else {
           attr.vals <- attr.mat[, attr.idx]
           Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1]]
           NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2]]
-          attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
         }
+        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
         attr.diff.mat[, attr.idx] <- attr.diff.vec
         # model data.frame to go into lm or glm-binomial
         design.matrix.df <- data.frame(
@@ -481,13 +483,12 @@ npdr <- function(outcome, dataset,
         attr.vals <- attr.mat[, attr.idx.list[[attr.idx]]]
         Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1], ]
         NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2], ]
-        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
       } else {
         attr.vals <- attr.mat[, attr.idx]
         Ri.attr.vals <- attr.vals[neighbor.pairs.idx[, 1]]
         NN.attr.vals <- attr.vals[neighbor.pairs.idx[, 2]]
-        attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
       }
+      attr.diff.vec <- npdrDiff(Ri.attr.vals, NN.attr.vals, diff.type = attr.diff.type)
       attr.diff.mat[, attr.idx] <- attr.diff.vec
     } # end for
     #
@@ -526,5 +527,5 @@ npdr <- function(outcome, dataset,
       npdr.stats.df <- data.frame(attr.diff.mat, pheno.diff = pheno.diff.vec)
     } # end cluster option
   } # end glmnetNPDR option
-  return(npdr.stats.df)
+  npdr.stats.df
 }
