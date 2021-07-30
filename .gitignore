@@ -6,3 +6,4 @@
 .Rprofile
 
 inst/doc
+dev.R

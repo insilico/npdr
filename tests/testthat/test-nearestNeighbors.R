@@ -1,0 +1,12 @@
+test_that("npdrDiff works", {
+  a <- c(0, 1, 0, 1)
+  b <- c(0, 1, 0, 4)
+  d <- c(2, 1, 0, 1)
+  a_mat <- matrix(a, nrow = 2)
+  b_mat <- matrix(b, nrow = 2)
+  expect_equal(npdrDiff(a, b), c(0, 0, 0, 3))
+  expect_equal(npdrDiff(a_mat, b_mat, "correlation-data", 2), c(0, 1.5))
+  expect_equal(npdrDiff(a, b, "numeric-sqr", 3), c(0, 0, 0, 3))
+  expect_equal(npdrDiff(a, d, "allele-sharing"), c(1, 0, 0, 0))
+  expect_equal(npdrDiff(a, d, "match-mismatch"), c(1, 0, 0, 0))
+})

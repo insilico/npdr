@@ -17,11 +17,10 @@ Number of neighbors for each sample (vector) from a neighbor-pair matrix.
 }
 \examples{
 neighbor.pairs.idx <- nearestNeighbors(
-  predictors.mat, 
-  nbd.method = "multisurf", 
-  nbd.metric = "manhattan", 
+  predictors.mat,
+  nbd.method = "multisurf",
+  nbd.metric = "manhattan",
   sd.frac = 0.5
 )
 mean(knnVec(neighbor.pairs.idx)) # average number of neighbors
-
 }

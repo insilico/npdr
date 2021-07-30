@@ -26,7 +26,7 @@ Note: Probably best to standardize data before manhattan and euclidean.
 \examples{
 train_dat <- case.control.3sets$train
 dist.mat <- npdrDistances(
-  train_dat[, names(train_dat) != "class"], 
+  train_dat[, names(train_dat) != "class"],
   metric = "manhattan"
 )
 }
