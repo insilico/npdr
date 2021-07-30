@@ -365,7 +365,11 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-      k <- floor((num.samp - 1) * (1 - erf(sd.frac / sqrt(2))) / 2) # uses sd.frac
+      #k.alpha <- function(m,alpha){
+      #  floor((m - 1) * (1 - erf(alpha / sqrt(2))) / 2)
+      #}
+      k <- knnSURF(num.samp,sd.frac) # uses sd.frac
+      # we will use different k for imbalanced data
     }
 
     if (dopar.nn) {
@@ -380,6 +384,25 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # consider distance distributions of hits and misses separately
         Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]]
         Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]]
+        
+        # fix imbalance 7-28-21
+        m.hits <- length(Ri.hits) - 1
+        m.miss <- length(Ri.misses)
+        
+        pheno.tab <- as.numeric(table(as.character(pheno.vec)))
+        if(pheno.tab[1]==pheno.tab[2]){
+          k.hits <- floor(0.5*knnSURF(num.samp - 1, sd.frac))
+          k.miss <- k.hits
+        }else{
+          k.hits <- knnSURF(m.hits, sd.frac)
+          k.miss <- knnSURF(m.miss, sd.frac)
+        }
+        
+        Ri.nearest.idx <- Ri.hits[2:(k.hits + 1)]
+        
+        Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.miss])
+        
+        # remove 7-28-21
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
         
