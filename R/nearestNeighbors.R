@@ -406,11 +406,11 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
         
-        hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
-        Ri.nearest.idx <- c(
-          Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
-          Ri.misses[1:floor((1 - hits.frac) * k + 1)]
-        )
+        #hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
+        #Ri.nearest.idx <- c(
+        #  Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
+        #  Ri.misses[1:floor((1 - hits.frac) * k + 1)]
+        #)
         
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
