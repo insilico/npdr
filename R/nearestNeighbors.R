@@ -365,10 +365,10 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       # replace k with the theoretical expected value for SURF (close to multiSURF)
       erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
       # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
-      #k.alpha <- function(m,alpha){
+      # k.alpha <- function(m,alpha){
       #  floor((m - 1) * (1 - erf(alpha / sqrt(2))) / 2)
-      #}
-      k <- knnSURF(num.samp,sd.frac) # uses sd.frac
+      # }
+      k <- knnSURF(num.samp, sd.frac) # uses sd.frac
       # we will use different k for imbalanced data
     }
 
@@ -384,34 +384,26 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # consider distance distributions of hits and misses separately
         Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]]
         Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]]
-        
+
         # fix imbalance 7-28-21
         m.hits <- length(Ri.hits) - 1
         m.miss <- length(Ri.misses)
-        
+
         pheno.tab <- as.numeric(table(as.character(pheno.vec)))
-        if(pheno.tab[1]==pheno.tab[2]){
-          k.hits <- floor(0.5*knnSURF(num.samp - 1, sd.frac))
+        if (pheno.tab[1] == pheno.tab[2]) {
+          k.hits <- floor(0.5 * knnSURF(num.samp - 1, sd.frac))
           k.miss <- k.hits
-        }else{
+        } else {
           k.hits <- knnSURF(m.hits, sd.frac)
           k.miss <- knnSURF(m.miss, sd.frac)
         }
-        
-        Ri.nearest.idx <- Ri.hits[2:(k.hits + 1)]
-        
-        Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.miss])
-        
-        # remove 7-28-21
+
+        Ri.nearest.idx <- c(Ri.hits[2:(k.hits + 1)], Ri.misses[1:k.miss])
+
+        # 7-28-21
         # make hit and miss neighborhoods the same size
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
-        
-        #hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
-        #Ri.nearest.idx <- c(
-        #  Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
-        #  Ri.misses[1:floor((1 - hits.frac) * k + 1)]
-        #)
-        
+
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
           return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
@@ -571,7 +563,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
 #' )
 #' head(uniqueNeighbors(neighbor.pairs.idx))
 uniqueNeighbors <- function(neighbor.pairs) {
-  # return: 
+  # return:
   # sort and make create redundant vector of "i,j" pairs
   # e.g., pairs 1  36 and 36  1 both become 1  36
   pair_str <- data.frame(
@@ -579,7 +571,7 @@ uniqueNeighbors <- function(neighbor.pairs) {
     xmax = pmax(neighbor.pairs[, 1], neighbor.pairs[, 2])
   ) %>%
     transmute(combined = paste0(xmin, ",", xmax))
-  
+
   neighbor.pairs[!duplicated(pair_str), ]
 }
 
