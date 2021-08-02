@@ -171,14 +171,17 @@ npdr <- function(outcome, dataset,
   rm(dataset) # cleanup memory
 
   if (attr.diff.type == "correlation-data") { # corrdata
-    # mynum <- dim(attr.mat)[2]
-    # for (i in seq(1, mynum - 1)) {
-    #   mydiv <- i
-    #   if ((mydiv * (mydiv - 1)) == mynum) {
-    #     my.dimension <- mydiv
-    #     break
-    #   }
-    # }
+    # For correlation data, a and b are matrices 
+    # with m*k rows and numvars-1 cols.
+    # m*k rows because looking at all neighbor pairs 
+    # (fixed k not required).
+    # nvars-1 because for a given var, 
+    # we are looking at all other correlation partners. 
+    # a represents the first of neighbor pairs
+    # b represents the second of neighbor pairs
+    # See Eq. 157 and Fig. 9 from
+    # https://doi.org/10.1371/journal.pone.0246761
+    
     num.attr <- ceiling(sqrt(dim(attr.mat)[2]))
   } else {
     num.attr <- ncol(attr.mat)
