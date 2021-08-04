@@ -422,7 +422,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       }
       ## [1] 1.000000 1.414214 1.732051
       parallel::stopCluster(cl)
-    } else {
+    } else {  # begin non-parallel version
       Ri.nearestPairs.list <- vector("list", num.samp)
       for (Ri in colnames(dist.mat)) { # for each sample Ri
         Ri.int <- as.integer(Ri)
@@ -431,6 +431,20 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # consider distance distributions of hits and misses separately
         Ri.hits <- Ri.nearest[pheno.vec[Ri.int] == pheno.vec[Ri.nearest]]
         Ri.misses <- Ri.nearest[pheno.vec[Ri.int] != pheno.vec[Ri.nearest]]
+        # 7-28-21 better way for imbalance
+        m.hits <- length(Ri.hits) - 1
+        m.miss <- length(Ri.misses)
+        pheno.tab <- as.numeric(table(as.character(pheno.vec)))
+        if(pheno.tab[1]==pheno.tab[2]){
+          k.hits <- floor(0.5*knnSURF(num.samp - 1, sd.frac))
+          k.miss <- k.hits
+        }else{
+          k.hits <- knnSURF(m.hits, sd.frac)
+          k.miss <- knnSURF(m.miss, sd.frac)
+        }
+        Ri.nearest.idx <- Ri.hits[2:(k.hits + 1)]
+        Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.miss]) 
+        
         # for misses, option to use farthest is not a good idea because it makes all variables appear
         # different between groups, even null variables
         # if (miss.ordering=="farthest"){ # choose misses that are farthest from Ri
@@ -440,11 +454,12 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # make hit and miss neighborhoods the same size (balanced)
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
 
-        hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
-        Ri.nearest.idx <- c(
-          Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
-          Ri.misses[1:floor((1 - hits.frac) * k + 1)]
-        )
+        # 7-28-21 replacing with above method for imbalance
+        #hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
+        #Ri.nearest.idx <- c(
+        #  Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
+        #  Ri.misses[1:floor((1 - hits.frac) * k + 1)]
+        #)
 
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
