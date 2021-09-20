@@ -163,7 +163,7 @@ npdr <- function(outcome, dataset,
   if (length(outcome) == 1) {
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
     pheno.vec <- dataset[, outcome] # get phenotype
-    attr.mat <- dataset %>% dplyr::select(-outcome) # outcome = "qtrait" or 101
+    attr.mat <- dataset %>% select(-outcome) # outcome = "qtrait" or 101
   } else { # user specifies a separate phenotype vector
     pheno.vec <- outcome # assume users provides a separate outcome data vector
     attr.mat <- as.matrix(dataset) # assumes dataset only contains attributes/predictors
@@ -182,7 +182,7 @@ npdr <- function(outcome, dataset,
     # See Eq. 157 and Fig. 9 from
     # https://doi.org/10.1371/journal.pone.0246761
     
-    num.attr <- ceiling(sqrt(dim(attr.mat)[2]))
+    num.attr <- ceiling(sqrt(ncol(attr.mat)))
   } else {
     num.attr <- ncol(attr.mat)
   }
@@ -306,7 +306,7 @@ npdr <- function(outcome, dataset,
       # these covars will be included in each attribute's model
 
       covar.diff.df <- covar.diff.df %>%
-        dplyr::mutate(!!covar.name := covar.diff.vec)
+        mutate(!!covar.name := covar.diff.vec)
     }
   }
 
@@ -427,11 +427,11 @@ npdr <- function(outcome, dataset,
       # dataframe final output for regular npdr
       npdr.stats.df <- data.frame(npdr.stats.pval_ordered.mat)
 
-      # npdr.stats.df <- npdr.stats.attr.mat %>%                                         # corrdata
+      # npdr.stats.df <- npdr.stats.attr.mat %>%                                        # corrdata
       #  mutate(att = att.names, # add an attribute column                              # corrdata
       #         pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values   # corrdata
       #  ) %>% arrange(pval.att) %>% # order by attribute p-value                       # corrdata
-      #  dplyr::select(att, pval.adj, everything()) %>% # reorder columns               # corrdata
+      #  select(att, pval.adj, everything()) %>% # reorder columns                      # corrdata
       #  as.data.frame() # convert tibbles to df -- can we remove this step?            # corrdata
     } else { # non-correlation matrix predictors
 
@@ -439,7 +439,7 @@ npdr <- function(outcome, dataset,
       #   mutate(att = colnames(attr.mat), # add an attribute column
       #          pval.adj = p.adjust(pval.att, method = padj.method) # adjust p-values
       #   ) %>% arrange(pval.att) %>% # order by attribute p-value
-      #   dplyr::select(att, pval.adj, everything()) %>% # reorder columns
+      #   select(att, pval.adj, everything()) %>% # reorder columns
       #   as.data.frame() # convert tibbles to df -- can we remove this step?
 
       #### Create Results Data Frame for NPDR
