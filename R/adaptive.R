@@ -33,7 +33,7 @@
 #'   label = "class"
 #' )
 #' }
-#' 
+#'
 #' @export
 #'
 vwok <- function(dats = NULL,
@@ -44,51 +44,32 @@ vwok <- function(dats = NULL,
                  signal.names = NULL,
                  separate.hitmiss.nbds = FALSE,
                  label = "class") {
-  
   check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
   check_installed("doParallel", reason = "for `registerDoParallel()`")
   check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
   `%dopar%` <- foreach::`%dopar%`
-  
+
   start_time <- Sys.time()
 
-  m <- dim(dats)[1]
-  if (attr.diff.type != "correlation-data") {
-    p <- dim(dats[, -ncol(dats)])[2]
-  } else {
-    p <- dim(dats[, -1])[2]
-  }
+  m <- nrow(dats)
+  p <- ncol(dats) - 1
 
-  if (attr.diff.type == "correlation-data") { # corrdata
-    mynum <- dim(dats[, -1])[2]
-    for (i in seq(1, mynum - 1, by = 1)) {
-      mydiv <- i
-      if ((mydiv * (mydiv - 1)) == mynum) {
-        my.dimension <- mydiv
-        break
-      }
-    }
-    num.attr <- my.dimension
+  num.attr <- if (attr.diff.type == "correlation-data") { # corrdata
+    ceiling(sqrt(p))
   } else {
-    num.attr <- ncol(dats[, -ncol(dats)])
+    ncol(dats) - 1
   }
-  num.samp <- nrow(dats)
 
   if (attr.diff.type == "correlation-data") { # corrdata
     attr.idx.list <- list()
-    for (i in 1:num.attr) {
+    for (i in seq.int(num.attr)) {
       lo.idx <- (i - 1) * (num.attr - 1) + 1
       hi.idx <- i * (num.attr - 1)
-      attr.idx.list[[i]] <- c(lo.idx:hi.idx)
+      attr.idx.list[[i]] <- seq(lo.idx, hi.idx)
     }
   }
 
-  if (is.null(k.grid)) {
-    # ks <- seq(1,floor((m-1)/2),by=1) # if computing hit/miss neighbors separately
-    ks <- seq(1, (m - 1), by = 1) # if not separating hit/miss
-  } else {
-    ks <- k.grid
-  }
+  ks <- k.grid %||% seq.int((m - 1)) # if not separating hit/miss
 
   if (attr.diff.type == "correlation-data") {
     pheno.vec <- as.factor(dats[, 1])
@@ -129,12 +110,10 @@ vwok <- function(dats = NULL,
       )
     }
 
-    out.mat <- data.frame(cbind(
-      att = npdr.cc.results$att,
-      beta = npdr.cc.results$beta.Z.att,
-      pval = npdr.cc.results$pval.adj
-    ))
-    out.mat <- out.mat[order(as.character(out.mat[, 1])), ]
+    out.mat <- npdr.cc.results %>%
+      select(att, beta.Z.att, pval.adj) %>%
+      mutate(att = as.character(att)) %>%
+      arrange(att)
 
     beta.mat <- as.numeric(as.character(out.mat[, "beta"]))
     pval.mat <- as.numeric(as.character(out.mat[, "pval"]))
@@ -204,17 +183,17 @@ vwok <- function(dats = NULL,
     parallel::stopCluster(cl)
   }
 
-  beta.mat <- as.data.frame(out.betas)
-  pval.mat <- as.data.frame(out.pvals)
+  beta.mat <- as.data.frame(out.betas) %>%
+    `colnames<-`(paste0("k.", ks)) %>%
+    `row.names<-`(as.character(out.list[[1]]$atts))
+
+  pval.mat <- as.data.frame(out.pvals) %>%
+    `colnames<-`(paste0("k.", ks)) %>%
+    `row.names<-`(as.character(out.list[[1]]$atts))
+
   if (!is.null(signal.names)) {
-    auPRC.mat <- as.data.frame(out.auPRC)
-  }
-  row.names(beta.mat) <- as.character(out.list[[1]]$atts)
-  row.names(pval.mat) <- as.character(out.list[[1]]$atts)
-  colnames(beta.mat) <- paste("k.", ks, sep = "")
-  colnames(pval.mat) <- paste("k.", ks, sep = "")
-  if (!is.null(signal.names)) {
-    colnames(auPRC.mat) <- c("k", "auPRC")
+    auPRC.mat <- as.data.frame(out.auPRC) %>%
+      `colnames<-`(c("k", "auPRC"))
   }
 
   betas <- beta.mat # num.variables x (num.samples - 1) matrix of betas
@@ -222,7 +201,8 @@ vwok <- function(dats = NULL,
   best.ks <- apply(betas, 1, which.max) # best k's computed from max beta for each attribute
   best.betas <- numeric() # betas corresponding to best k's
   best.pvals <- numeric() # p-values corresponding to best k's
-  for (j in 1:nrow(betas)) {
+
+  for (j in seq.int(nrow(betas))) {
     best.betas[j] <- betas[j, as.numeric(best.ks[j])]
     best.pvals[j] <- pvals[j, as.numeric(best.ks[j])]
   }
@@ -233,12 +213,13 @@ vwok <- function(dats = NULL,
     best.ks = best.ks,
     betas = best.betas,
     pval.att = best.pvals
-  )
-  df.betas <- df.betas[order(df.betas[, "betas"], decreasing = T), ] # sort data frame by decreasing beta
+  ) %>%
+    # sort data frame by decreasing beta
+    arrange(desc(betas))
 
   if (!is.null(signal.names)) {
-    best.auPRC.k <- as.data.frame(matrix(auPRC.mat[which.max(auPRC.mat[, "auPRC"]), ], nrow = 1, ncol = 2))
-    colnames(best.auPRC.k) <- c("k", "auPRC")
+    best.auPRC.k <- as.data.frame(matrix(auPRC.mat[which.max(auPRC.mat[, "auPRC"]), ], nrow = 1, ncol = 2)) %>% 
+      `colnames<-`(c("k", "auPRC"))
   }
 
   end_time <- Sys.time()
@@ -246,8 +227,8 @@ vwok <- function(dats = NULL,
   cat("Elapsed: ", elapsed, "\n")
 
   if (!is.null(signal.names)) {
-    list(vwok.out = df.betas, best.auPRC.k = best.auPRC.k)
-  } else {
-    list(vwok.out = df.betas)
+    return(list(vwok.out = df.betas, best.auPRC.k = best.auPRC.k))
   }
+
+  list(vwok.out = df.betas)
 }
