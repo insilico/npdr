@@ -11,7 +11,7 @@ npdrDistances2(attr.mat1, attr.mat2, metric = "manhattan")
 
 \item{attr.mat2}{m2 x p matrix of m instances and p attributes}
 
-\item{metric}{for distance matrix between instances 
+\item{metric}{for distance matrix between instances
 (default: \code{"manhattan"}, others include \code{"euclidean"},
 and for GWAS \code{"allele-sharing-manhattan"}).}
 }
@@ -31,10 +31,10 @@ train_dat <- case.control.3sets$train
 valid_dat <- case.control.3sets$validation
 
 if (require("flexclust")) {
-dist.mat <- npdrDistances2(
-  train_dat[, names(train_dat) != "class"], 
-  valid_dat[, names(valid_dat) != "class"], 
-  metric = "manhattan"
-)
+  dist.mat <- npdrDistances2(
+    train_dat[, names(train_dat) != "class"],
+    valid_dat[, names(valid_dat) != "class"],
+    metric = "manhattan"
+  )
 }
 }

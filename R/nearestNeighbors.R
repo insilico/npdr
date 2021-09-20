@@ -39,59 +39,6 @@ npdrDiff <- function(a, b, diff.type = c("manhattan", "numeric-abs", "numeric-sq
   val
 }
 
-#' Title
-#'
-#' @param dist.mat
-#' @param Ri.int
-#' @param pheno.vec
-#' @param Ri.hit.radii
-#' @param Ri.miss.radii
-#'
-#' @return
-#'
-#' @examples
-get_nearest_idx <- function(dist.mat, Ri.int, pheno.vec, Ri.hit.radii, Ri.miss.radii) {
-  Ri.distances <- dist.mat[Ri.int, ]
-  Ri.nearest.hits <- which(
-    (pheno.vec[Ri.int] == pheno.vec) &
-      (Ri.distances < Ri.hit.radii[Ri.int]) &
-      (Ri.distances > 0)
-  ) # skip Ri self (dist=0)
-  Ri.nearest.misses <- which(
-    (pheno.vec[Ri.int] != pheno.vec) &
-      (Ri.distances < Ri.miss.radii[Ri.int])
-  )
-  # join hit and miss into one nbd
-  Ri.nearest.idx <- c(Ri.nearest.hits, Ri.nearest.misses)
-
-  Ri.nearest.idx
-}
-
-#' Get the indices of samples nearest to Ri
-#'
-#' @param dist.mat Distance matrix
-#' @param Ri Sample Ri index.
-#' @param nbh.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) 
-#' or \code{"relieff"} (specify k). Used by nearestNeighbors().
-#' @param k Integer for the number of neighbors (\code{"relieff"} method).
-#' @param Ri.radius Radius of the neighborhood (other methods).
-#'
-#' @return Numeric vector of nearest indices.
-#' 
-get_Ri_nearest <- function(dist.mat, Ri, nbd.method, k = 0, Ri.radius = NULL) {
-  dist.mat %>%
-    select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-    rownames2columns() %>% # push the neighbors from rownames to a column named rowname
-    {if (nbd.method == "relieff"){
-      slice_min(., order_by = !!sym(Ri), n = k + 1) %>% # select the k closest neighbors, include self
-        filter(., (!!sym(Ri)) > 0)
-    } else {
-      filter(., ((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0))
-    }} %>% # top_n does not sort output, so make sure remove self
-    pull(rowname) %>% # get the neighbors
-    as.integer() # convert from string (rownames - not factors) to integers
-}
-
 # =========================================================================#
 #' npdrDistances
 #'
@@ -589,7 +536,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
   }
 
   # matrix of Ri's (first column) and their NN's (second column)
-  return(Ri_NN.idxmat)
+  Ri_NN.idxmat
 }
 
 # =========================================================================#
@@ -646,4 +593,30 @@ knnVec <- function(neighbor.pairs.mat) {
   data.frame(neighbor.pairs.mat) %>%
     count(Ri_idx) %>%
     pull(n)
+}
+
+
+#' Get the indices of samples nearest to Ri
+#'
+#' @param dist.mat Distance matrix
+#' @param Ri Sample Ri index.
+#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) 
+#' or \code{"relieff"} (specify k). Used by nearestNeighbors().
+#' @param k Integer for the number of neighbors (\code{"relieff"} method).
+#' @param Ri.radius Radius of the neighborhood (other methods).
+#'
+#' @return Numeric vector of nearest indices.
+#' 
+get_Ri_nearest <- function(dist.mat, Ri, nbd.method, k = 0, Ri.radius = NULL) {
+  dist.mat %>%
+    select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+    rownames2columns() %>% # push the neighbors from rownames to a column named rowname
+    {if (nbd.method == "relieff"){
+      slice_min(., order_by = !!sym(Ri), n = k + 1) %>% # select the k closest neighbors, include self
+        filter(., (!!sym(Ri)) > 0)
+    } else {
+      filter(., ((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0))
+    }} %>% # top_n does not sort output, so make sure remove self
+    pull(rowname) %>% # get the neighbors
+    as.integer() # convert from string (rownames - not factors) to integers
 }
