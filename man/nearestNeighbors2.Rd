@@ -20,22 +20,22 @@ nearestNeighbors2(
 
 \item{attr.mat2}{m2 x p matrix of m instances and p attributes (test data)}
 
-\item{nbd.method}{neighborhood method: `multisurf` or `surf` (no k) or 
+\item{nbd.method}{neighborhood method: `multisurf` or `surf` (no k) or
 `relieff` (specify k)}
 
-\item{nbd.metric}{used in npdrDistances2 for distance matrix between 
+\item{nbd.metric}{used in npdrDistances2 for distance matrix between
 instances, default: `manhattan` (numeric)}
 
 \item{sd.vec}{vector of standard deviations}
 
-\item{sd.frac}{multiplier of the standard deviation from the mean distances, 
-subtracted from mean distance to create for SURF or multiSURF radius. 
+\item{sd.frac}{multiplier of the standard deviation from the mean distances,
+subtracted from mean distance to create for SURF or multiSURF radius.
 The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
 
 \item{dopar.nn}{whether or not neighborhood is computed in parallel, default as F}
 
 \item{k}{number of constant nearest hits/misses for `relieff` (fixed k).
-The default k=0 means use the expected SURF theoretical k with sd.frac 
+The default k=0 means use the expected SURF theoretical k with sd.frac
 (0.5 by default) for relieff nbd.}
 }
 \value{

@@ -22,6 +22,7 @@ Suggests:
     foreach,
     flexclust,
     glmnet,
+    rmarkdown,
     wordspace,
     tibble,
     tidyr,

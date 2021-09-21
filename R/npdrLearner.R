@@ -1,38 +1,38 @@
 # =========================================================================#
 #' npdrLearner
 #'
-#' Uses npdr neighorhoods to learn a nearest neighbor classification or 
+#' Uses npdr neighorhoods to learn a nearest neighbor classification or
 #' regression model (latter not implemented but easy).
-#' Finds the nearest neighbors of test instances to a training dataset. 
+#' Finds the nearest neighbors of test instances to a training dataset.
 #' Uses majority class of training neighbors for test prediction.
 #' Allows adaptive Relief neighborhoods or specify k.
 #' Regression would simply use the average value of the neighbor phenotypes.
 #' Uses functions npdrDistances2 and nearestNeighbors2.
 #'
-#' @param train.outcome character name or length-m numeric outcome vector for 
+#' @param train.outcome character name or length-m numeric outcome vector for
 #' train data
 #' @param train.data m x p matrix of m instances and p attributes of train data.
-#' May also include outcome vector but then outcome should be a name. 
+#' May also include outcome vector but then outcome should be a name.
 #' Include attr names as colnames.
 #' @param test.outcome character name or length-m numeric outcome vector of test data
 #' @param test.data m x p matrix of m instances and p attributes for test data.
-#' May also include outcome vector but then outcome should be a name. 
+#' May also include outcome vector but then outcome should be a name.
 #' Include attr names as colnames.
-#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or 
+#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or
 #' `relieff` (specify k). Used by nearestNeighbors2().
-#' @param nbd.metric used in npdrDistances2 for distance matrix between 
+#' @param nbd.metric used in npdrDistances2 for distance matrix between
 #' instances, default: `manhattan` (numeric). Used by nearestNeighbors2().
 #' @param knn number of constant nearest hits/misses for `relieff` (fixed-k).
 #' Used by nearestNeighbors2().
-#' The default knn=0 means use the expected SURF theoretical `k` with 
+#' The default knn=0 means use the expected SURF theoretical `k` with
 #' `msurf.sd.frac` (0.5 by default)
-#' @param msurf.sd.frac multiplier of the standard deviation from the mean 
+#' @param msurf.sd.frac multiplier of the standard deviation from the mean
 #' distances; subtracted from mean for SURF or multiSURF.
-#' The multiSURF default is `msurf.sd.frac=0.5`: mean - sd/2. 
+#' The multiSURF default is `msurf.sd.frac=0.5`: mean - sd/2.
 #' Used by nearestNeighbors2().
-#' @param dopar.nn whether or not neighborhood is computed in parallel, 
+#' @param dopar.nn whether or not neighborhood is computed in parallel,
 #' default as FALSE.
-#' @return  list: neighborhoods for each test instance, prediction for each 
+#' @return  list: neighborhoods for each test instance, prediction for each
 #' test instance, accuracy on test set
 #'
 #' @examples
@@ -49,10 +49,10 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
                         msurf.sd.frac = 0.5, dopar.nn = FALSE, knn = 0) {
   if (length(train.outcome) == 1) {
     # e.g., outcome="class" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
-    train.pheno <- train.data[, train.outcome] %>%
+    train.pheno <- train.data[, train.outcome, drop = TRUE] %>%
       as.character() %>%
       as.numeric() # get phenotype
-    train.data <- train.data %>% dplyr::select(-train.outcome) # outcome = "qtrait" or 101
+    train.data <- train.data %>% select(-train.outcome) # outcome = "qtrait" or 101
   } else { # user specifies a separate phenotype vector
     train.pheno <- train.outcome # assume users provides a separate outcome data vector
     # train.data <- train.data # assumes dataset only contains attributes/predictors
@@ -62,7 +62,7 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
     test.pheno <- test.data[, test.outcome] %>%
       as.character() %>%
       as.numeric() # get phenotype
-    test.data <- test.data %>% dplyr::select(-test.outcome) # outcome = "qtrait" or 101
+    test.data <- test.data %>% select(-test.outcome) # outcome = "qtrait" or 101
   } else { # user specifies a separate phenotype vector
     test.pheno <- test.outcome # assume users provides a separate outcome data vector
     # test.data <- test.data # assumes dataset only contains attributes/predictors
@@ -87,7 +87,7 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
     }
   )
   test.acc <- sum(test.predict == test.pheno) / length(test.pheno)
-  return(list(neighborhoods = test.neighbors, prediction = test.predict, accuracy = test.acc))
+  list(neighborhoods = test.neighbors, prediction = test.predict, accuracy = test.acc)
 }
 
 
@@ -103,25 +103,25 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
 #'
 #' @param attr.mat1 m1 x p matrix of m instances and p attributes
 #' @param attr.mat2 m2 x p matrix of m instances and p attributes
-#' @param metric for distance matrix between instances 
+#' @param metric for distance matrix between instances
 #' (default: \code{"manhattan"}, others include \code{"euclidean"},
 #' and for GWAS \code{"allele-sharing-manhattan"}).
 #' @return matrix of m1 instances x m2 instances pairwise distances.
 #' @examples
 #' train_dat <- case.control.3sets$train
 #' valid_dat <- case.control.3sets$validation
-#' 
+#'
 #' if (require("flexclust")) {
-#' dist.mat <- npdrDistances2(
-#'   train_dat[, names(train_dat) != "class"], 
-#'   valid_dat[, names(valid_dat) != "class"], 
-#'   metric = "manhattan"
-#' )
+#'   dist.mat <- npdrDistances2(
+#'     train_dat[, names(train_dat) != "class"],
+#'     valid_dat[, names(valid_dat) != "class"],
+#'     metric = "manhattan"
+#'   )
 #' }
 #' @export
 npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
   check_installed("flexclust", reason = "for matrix distance computation `dist2()`")
-  
+
   # first mat is rows and second is columns
   npdr.dist.fn <- flexclust::dist2
   # Compute distance matrix between all samples (rows) between test and training data
@@ -147,16 +147,16 @@ npdrDistances2 <- function(attr.mat1, attr.mat2, metric = "manhattan") {
 #'
 #' @param attr.mat1 m1 x p matrix of m instances and p attributes (training data)
 #' @param attr.mat2 m2 x p matrix of m instances and p attributes (test data)
-#' @param nbd.metric used in npdrDistances2 for distance matrix between 
+#' @param nbd.metric used in npdrDistances2 for distance matrix between
 #' instances, default: `manhattan` (numeric)
-#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or 
+#' @param nbd.method neighborhood method: `multisurf` or `surf` (no k) or
 #' `relieff` (specify k)
 #' @param sd.vec vector of standard deviations
-#' @param sd.frac multiplier of the standard deviation from the mean distances, 
-#' subtracted from mean distance to create for SURF or multiSURF radius. 
+#' @param sd.frac multiplier of the standard deviation from the mean distances,
+#' subtracted from mean distance to create for SURF or multiSURF radius.
 #' The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for `relieff` (fixed k).
-#' The default k=0 means use the expected SURF theoretical k with sd.frac 
+#' The default k=0 means use the expected SURF theoretical k with sd.frac
 #' (0.5 by default) for relieff nbd.
 #' @param dopar.nn whether or not neighborhood is computed in parallel, default as F
 #' @return list of Ri's (data2 test instances) NN's in data1 (train instances)
@@ -185,7 +185,7 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
     check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
     `%dopar%` <- foreach::`%dopar%`
   }
-  
+
   # create a matrix with num.samp rows and two columns
   # first column is sample Ri, second is Ri's nearest neighbors
   num.samp1 <- nrow(attr.mat1) # training set, rows of dist mat
@@ -196,9 +196,10 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
     as.matrix(attr.mat2),
     metric = nbd.metric
   )
-  dist.df <- dist.mat %>% as.data.frame()
-  colnames(dist.df) <- seq.int(num.samp2)
-  rownames(dist.df) <- seq.int(num.samp1)
+  dist.df <- dist.mat %>% 
+    as.data.frame() %>% 
+    `colnames<-`(seq.int(num.samp2)) %>% 
+    `rownames<-`(seq.int(num.samp1))
 
   if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
@@ -215,14 +216,9 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       Ri.nearestNeighbors.list <- vector("list", num.samp2)
       Ri.nearestNeighbors.list <-
         foreach::foreach(Ri.int = seq.int(num.samp2), .packages = c("dplyr")) %dopar% {
-          Ri <- as.character(Ri.int)
-          Ri.nearest.idx <- dist.df %>%
-            dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-            rownames2columns() %>% # push the neighbors from rownames to a column named rowname
-            top_n(-k, !!sym(Ri)) %>% # select the k closest neighbors in train data1, top_n does not sort output
-            pull(rowname) %>% # get the neighbors
-            as.integer() # convert from string (rownames - not factors) to integers
-          return(Ri.nearest.idx) # foreach return, makes Ri.nearestNeighbors.list
+
+          # foreach return, makes Ri.nearestNeighbors.list
+          return(get_Ri_nearest(dist.df, as.character(Ri.int), nbd.method, k = k))
         }
       parallel::stopCluster(cl)
     } else { # relieff, no parallel
@@ -230,73 +226,56 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
       # look down each column of dist.df for neighbors of Ri
       for (Ri in colnames(dist.df)) { # for each instance/column Ri
         Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.df %>%
-          dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          rownames2columns() %>% # push the rowname indices to an extra column called rowname
-          dplyr::top_n(-k, !!sym(Ri)) %>% # select the k closest (-) neighbors of Ri in train data1
-          dplyr::pull(rowname) %>% # get the neighbors
-          as.integer() # convert from string (rownames - not factors) to integers
+        Ri.nearest.idx <- get_Ri_nearest(dist.df, as.character(Ri.int), nbd.method, k = k)
 
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           Ri.nearestNeighbors.list[[Ri.int]] <- Ri.nearest.idx
         }
       } # end for
     }
+    return(Ri.nearestNeighbors.list)
+  }
+  
+  if (nbd.method == "surf") {
+    radius.surf <- mean(dist.mat) # const r = mean(all distances)
+    sd.const <- sd(dist.mat)
+    # bam: orignal surf does not subtract sd-frac but should for fair multisurf comparison
+    Ri.radius <- rep(radius.surf - sd.frac * sd.const, num.samp2)
+    names(Ri.radius) <- as.character(1:num.samp2)
+  }
+  
+  if (nbd.method == "multisurf") {
+    sd.vec <- sd.vec %||% sapply(1:num.samp2, function(i) sd(dist.mat[, i]))
+    Ri.radius <- colMeans(dist.mat) - sd.frac * sd.vec # use adaptive radius
+    names(Ri.radius) <- as.character(1:num.samp2)
+  }
+  
+  if (dopar.nn) {
+    avai.cors <- parallel::detectCores() - 2
+    cl <- parallel::makeCluster(avai.cors)
+    doParallel::registerDoParallel(cl)
+    Ri.nearestNeighbors.list <- vector("list", num.samp2)
+    Ri.nearestNeighbors.list <-
+      foreach::foreach(
+        Ri.int = seq.int(num.samp2), .packages = c("dplyr")
+      ) %dopar% {
+        return(get_Ri_nearest(dist.df, as.character(Ri.int), nbd.method, Ri.radius = Ri.radius))
+      }
+    parallel::stopCluster(cl)
   } else {
-    if (nbd.method == "surf") {
-      radius.surf <- mean(dist.mat) # const r = mean(all distances)
-      sd.const <- sd(dist.mat)
-      # bam: orignal surf does not subtract sd-frac but should for fair multisurf comparison
-      Ri.radius <- rep(radius.surf - sd.frac * sd.const, num.samp2)
-      names(Ri.radius) <- as.character(1:num.samp2)
-    }
-    if (nbd.method == "multisurf") {
-      if (is.null(sd.vec)) sd.vec <- sapply(1:num.samp2, function(i) sd(dist.mat[, i]))
-      Ri.radius <- colMeans(dist.mat) - sd.frac * sd.vec # use adaptive radius
-      names(Ri.radius) <- as.character(1:num.samp2)
-    }
-    if (dopar.nn) {
-      avai.cors <- parallel::detectCores() - 2
-      cl <- parallel::makeCluster(avai.cors)
-      doParallel::registerDoParallel(cl)
-      Ri.nearestNeighbors.list <- vector("list", num.samp2)
-      Ri.nearestNeighbors.list <-
-        foreach::foreach(
-          Ri.int = seq.int(num.samp2), .packages = c("dplyr")
-        ) %dopar% {
-          Ri <- as.character(Ri.int)
-          Ri.nearest.idx <- dist.df %>%
-            dplyr::select(!!Ri) %>%
-            # select the column Ri, hopefully reduce processing power
-            rownames2columns() %>%
-            # push the neighbors from rownames to columns
-            dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-            dplyr::pull(rowname) %>%
-            # get the neighbors
-            as.integer() # convert from string (rownames - not factors) to integers
-          return(Ri.nearest.idx)
-        }
-      parallel::stopCluster(cl)
-    } else {
-      # put each Ri's nbd in a list then rbind them at the end with bind_rows()
-      Ri.nearestNeighbors.list <- vector("list", num.samp2) # initialize list
+    # put each Ri's nbd in a list then rbind them at the end with bind_rows()
+    Ri.nearestNeighbors.list <- vector("list", num.samp2) # initialize list
 
-      for (Ri in colnames(dist.df)) { # for each sample Ri
-        Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.df %>%
-          dplyr::select(!!Ri) %>%
-          rownames2columns() %>%
-          filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-          pull(rowname) %>%
-          as.integer()
+    for (Ri in colnames(dist.df)) { # for each sample Ri
+      Ri.int <- as.integer(Ri)
+      Ri.nearest.idx <- get_Ri_nearest(dist.df, Ri, nbd.method, Ri.radius = Ri.radius)
 
-        if (!is.null(Ri.nearest.idx)) { # similar to relieff
-          Ri.nearestNeighbors.list[[Ri.int]] <- Ri.nearest.idx
-        }
+      if (!is.null(Ri.nearest.idx)) { # similar to relieff
+        Ri.nearestNeighbors.list[[Ri.int]] <- Ri.nearest.idx
       }
     }
   }
 
   # list of Ri's (data2 test instances) NN's in data1 (train instances)
-  return(Ri.nearestNeighbors.list)
+  Ri.nearestNeighbors.list
 }

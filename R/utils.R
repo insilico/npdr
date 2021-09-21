@@ -271,3 +271,5 @@ rownames2columns <- function(df, var = "rowname"){
   rownames(df) <- NULL
   df
 }
+
+`%||%` <- function(a, b) if (is.null(a)) b else a

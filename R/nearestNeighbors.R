@@ -25,17 +25,17 @@ npdrDiff <- function(a, b, diff.type = c("manhattan", "numeric-abs", "numeric-sq
     `numeric-abs` = abs(a - b) / norm.fac, # numeric abs difference
     `manhattan` = abs(a - b) / norm.fac # same as numeric-abs
   )
-  # For correlation data, a and b are matrices 
+  # For correlation data, a and b are matrices
   # with m*k rows and numvars-1 cols.
-  # m*k rows because looking at all neighbor pairs 
+  # m*k rows because looking at all neighbor pairs
   # (fixed k not required).
-  # nvars-1 because for a given var, 
-  # we are looking at all other correlation partners. 
+  # nvars-1 because for a given var,
+  # we are looking at all other correlation partners.
   # a represents the first of neighbor pairs
   # b represents the second of neighbor pairs
   # See Eq. 157 and Fig. 9 from
   # https://doi.org/10.1371/journal.pone.0246761
-  
+
   val
 }
 
@@ -200,13 +200,7 @@ nearestNeighbors <- function(attr.mat,
         Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {
         Ri <- as.character(Ri.int)
-        Ri.nearest.idx <- dist.mat %>%
-          dplyr::select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
-          rownames2columns() %>% # push the neighbors from rownames to a column named rowname
-          top_n(-(k + 1), !!sym(Ri)) %>% # select the k closest neighbors, include self
-          filter((!!sym(Ri)) > 0) %>% # top_n does not sort output, so make sure remove self
-          pull(rowname) %>% # get the neighbors
-          as.integer() # convert from string (rownames - not factors) to integers
+        Ri.nearest.idx <- get_Ri_nearest(dist.mat, Ri, nbd.method, k = k)
 
         return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
@@ -216,24 +210,14 @@ nearestNeighbors <- function(attr.mat,
       Ri.nearestPairs.list <- vector("list", num.samp)
       for (Ri in colnames(dist.mat)) { # for each sample Ri
         Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.mat %>%
-          dplyr::select(!!Ri) %>%
-          # select the column Ri, hopefully reduce processing power
-          rownames2columns() %>%
-          # push the neighbors from rownames to columns
-          dplyr::top_n(-(k + 1), !!sym(Ri)) %>%
-          # select the k closest neighbors, include self
-          dplyr::filter((!!sym(Ri)) > 0) %>%
-          dplyr::pull(rowname) %>%
-          # get the neighbors
-          as.integer() # convert from string (rownames - not factors) to integers
+        Ri.nearest.idx <- get_Ri_nearest(dist.mat, Ri, nbd.method, k = k)
 
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
           Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
         }
       }
-      Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+      Ri_NN.idxmat <- bind_rows(Ri.nearestPairs.list)
     }
   } else {
     if (nbd.method == "surf") {
@@ -258,15 +242,7 @@ nearestNeighbors <- function(attr.mat,
         Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {
         Ri <- as.character(Ri.int)
-        Ri.nearest.idx <- dist.mat %>%
-          dplyr::select(!!Ri) %>%
-          # select the column Ri, hopefully reduce processing power
-          rownames2columns() %>%
-          # push the neighbors from rownames to columns
-          dplyr::filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-          dplyr::pull(rowname) %>%
-          # get the neighbors
-          as.integer() # convert from string (rownames - not factors) to integers
+        Ri.nearest.idx <- get_Ri_nearest(dist.mat, Ri, nbd.method, Ri.radius = Ri.radius)
 
         return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
@@ -277,18 +253,13 @@ nearestNeighbors <- function(attr.mat,
 
       for (Ri in colnames(dist.mat)) { # for each sample Ri
         Ri.int <- as.integer(Ri)
-        Ri.nearest.idx <- dist.mat %>%
-          dplyr::select(!!Ri) %>%
-          rownames2columns() %>%
-          filter(((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0)) %>%
-          pull(rowname) %>%
-          as.integer()
+        Ri.nearest.idx <- get_Ri_nearest(dist.mat, Ri, nbd.method, Ri.radius = Ri.radius)
 
         if (!is.null(Ri.nearest.idx)) { # similar to relieff
           Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
         }
       }
-      Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+      Ri_NN.idxmat <- bind_rows(Ri.nearestPairs.list)
     }
   }
 
@@ -422,7 +393,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
       }
       ## [1] 1.000000 1.414214 1.732051
       parallel::stopCluster(cl)
-    } else {  # begin non-parallel version
+    } else { # begin non-parallel version
       Ri.nearestPairs.list <- vector("list", num.samp)
       for (Ri in colnames(dist.mat)) { # for each sample Ri
         Ri.int <- as.integer(Ri)
@@ -435,16 +406,15 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         m.hits <- length(Ri.hits) - 1
         m.miss <- length(Ri.misses)
         pheno.tab <- as.numeric(table(as.character(pheno.vec)))
-        if(pheno.tab[1]==pheno.tab[2]){
-          k.hits <- floor(0.5*knnSURF(num.samp - 1, sd.frac))
+        if (pheno.tab[1] == pheno.tab[2]) {
+          k.hits <- floor(0.5 * knnSURF(num.samp - 1, sd.frac))
           k.miss <- k.hits
-        }else{
+        } else {
           k.hits <- knnSURF(m.hits, sd.frac)
           k.miss <- knnSURF(m.miss, sd.frac)
         }
-        Ri.nearest.idx <- Ri.hits[2:(k.hits + 1)]
-        Ri.nearest.idx <- c(Ri.nearest.idx, Ri.misses[1:k.miss]) 
-        
+        Ri.nearest.idx <- c(Ri.hits[2:(k.hits + 1)], Ri.misses[1:k.miss])
+
         # for misses, option to use farthest is not a good idea because it makes all variables appear
         # different between groups, even null variables
         # if (miss.ordering=="farthest"){ # choose misses that are farthest from Ri
@@ -455,21 +425,21 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         # depending on whether Ri is majority or minority class, the number of hits/misses changes
 
         # 7-28-21 replacing with above method for imbalance
-        #hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
-        #Ri.nearest.idx <- c(
+        # hits.frac <- if (pheno.vec[Ri.int] == majority.pheno) majority.frac else (1 - majority.frac)
+        # Ri.nearest.idx <- c(
         #  Ri.hits[2:floor(hits.frac * k + 1)], # (2) skip Ri self
         #  Ri.misses[1:floor((1 - hits.frac) * k + 1)]
-        #)
+        # )
 
         if (!is.null(Ri.nearest.idx)) { # if neighborhood not empty
           # bind automatically repeated Ri, make sure to skip Ri self
           Ri.nearestPairs.list[[Ri.int]] <- data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx)
         }
       } # end for
-      # Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+      # Ri_NN.idxmat <- bind_rows(Ri.nearestPairs.list)
     } # end else dopar.nn
 
-    Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+    Ri_NN.idxmat <- bind_rows(Ri.nearestPairs.list)
   } else { # surf or multisurf...
 
     # For treating hit/miss distance distributions separately, compute separate hit and miss radii
@@ -556,7 +526,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         }
       } # end for
     } # end else dopar.nn
-    Ri_NN.idxmat <- dplyr::bind_rows(Ri.nearestPairs.list)
+    Ri_NN.idxmat <- bind_rows(Ri.nearestPairs.list)
   }
 
 
@@ -566,7 +536,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
   }
 
   # matrix of Ri's (first column) and their NN's (second column)
-  return(Ri_NN.idxmat)
+  Ri_NN.idxmat
 }
 
 # =========================================================================#
@@ -621,6 +591,32 @@ uniqueNeighbors <- function(neighbor.pairs) {
 #'
 knnVec <- function(neighbor.pairs.mat) {
   data.frame(neighbor.pairs.mat) %>%
-    dplyr::count(Ri_idx) %>%
+    count(Ri_idx) %>%
     pull(n)
+}
+
+
+#' Get the indices of samples nearest to Ri
+#'
+#' @param dist.mat Distance matrix
+#' @param Ri Sample Ri index.
+#' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) 
+#' or \code{"relieff"} (specify k). Used by nearestNeighbors().
+#' @param k Integer for the number of neighbors (\code{"relieff"} method).
+#' @param Ri.radius Radius of the neighborhood (other methods).
+#'
+#' @return Numeric vector of nearest indices.
+#' 
+get_Ri_nearest <- function(dist.mat, Ri, nbd.method, k = 0, Ri.radius = NULL) {
+  dist.mat %>%
+    select(!!Ri) %>% # select the column Ri, hopefully reduce processing power
+    rownames2columns() %>% # push the neighbors from rownames to a column named rowname
+    {if (nbd.method == "relieff"){
+      slice_min(., order_by = !!sym(Ri), n = k + 1) %>% # select the k closest neighbors, include self
+        filter(., (!!sym(Ri)) > 0)
+    } else {
+      filter(., ((!!sym(Ri)) < Ri.radius[Ri]) & ((!!sym(Ri)) > 0))
+    }} %>% # top_n does not sort output, so make sure remove self
+    pull(rowname) %>% # get the neighbors
+    as.integer() # convert from string (rownames - not factors) to integers
 }
