@@ -3,6 +3,7 @@
 export(detected)
 export(detectionStats)
 export(diffRegression)
+export(get_Ri_nearest)
 export(hamming.binary)
 export(knnSURF)
 export(knnVec)

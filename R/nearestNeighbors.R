@@ -606,6 +606,7 @@ knnVec <- function(neighbor.pairs.mat) {
 #' @param Ri.radius Radius of the neighborhood (other methods).
 #'
 #' @return Numeric vector of nearest indices.
+#' @export
 #' 
 get_Ri_nearest <- function(dist.mat, Ri, nbd.method, k = 0, Ri.radius = NULL) {
   dist.mat %>%
