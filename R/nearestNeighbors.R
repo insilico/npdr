@@ -106,12 +106,11 @@ npdrDistances <- function(attr.mat, metric = "manhattan", fast.dist = FALSE) {
 #' Find nearest neighbors of each instance using relief.method
 #' Used for npdr (no hits or misses specified in neighbor function).
 #'
-#' @param attr.mat m x p matrix of m instances and p attributes
-#' @param nbd.metric used in npdrDistances for distance matrix between instances,
+#' @param attr.mat m x p matrix of m instances and p attributes, or m x m distance matrix if metric is `precomputed`
+#' @param nbd.metric used in npdrDistances for distance matrix between instances. parameter can be `precomputed` if user-supplied distance matrix.
 #' default to `manhattan` (numeric input).
-#' @param nbd.method neighborhood method `multisurf` or `surf` (no k) or `relieff`
-#' (require k).
-#' @param sd.vec vector of standard deviations
+#' @param nbd.method neighborhood method `multisurf` or `surf` (no k) or `relieff` if you want to specify k (required k).
+#' @param sd.vec vector of standard deviations for surf
 #' @param sd.frac multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2
 #' @param k number of constant nearest hits/misses for \code{"relieff"} (fixed k).
 #' The default k=0 means use the expected SURF theoretical k with sd.frac (.5 by default) for relieff nbd.
@@ -156,7 +155,8 @@ nearestNeighbors <- function(attr.mat,
                              nbd.metric = "manhattan",
                              sd.vec = NULL, sd.frac = 0.5, k = 0,
                              neighbor.sampling = "none",
-                             att_to_remove = c(), fast.dist = FALSE, dopar.nn = FALSE) {
+                             att_to_remove = c(), 
+                             fast.dist = FALSE, dopar.nn = FALSE) {
   if (dopar.nn) {
     check_installed("foreach", reason = "for fast parallel computing with `foreach()` and `%dopar%`")
     check_installed("doParallel", reason = "for `registerDoParallel()`")
@@ -164,26 +164,36 @@ nearestNeighbors <- function(attr.mat,
     `%dopar%` <- foreach::`%dopar%`
   }
 
-  # create a matrix with num.samp rows and two columns
-  # first column is sample Ri, second is Ri's nearest neighbors
-  num.samp <- nrow(attr.mat)
-
-  if (!is.null(att_to_remove)) {
-    # remove attributes (possible confounders) from distance matrix calculation
-    tryCatch(
-      attr.mat <- attr.mat %>% data.frame() %>%
-        select(-att_to_remove),
-      error = function(c) "The attribute to remove does not exist."
-    )
-  }
-
-  dist.mat <- attr.mat %>%
-    as.matrix() %>%
-    unname() %>%
-    npdrDistances(metric = nbd.metric, fast.dist = fast.dist) %>%
-    as.data.frame() %>%
-    `colnames<-`(seq.int(num.samp))
-
+  # Goal is to create a matrix with num.samp rows and two columns.
+  # First column is sample Ri, second is Ri's nearest neighbors (NN)
+  # this is basically an edge list.
+  
+  if (nbd.metric == "precomputed"){
+    # allow user to input their own distance matrix
+    # in which case attr.mat will be a distance matrix
+    num.samp <- nrow(attr.mat)
+    dist.mat <- attr.mat %>%  as.data.frame() %>%
+      `colnames<-`(seq.int(num_samp))
+  } else{
+    # if distance is not precomputed, use a metric
+    num.samp <- nrow(attr.mat)
+      if (!is.null(att_to_remove)) {
+      # remove attributes (possible confounders) 
+      #from distance matrix calculation
+        tryCatch(
+          attr.mat <- attr.mat %>% data.frame() %>%
+              select(-att_to_remove),
+              error = function(c) "The attribute to remove does not exist."
+        )
+      }
+    dist.mat <- attr.mat %>%
+      as.matrix() %>%
+      unname() %>%
+      npdrDistances(metric = nbd.metric, fast.dist = fast.dist) %>%
+      as.data.frame() %>%
+      `colnames<-`(seq.int(num.samp))
+  } # end if precomputed
+  # now find neighbors
   if (nbd.method == "relieff") {
     if (k == 0) { # if no k specified or value 0
       # replace k with the theoretical expected value for SURF (close to multiSURF)

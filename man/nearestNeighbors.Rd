@@ -18,15 +18,14 @@ nearestNeighbors(
 )
 }
 \arguments{
-\item{attr.mat}{m x p matrix of m instances and p attributes}
+\item{attr.mat}{m x p matrix of m instances and p attributes, or m x m distance matrix if metric is `precomputed`}
 
-\item{nbd.method}{neighborhood method `multisurf` or `surf` (no k) or `relieff`
-(require k).}
+\item{nbd.method}{neighborhood method `multisurf` or `surf` (no k) or `relieff` if you want to specify k (required k).}
 
-\item{nbd.metric}{used in npdrDistances for distance matrix between instances,
+\item{nbd.metric}{used in npdrDistances for distance matrix between instances. parameter can be `precomputed` if user-supplied distance matrix.
 default to `manhattan` (numeric input).}
 
-\item{sd.vec}{vector of standard deviations}
+\item{sd.vec}{vector of standard deviations for surf}
 
 \item{sd.frac}{multiplier of the standard deviation from the mean distances, subtracted from mean distance to create for SURF or multiSURF radius. The multiSURF default "dead-band radius" is sd.frac=0.5: mean - sd/2}
 
