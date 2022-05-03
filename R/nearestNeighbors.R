@@ -173,7 +173,7 @@ nearestNeighbors <- function(attr.mat,
     # in which case attr.mat will be a distance matrix
     num.samp <- nrow(attr.mat)
     dist.mat <- attr.mat %>%  as.data.frame() %>%
-      `colnames<-`(seq.int(num_samp))
+      `colnames<-`(seq.int(num.samp))
   } else{
     # if distance is not precomputed, use a metric
     num.samp <- nrow(attr.mat)
