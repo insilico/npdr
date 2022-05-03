@@ -172,8 +172,6 @@ nearestNeighbors <- function(attr.mat,
     # allow user to input their own distance matrix
     # in which case attr.mat will be a distance matrix
     num.samp <- nrow(attr.mat)
-    cat(num.samp,"\n")
-    cat(ncol(attr.mat),"\n")
     dist.mat <- attr.mat %>%  as.data.frame() %>%
       `colnames<-`(seq.int(num.samp))
   } else{
