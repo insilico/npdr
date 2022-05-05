@@ -85,7 +85,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param regression.type (\code{"lm"} or \code{"binomial"})
 #' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs.
 #' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k). Used by nearestNeighbors().
-#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().
+#' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors(). For \code{"precomputed"}, must specify external.dist matrix. 
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 #' The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)
 #' @param msurf.sd.frac multiplier of the standard deviation from the mean distances; subtracted from mean for SURF or multiSURF.
@@ -106,6 +106,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param unique.dof use unique neighbor pairs for degrees of freedom. FALSE lets R stats determine regression degrees of freedom
 #' @param verbose logical, whether to print out intermediate steps
 #' @param fast.dist whether or not distance is computed by faster algorithm in wordspace, default as F
+#' @param external.dist optional input distance matrix between samples. Used in conjunction with nbd.metric = \code{"precomputed"}. 
 #' 
 #' @return npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
 #'
@@ -158,7 +159,7 @@ npdr <- function(outcome, dataset,
                  corr.attr.names = NULL,
                  fast.reg = FALSE, fast.dist = FALSE,
                  dopar.nn = FALSE, dopar.reg = FALSE,
-                 unique.dof = FALSE) {
+                 unique.dof = FALSE, external.dist=NULL) {
   ##### parse the commandline
   if (length(outcome) == 1) {
     # e.g., outcome="qtrait" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
@@ -206,31 +207,59 @@ npdr <- function(outcome, dataset,
     cat("Finding nearest neighbor pairs.\n")
   }
   start_time <- Sys.time()
-  if (separate.hitmiss.nbds) { # separate hit and miss neighborhoods
-    neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
-      attr.mat, pheno.vec,
-      nbd.method = nbd.method,
-      nbd.metric = nbd.metric,
-      sd.frac = msurf.sd.frac,  # .5 is good
-      k = knn, # 0 is good, use k_alpha theoretical
-      att_to_remove = rm.attr.from.dist,
-      fast.dist = fast.dist,
-      dopar.nn = dopar.nn
-    )
-  } else { 
-    # allow neighborhoods to be imbalanced, 
-    # often nearest hits are closer than misses,
-    # which could dilute the effect of misses
-    neighbor.pairs.idx <- nearestNeighbors(
-      attr.mat,
-      nbd.method = nbd.method,
-      nbd.metric = nbd.metric,
-      sd.frac = msurf.sd.frac, k = knn,
-      att_to_remove = rm.attr.from.dist,
-      fast.dist = fast.dist,
-      dopar.nn = dopar.nn
-    )
-  }
+  if (nbd.metric == "precomputed"){
+    if (separate.hitmiss.nbds) { # separate hit and miss neighborhoods
+        neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
+        external.dist, pheno.vec,  # pre-computed distance
+        nbd.method = nbd.method,
+        nbd.metric = nbd.metric,
+        sd.frac = msurf.sd.frac,  # .5 is good
+        k = knn, # 0 is good, use k_alpha theoretical
+        att_to_remove = rm.attr.from.dist,
+        fast.dist = fast.dist,
+        dopar.nn = dopar.nn
+      )
+      } else { 
+      # allow neighborhoods to be imbalanced, 
+      # often nearest hits are closer than misses,
+      # which could dilute the effect of misses
+      neighbor.pairs.idx <- nearestNeighbors(
+          external.dist,              # pre-computed distance
+          nbd.method = nbd.method,
+          nbd.metric = nbd.metric,
+          sd.frac = msurf.sd.frac, k = knn,
+          att_to_remove = rm.attr.from.dist,
+          fast.dist = fast.dist,
+          dopar.nn = dopar.nn
+      )
+      } 
+    } else { # nested, for pre-computed distance
+      if (separate.hitmiss.nbds) { # separate hit and miss neighborhoods
+        neighbor.pairs.idx <- nearestNeighborsSeparateHitMiss(
+          attr.mat, pheno.vec,       # compute distance from attributes
+          nbd.method = nbd.method,
+          nbd.metric = nbd.metric,
+          sd.frac = msurf.sd.frac,  # .5 is good
+          k = knn, # 0 is good, use k_alpha theoretical
+          att_to_remove = rm.attr.from.dist,
+          fast.dist = fast.dist,
+          dopar.nn = dopar.nn
+        )
+      } else { 
+        # allow neighborhoods to be imbalanced, 
+        # often nearest hits are closer than misses,
+        # which could dilute the effect of misses
+        neighbor.pairs.idx <- nearestNeighbors(
+          attr.mat,                 # compute dist from attributes
+          nbd.method = nbd.method,
+          nbd.metric = nbd.metric,
+          sd.frac = msurf.sd.frac, k = knn,
+          att_to_remove = rm.attr.from.dist,
+          fast.dist = fast.dist,
+          dopar.nn = dopar.nn
+        )
+      } 
+    } 
   num.neighbor.pairs <- nrow(neighbor.pairs.idx)
   k.ave.empirical <- mean(knnVec(neighbor.pairs.idx))
   unique.neighbor.pairs.idx <- uniqueNeighbors(neighbor.pairs.idx)

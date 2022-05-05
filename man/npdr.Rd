@@ -28,7 +28,8 @@ npdr(
   fast.dist = FALSE,
   dopar.nn = FALSE,
   dopar.reg = FALSE,
-  unique.dof = FALSE
+  unique.dof = FALSE,
+  external.dist = NULL
 )
 }
 \arguments{
@@ -42,7 +43,7 @@ npdr(
 
 \item{nbd.method}{neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k). Used by nearestNeighbors().}
 
-\item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors().}
+\item{nbd.metric}{used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors(). For \code{"precomputed"}, must specify external.dist matrix.}
 
 \item{knn}{number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
 The default knn=0 means use the expected SURF theoretical k with msurf.sd.frac (.5 by default)}
@@ -81,6 +82,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 \item{dopar.reg}{logical, whether or not regression is run in parallel, default as F}
 
 \item{unique.dof}{use unique neighbor pairs for degrees of freedom. FALSE lets R stats determine regression degrees of freedom}
+
+\item{external.dist}{optional input distance matrix between samples. Used in conjunction with nbd.metric = \code{"precomputed"}.}
 }
 \value{
 npdr.stats.df: npdr fdr-corrected p-value for each attribute ($pval.adj [1]), raw p-value ($pval.attr [2]), and regression coefficient (beta.attr [3])
