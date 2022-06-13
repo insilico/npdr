@@ -1,3 +1,142 @@
+# toc and notes
+# These methods require flexclust dist2.
+# npdrLearnerCV -- cv tune hyperparameters with knn classifer
+# npdrLearner --  knn classifier
+
+# ==============================================================#
+#' \code{npdrLearnerCV}
+#'
+#' Tune a hyperparmeter that maximizes the cross-validation accuracy of a k-nearest-neighbors classifier. You can tune k, but keep in mind that the resulting k might be underestimated because the training sample size is smaller than the original sample size. When other hyperparameters are optimized, k is fixed to the npdr theoretical value that adapts to the training size (todo: make more flexible with knn alpha). You can tune the number of ICA or PCA components as the components are used as the space for calculating nearest neighbors. todo: create function interface that allows user to create their own sapply_hyper_fn.
+#' @param x (m+1) x p dataframe of m instances, 1 class column and p attributes
+#' @param label column label for class \code{"class"}
+#' @param tune_grid vector of hyperparameter values to test for best classification accuracy
+#' @param dist_metric for distance matrix between instances
+#' (default: \code{"manhattan"}, others include \code{"euclidean"},
+#' and for GWAS \code{"allele-sharing-manhattan"}).
+#' @param tune_type type of hyperparmater to optimize. default: \code{"knn"}, others include \code{"ica"} (number of ica components for ica space transformation, and \code{"pca"} (number of components for PCA transformation.
+#' @param num_folds number of cross-validation folds for tuning
+#' @return list containing best hyperparameter (best_param), its highest accuracy (best_acc), and a table of fold and parameter accuracies (cv_table) 
+#' @examples
+#' library(flexclust) # need for npdrLearner knn classifier
+#' library(fastICA)   # need if tuning ica tansformation
+#' cv.out <- npdrLearnerCV(x=dats, label="class", 
+#'               tune_grid = seq(20,90,5),   # tuning knn
+#'               dist_metric = "manhattan",
+#'               tune_type = "knn",
+#'               num_folds=5, verbose=T)
+#' cv.out$best_param
+#' plot(cv.out$cv_table$hyp,cv.out$cv_table$means,
+#'         xlab="hyperparameter", ylab="accuracy", 
+#'         main="CV hyperparameter tuning", type="l")
+#' text(cv.out$best_param,cv.out$best_acc,paste("max.loc =",cv.out$best_param))
+#' Or you can tune number of knns 
+#' cv.out <- npdrLearnerCV(x=dats, label="class", 
+#'                      tune_grid = seq(20,90,5),   # tuning knn
+#'                        dist_metric = "manhattan",
+#'                        tune_type = "knn",
+#'                        num_folds=5, verbose=T)
+#' @export
+npdrLearnerCV <- function(x, label="class", 
+                          tune_grid = seq(10,90,10), #knn
+                          dist_metric = "manhattan",
+                          tune_type = "knn",
+                          num_folds = 5, verbose=F) 
+{
+  # Cross-Validtation Hyperparameter optimization 
+  # by knn classification accuracy
+  class_idx <- which(colnames(x)==label)
+  folds <- caret::createFolds(x[,class_idx], k = num_folds) 
+  ### switch the thing we want to tune (tune_type)
+  sapply_hyper_fn = switch(tune_type,
+                           knn = function(hyper.param,te.idx) {
+                             # tune_type = "knn"
+                             # ex. tune_grid = seq(10,90,10)
+                             # values should be less than num samples-1
+                             test_results <- npdrLearner(train.outcome="class", 
+                                                         train.data=x[-te.idx,], 
+                                                         test.outcome="class", 
+                                                         test.data=x[te.idx,],
+                                                         nbd.method = "relieff", 
+                                                         nbd.metric = dist_metric, 
+                                                         msurf.sd.frac = 0.5, 
+                                                         knn=hyper.param) 
+                             return(test_results$accuracy) },
+                           ica = function(hyper.param,te.idx) { 
+                             #   tune_type = "ica"
+                             # ex.tune_grid = seq(10,80,10) # num of ICs
+                             # values should be less than number of variables
+                             # compute ICs for all samples for given n.comp
+                             ICs <- fastICA(x[,-class_idx], 
+                                            n.comp=hyper.param, fun="exp",
+                                            method = "C", verbose=F,
+                                            maxit=100000,tol=0.00000001)
+                             IC.src <- data.frame(ICs$S)
+                             IC.src$class <- x[,class_idx]  # add class back
+                             m.samp <- nrow(IC.src)  # full sample size
+                             # use training sample size for theoretical knn
+                             # b/c knn's calculated in training
+                             m.train <- m.samp-m.samp/num_folds # num train samp
+                             k.train <- npdr::knnSURF(m.train - 1, 0.5)
+                             test_results <- npdrLearner(train.outcome="class", 
+                                                         train.data=IC.src[-te.idx,], 
+                                                         test.outcome="class", 
+                                                         test.data=IC.src[te.idx,],
+                                                         nbd.method = "relieff", 
+                                                         nbd.metric = dist_metric, 
+                                                         msurf.sd.frac = 0.5, 
+                                                         knn=k.train) 
+                             return(test_results$accuracy) },
+                           pca = function(hyper.param,te.idx) { 
+                             #   tune_type = "pca"
+                             # ex.tune_grid = seq(5,50,5) # num of PCs
+                             # values should be less than number of variables
+                             # compute ICs for all samples for given n.comp
+                             PCs<-prcomp(x[,-class_idx])
+                             topPCs <- data.frame(PCs$x[,1:hyper.param]) 
+                             topPCs$class <- x[,class_idx]  # add class back
+                             m.samp <- nrow(topPCs)  # full sample size
+                             # use training sample size for theoretical knn
+                             # b/c knn's calculated in training
+                             m.train <- m.samp-m.samp/num_folds # num train samp
+                             k.train <- npdr::knnSURF(m.train - 1, 0.5)
+                             test_results <- npdrLearner(train.outcome="class", 
+                                                         train.data=topPCs[-te.idx,], 
+                                                         test.outcome="class", 
+                                                         test.data=topPCs[te.idx,],
+                                                         nbd.method = "relieff", 
+                                                         nbd.metric = dist_metric, 
+                                                         msurf.sd.frac = 0.5, 
+                                                         knn=k.train) 
+                             return(test_results$accuracy) }
+  ) # end switch
+  #### Begin cross validation
+  ## Iterate over cv folds
+  cv.results <- list()
+  for (fold.id in seq(1,num_folds)){
+    te.idx <- folds[[fold.id]]
+    if (verbose){cat("fold", fold.id, "of",num_folds,"\n")}
+    # add tune-alpha and tune-pca
+    if(verbose){cat("\t inner loop over hyperparameters...\n")}
+    # iterate over hyperparameter
+    scores <- sapply(tune_grid,        # hyp loop var
+                     function(hyp){sapply_hyper_fn(hyp,te.idx=te.idx)}
+    )  # end sapply hyp loop over hyperparameters
+    cv.results[[fold.id]] <- scores  # scores vector
+  } # end for folds loop
+  cv.results <- data.frame(cv.results)  # turn list to df
+  cv.results$means <- rowMeans(as.matrix(cv.results))
+  cv.results$hyp <- tune_grid
+  colnames(cv.results) <- c(names(folds),"means","hyp")
+  #### Select best performance
+  best.idx <- which.max(cv.results$means)  # accuracy
+  
+  return(list(
+    best_param = tune_grid[best.idx],
+    best_acc = cv.results$means[best.idx],
+    cv_table = cv.results
+  ))
+} # end npdrLearnerCV
+
 # =========================================================================#
 #' npdrLearner
 #'
