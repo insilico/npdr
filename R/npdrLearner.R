@@ -1,9 +1,9 @@
-# toc and notes
-# These methods require flexclust dist2.
-# npdrLearnerCV -- cv tune hyperparameters with knn classifer
-# npdrLearner --  knn classifier
+#' toc and notes
+#' These methods require flexclust dist2.
+#' npdrLearnerCV -- cv tune hyperparameters with knn classifer
+#' npdrLearner --  knn classifier
 
-# ==============================================================#
+#' ==============================================================#
 #' \code{npdrLearnerCV}
 #'
 #' Tune a hyperparmeter that maximizes the cross-validation accuracy of a k-nearest-neighbors classifier. You can tune k, but keep in mind that the resulting k might be underestimated because the training sample size is smaller than the original sample size. When other hyperparameters are optimized, k is fixed to the npdr theoretical value that adapts to the training size (todo: make more flexible with knn alpha). You can tune the number of ICA or PCA components as the components are used as the space for calculating nearest neighbors. todo: create function interface that allows user to create their own sapply_hyper_fn.
