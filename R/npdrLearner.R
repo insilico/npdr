@@ -283,16 +283,28 @@ nearestNeighbors2 <- function(attr.mat1, attr.mat2,
 # ==============================================================#
 #' \code{npdrLearnerCV}
 #'
-#' Tune a hyperparmeter that maximizes the cross-validation accuracy of a k-nearest-neighbors classifier. You can tune k, but keep in mind that the resulting k might be underestimated because the training sample size is smaller than the original sample size. When other hyperparameters are optimized, k is fixed to the npdr theoretical value that adapts to the training size (todo: make more flexible with knn alpha). You can tune the number of ICA or PCA components as the components are used as the space for calculating nearest neighbors. todo: create function interface that allows user to create their own sapply_hyper_fn.
+#' Tune a hyperparmeter that maximizes the cross-validation accuracy of a k
+#' -nearest-neighbors classifier. You can tune k, but keep in mind that the 
+#' resulting k might be underestimated because the training sample size is
+#' smaller than the original sample size. When other hyperparameters are 
+#' optimized, k is fixed to the npdr theoretical value that adapts to the 
+#' training size (todo: make more flexible with knn alpha). You can tune the 
+#' number of ICA or PCA components as the components are used as the space for 
+#' calculating nearest neighbors. todo: create function interface that allows 
+#' user to create their own sapply_hyper_fn.
 #' @param x (m+1) x p dataframe of m instances, 1 class column and p attributes
 #' @param label column label for class \code{"class"}
-#' @param tune_grid vector of hyperparameter values to test for best classification accuracy
+#' @param tune_grid vector of hyperparameter values to test for best 
+#' classification accuracy
 #' @param dist_metric for distance matrix between instances
 #' (default: \code{"manhattan"}, others include \code{"euclidean"},
 #' and for GWAS \code{"allele-sharing-manhattan"}).
-#' @param tune_type type of hyperparmater to optimize. default: \code{"knn"}, others include \code{"ica"} (number of ica components for ica space transformation, and \code{"pca"} (number of components for PCA transformation.
+#' @param tune_type type of hyperparmater to optimize. default: \code{"knn"}, 
+#' others include \code{"ica"} (number of ica components for ica space 
+#' transformation, and \code{"pca"} (number of components for PCA transformation.
 #' @param num_folds number of cross-validation folds for tuning
-#' @return list containing best hyperparameter (best_param), its highest accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
+#' @return list containing best hyperparameter (best_param), its highest 
+#' accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
 #' @examples
 #' library(flexclust) # need for npdrLearner knn classifier
 #' library(fastICA)   # need if tuning ica tansformation

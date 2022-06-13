@@ -19,21 +19,33 @@ npdrLearnerCV(
 
 \item{label}{column label for class \code{"class"}}
 
-\item{tune_grid}{vector of hyperparameter values to test for best classification accuracy}
+\item{tune_grid}{vector of hyperparameter values to test for best 
+classification accuracy}
 
 \item{dist_metric}{for distance matrix between instances
 (default: \code{"manhattan"}, others include \code{"euclidean"},
 and for GWAS \code{"allele-sharing-manhattan"}).}
 
-\item{tune_type}{type of hyperparmater to optimize. default: \code{"knn"}, others include \code{"ica"} (number of ica components for ica space transformation, and \code{"pca"} (number of components for PCA transformation.}
+\item{tune_type}{type of hyperparmater to optimize. default: \code{"knn"}, 
+others include \code{"ica"} (number of ica components for ica space 
+transformation, and \code{"pca"} (number of components for PCA transformation.}
 
 \item{num_folds}{number of cross-validation folds for tuning}
 }
 \value{
-list containing best hyperparameter (best_param), its highest accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
+list containing best hyperparameter (best_param), its highest 
+accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
 }
 \description{
-Tune a hyperparmeter that maximizes the cross-validation accuracy of a k-nearest-neighbors classifier. You can tune k, but keep in mind that the resulting k might be underestimated because the training sample size is smaller than the original sample size. When other hyperparameters are optimized, k is fixed to the npdr theoretical value that adapts to the training size (todo: make more flexible with knn alpha). You can tune the number of ICA or PCA components as the components are used as the space for calculating nearest neighbors. todo: create function interface that allows user to create their own sapply_hyper_fn.
+Tune a hyperparmeter that maximizes the cross-validation accuracy of a k
+-nearest-neighbors classifier. You can tune k, but keep in mind that the 
+resulting k might be underestimated because the training sample size is
+smaller than the original sample size. When other hyperparameters are 
+optimized, k is fixed to the npdr theoretical value that adapts to the 
+training size (todo: make more flexible with knn alpha). You can tune the 
+number of ICA or PCA components as the components are used as the space for 
+calculating nearest neighbors. todo: create function interface that allows 
+user to create their own sapply_hyper_fn.
 }
 \examples{
 library(flexclust) # need for npdrLearner knn classifier
