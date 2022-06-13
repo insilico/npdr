@@ -15,7 +15,8 @@
 #' and for GWAS \code{"allele-sharing-manhattan"}).
 #' @param tune_type type of hyperparmater to optimize. default: \code{"knn"}, others include \code{"ica"} (number of ica components for ica space transformation, and \code{"pca"} (number of components for PCA transformation.
 #' @param num_folds number of cross-validation folds for tuning
-#' @return list containing best hyperparameter (best_param), its highest accuracy (best_acc), and a table of fold and parameter accuracies (cv_table) 
+#' @return list containing best hyperparameter (best_param), its highest accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
+#' @export 
 #' @examples
 #' library(flexclust) # need for npdrLearner knn classifier
 #' library(fastICA)   # need if tuning ica tansformation
@@ -35,7 +36,6 @@
 #'                        dist_metric = "manhattan",
 #'                        tune_type = "knn",
 #'                        num_folds=5, verbose=T)
-#' @export
 npdrLearnerCV <- function(x, label="class", 
                           tune_grid = seq(10,90,10), #knn
                           dist_metric = "manhattan",
