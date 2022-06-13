@@ -2,8 +2,7 @@
 % Please edit documentation in R/npdrLearner.R
 \name{npdrLearnerCV}
 \alias{npdrLearnerCV}
-\title{==============================================================#
-\code{npdrLearnerCV}}
+\title{\code{npdrLearnerCV}}
 \usage{
 npdrLearnerCV(
   x,
