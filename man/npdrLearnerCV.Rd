@@ -2,11 +2,7 @@
 % Please edit documentation in R/npdrLearner.R
 \name{npdrLearnerCV}
 \alias{npdrLearnerCV}
-\title{toc and notes
-These methods require flexclust dist2.
-npdrLearnerCV -- cv tune hyperparameters with knn classifer
-npdrLearner --  knn classifier
-==============================================================#
+\title{==============================================================#
 \code{npdrLearnerCV}}
 \usage{
 npdrLearnerCV(
