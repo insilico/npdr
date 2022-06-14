@@ -64,12 +64,13 @@ npdrLearnerCV <- function(x, label="class",
                              # tune_type = "knn"
                              # ex. tune_grid = seq(10,90,10)
                              # values should be less than num samples-1
-                             test_results <- npdrLearner(train.outcome="class", 
-                                                         train.data=x[-te.idx,], 
-                                                         test.outcome="class", 
+                             x$label <- as.factor(x$label)
+                             test_results <- npdrLearner(train.outcome=label, 
+                                                      train.data=x[-te.idx,], 
+                                                         test.outcome=label, 
                                                          test.data=x[te.idx,],
-                                                         nbd.method = "relieff", 
-                                                         nbd.metric = dist_metric, 
+                                                      nbd.method = "relieff", 
+                                                     nbd.metric = dist_metric, 
                                                          msurf.sd.frac = 0.5, 
                                                          knn=hyper.param) 
                              return(test_results$accuracy) },
@@ -83,20 +84,21 @@ npdrLearnerCV <- function(x, label="class",
                                             method = "C", verbose=F,
                                             maxit=100000,tol=0.00000001)
                              IC.src <- data.frame(ICs$S)
-                             IC.src$class <- x[,class_idx]  # add class back
+                   IC.src$class <- as.factor(x[,class_idx])  # add class back
                              m.samp <- nrow(IC.src)  # full sample size
                              # use training sample size for theoretical knn
                              # b/c knn's calculated in training
-                             m.train <- m.samp-m.samp/num_folds # num train samp
+                            m.train <- m.samp-m.samp/num_folds # num train samp
                              k.train <- npdr::knnSURF(m.train - 1, 0.5)
-                             test_results <- npdrLearner(train.outcome="class", 
-                                                         train.data=IC.src[-te.idx,], 
-                                                         test.outcome="class", 
-                                                         test.data=IC.src[te.idx,],
-                                                         nbd.method = "relieff", 
-                                                         nbd.metric = dist_metric, 
-                                                         msurf.sd.frac = 0.5, 
-                                                         knn=k.train) 
+                             test_results <- npdrLearner(
+                                              train.outcome="class", 
+                                              train.data=IC.src[-te.idx,], 
+                                              test.outcome="class", 
+                                              test.data=IC.src[te.idx,],
+                                              nbd.method = "relieff", 
+                                              nbd.metric = dist_metric, 
+                                              msurf.sd.frac = 0.5, 
+                                              knn=k.train) 
                              return(test_results$accuracy) },
                            pca = function(hyper.param,te.idx) { 
                              #   tune_type = "pca"
@@ -105,7 +107,7 @@ npdrLearnerCV <- function(x, label="class",
                              # compute ICs for all samples for given n.comp
                              PCs<-prcomp(x[,-class_idx])
                              topPCs <- data.frame(PCs$x[,1:hyper.param]) 
-                             topPCs$class <- x[,class_idx]  # add class back
+                  topPCs$class <- as.factor(x[,class_idx])  # add class back
                              m.samp <- nrow(topPCs)  # full sample size
                              # use training sample size for theoretical knn
                              # b/c knn's calculated in training
