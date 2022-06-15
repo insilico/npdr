@@ -54,7 +54,7 @@ list: neighborhoods for each test instance, prediction for each
 test instance, accuracy on test set
 }
 \description{
-Uses npdr neighorhoods to learn a nearest neighbor classification or
+Uses npdr neighborhoods to learn a nearest neighbor classification or
 regression model (latter not implemented but easy).
 Finds the nearest neighbors of test instances to a training dataset.
 Uses majority class of training neighbors for test prediction.

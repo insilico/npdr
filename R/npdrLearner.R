@@ -88,7 +88,10 @@ npdrLearnerCV <- function(x, label="class",
                              m.samp <- nrow(IC.src)  # full sample size
                              # use training sample size for theoretical knn
                              # b/c knn's calculated in training
-                            m.train <- m.samp-m.samp/num_folds # num train samp
+                             m.minority <- min(table(IC.src$class))
+                             # use training sample size for theoretical knn
+                             # b/c knn's calculated in training
+           m.train <- m.minority-m.minority/num_folds # num train samp, 2 fold
                              k.train <- npdr::knnSURF(m.train - 1, 0.5)
                              test_results <- npdrLearner(
                                               train.outcome="class", 
@@ -154,7 +157,7 @@ npdrLearnerCV <- function(x, label="class",
 # =========================================================================#
 #' npdrLearner
 #'
-#' Uses npdr neighorhoods to learn a nearest neighbor classification or
+#' Uses npdr neighborhoods to learn a nearest neighbor classification or
 #' regression model (latter not implemented but easy).
 #' Finds the nearest neighbors of test instances to a training dataset.
 #' Uses majority class of training neighbors for test prediction.
@@ -202,23 +205,56 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
                         msurf.sd.frac = 0.5, dopar.nn = FALSE, knn = 0) {
   if (length(train.outcome) == 1) {
     # e.g., outcome="class" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
-    train.pheno <- train.data[, train.outcome, drop = TRUE] %>%
-      as.character() %>%
-      as.numeric() # get phenotype
-    train.data <- train.data %>% select(-train.outcome) # outcome = "qtrait" or 101
+  train.pheno.original <- as.factor(train.data[, train.outcome, drop = TRUE]) 
+    org_train_levels <- levels(train.pheno.original) 
+    if (any(is.na(suppressWarnings(as.numeric(org_train_levels))))){ 
+                                                             #///num levels
+      # if class levels are strings that do not map to integers
+      # change them to 1, 2, ...
+      train.pheno <- train.pheno.original
+      for (i in seq(1,length(org_train_levels),1)){ # make levels 1, 2, ...
+        levels(train.pheno)[levels(train.pheno)==org_train_levels[i]] = i
+      }
+      train.data <- train.data %>% select(-train.outcome) 
+    } else{ # if levels already numeric-looking strings
+        train.pheno <- train.pheno.original %>%
+        as.character() %>%
+        as.numeric() # get phenotype
+      train.data <- train.data %>% select(-train.outcome) 
+      # outcome = "qtrait" or 101
+    }                                                   #///num levels
   } else { # user specifies a separate phenotype vector
-    train.pheno <- train.outcome # assume users provides a separate outcome data vector
-    # train.data <- train.data # assumes dataset only contains attributes/predictors
+    train.pheno <- train.outcome  # still needs to be numeric levels
+    # add   #///num levels
+    # assumes user provides a separate outcome data vector
+    # train.data <- train.data 
+    # assumes dataset only contains attributes/predictors
   }
   if (length(test.outcome) == 1) {
     # e.g., outcome="class" or outcome=101 (pheno col index) and dataset is data.frame including outcome variable
-    test.pheno <- test.data[, test.outcome] %>%
-      as.character() %>%
-      as.numeric() # get phenotype
-    test.data <- test.data %>% select(-test.outcome) # outcome = "qtrait" or 101
+    test.pheno.original <- as.factor(test.data[, test.outcome, drop = TRUE]) 
+    org_test_levels <- levels(test.pheno.original) 
+    #original_levels <- levels(test.pheno.original)  
+    if (any(is.na(suppressWarnings(as.numeric(org_test_levels))))){       
+                                                            #///num levels
+      # if class levels are strings that do not map to integers
+      # change them to 1, 2, ...
+      test.pheno <- test.pheno.original
+      for (i in seq(1,length(org_test_levels),1)){ # make levels 1, 2, ...
+        levels(test.pheno)[levels(test.pheno)==org_test_levels[i]] = i
+      }
+      test.data <- test.data %>% select(-test.outcome) 
+    } else{ # if already numeric-looking strings
+      test.pheno <- test.pheno.original %>%
+        as.character() %>%
+        as.numeric() # get phenotype
+      test.data <- test.data %>% select(-test.outcome) 
+      # outcome = "qtrait" or 101
+    }                                                   #///num levels
   } else { # user specifies a separate phenotype vector
-    test.pheno <- test.outcome # assume users provides a separate outcome data vector
-    # test.data <- test.data # assumes dataset only contains attributes/predictors
+    test.pheno <- test.outcome 
+    # assume users provides a separate outcome data vector
+    # test.data <- test.data # assumes dataset only contains predictors
   }
   # get ids of nearest training instances for each test instance
   # number of elements in test.neighbors list equal to test.data sample size
@@ -236,11 +272,22 @@ npdrLearner <- function(train.outcome, train.data, test.outcome, test.data,
       table(train.pheno[test.neighbors[[i]]]) %>%
         which.max() %>%
         names() %>%
-        as.numeric()
+        as.numeric()  
     }
   )
   test.acc <- sum(test.predict == test.pheno) / length(test.pheno)
-  list(neighborhoods = test.neighbors, prediction = test.predict, accuracy = test.acc)
+  # map back to original class levels
+  for (i in seq(1,length(org_test_levels),1)){
+    # dplyr use original class levels
+    test.predict <- replace(test.predict,test.predict %in% i,
+                            org_test_levels[i])
+  }
+  test.actual <- as.character(test.pheno.original)
+  conf.mat <- as.matrix(table(test.predict,test.actual))
+  names(dimnames(conf.mat)) <- c("Test Predicted", "Test Actual")
+  list(train_nbs_of_test = test.neighbors, 
+       actual = test.actual, confusion = conf.mat,
+       prediction = test.predict, accuracy = test.acc)
 }
 
 
