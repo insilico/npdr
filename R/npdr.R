@@ -47,7 +47,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
     beta_a <- NA
     beta_zscore_a <- NA
     pval.att <- NA
-    message("Regression failure. Possible monomorphic SNP.\n")
+    message("Regression failure. Possible monomorphic SNP or variable with no variation.\n")
   } else {
     beta_a <- coeffs[2, 1]
     beta_zscore_a <- coeffs[2, 3] # standardized beta coefficient (col 3)

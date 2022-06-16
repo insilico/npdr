@@ -64,15 +64,16 @@ npdrLearnerCV <- function(x, label="class",
                              # tune_type = "knn"
                              # ex. tune_grid = seq(10,90,10)
                              # values should be less than num samples-1
-                             x$label <- as.factor(x$label)
-                             test_results <- npdrLearner(train.outcome=label, 
-                                                      train.data=x[-te.idx,], 
-                                                         test.outcome=label, 
-                                                         test.data=x[te.idx,],
+                             full_dat <- x[,-class_idx]
+                             full_dat$class <- as.factor(x[,class_idx]) 
+                             test_results <- npdrLearner(train.outcome="class", 
+                                                      train.data=full_dat[-te.idx,], 
+                                                      test.outcome="class", 
+                                                      test.data=full_dat[te.idx,],
                                                       nbd.method = "relieff", 
-                                                     nbd.metric = dist_metric, 
-                                                         msurf.sd.frac = 0.5, 
-                                                         knn=hyper.param) 
+                                                      nbd.metric = dist_metric, 
+                                                      msurf.sd.frac = 0.5, 
+                                                      knn=hyper.param) 
                              return(test_results$accuracy) },
                            ica = function(hyper.param,te.idx) { 
                              #   tune_type = "ica"
