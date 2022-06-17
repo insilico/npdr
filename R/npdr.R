@@ -188,6 +188,8 @@ npdr <- function(outcome, dataset,
     num.attr <- ncol(attr.mat)
   }
   num.samp <- nrow(attr.mat)
+  min.class.size <- min(as.numeric(table(pheno.vec)))
+  balanced.theoretical.k <- npdr::knnSURF(2*min.class.size - 1, 0.5)
 
   # create a list of attribute indices for selecting columns in stretched matrix
   ##############################################################################
@@ -279,7 +281,8 @@ npdr <- function(outcome, dataset,
     erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
     # theoretical surf k (sd.frac=.5) for regression problems (does not depend on a hit/miss group)
     k.msurf.theory <- knnSURF(num.samp, msurf.sd.frac)
-    cat("Theoretical (predicted) multiSURF average neighbors: ", k.msurf.theory, ".\n", sep = "")
+    cat("Theoretical multiSURF average neighbors: ", k.msurf.theory, ".\n", sep = "")
+    cat("Theoretical best average neighbors for class imbalance: ", balanced.theoretical.k, ".\n", sep = "")
     cat("Empirical (computed from neighborhood) average neighbors: ", k.ave.empirical, ".\n", sep = "")
     if (neighbor.sampling == "unique") {
       # if you only want to return unique neighbors
