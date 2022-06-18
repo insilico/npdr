@@ -4,12 +4,16 @@
 \alias{EpistasisRank}
 \title{\code{EpistasisRank}}
 \usage{
-EpistasisRank(G = NULL, Gamma_vec = 0.85)
+EpistasisRank(G = NULL, Gamma_vec = 0.85, magnitude.sort = T)
 }
 \arguments{
 \item{G}{\code{matrix} genetic association interaction network.}
 
 \item{Gamma_vec}{\code{numeric} gamma vector, either a constant value or a vector}
+
+\item{magnitude.sort}{default (T) is to rank variable scores by their magnitude
+so negative effects are also ranked. Using False will force negative effects to be
+ranked last.}
 }
 \value{
 rankTable \code{data.frame} with variable, EpistasisRank, 

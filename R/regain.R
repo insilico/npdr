@@ -294,10 +294,13 @@ fitInteractionModel <- function(labelledDataFrame, variableIndices, depVarName,
 #' @family feature selection functions
 #' @param G \code{matrix} genetic association interaction network.
 #' @param Gamma_vec \code{numeric} gamma vector, either a constant value or a vector
+#' @param magnitude.sort default (T) is to rank variable scores by their magnitude
+#' so negative effects are also ranked. Using False will force negative effects to be
+#' ranked last. 
 #' @return rankTable \code{data.frame} with variable, EpistasisRank, 
 #' diagonal and degree columns. Sorted.
 #' @export
-EpistasisRank <- function(G = NULL, Gamma_vec = 0.85){
+EpistasisRank <- function(G = NULL, Gamma_vec = 0.85, magnitude.sort=T){
   n <- nrow(G)
   geneNames <- colnames(G)
   Gdiag <- diag(G)
@@ -335,5 +338,47 @@ EpistasisRank <- function(G = NULL, Gamma_vec = 0.85){
   r <- solve(temp, b)
   ERank <- r / sum(r)
   rankTable <- data.frame(gene = geneNames, ER = ERank)
-  rankTable[order(rankTable$ER, decreasing = TRUE), ]
+  # interactions and main effects can be negative/disease protective, so you might
+  # want to see this in the top of the list.
+  if (magnitude.sort){  # large magnitudes (>0 and <0) will be at the top 
+    rankTable[order(abs(rankTable$ER), decreasing = TRUE), ]
+  }else{  # negative scores will be at the bottom
+    rankTable[order(rankTable$ER, decreasing = TRUE), ]
+  }
+}
+
+#' Rank variables by EpistasisKatz algorithm.
+#' 
+#' This function can be use as original Katz algorithm or as EpistasisKatz
+#' that incorporates prior knowledge.
+#'
+#' \code{EpistasisKatz}
+#' 
+#' @param A \code{matrix} network of features either in adjacency or interaction format.
+#' @param alpha \code{numeric} a vector with numeric values.
+#' @param beta \code{numeric} either a vector of constant values or prior knowledge.
+#' @param magnitude.sort default (T) is to rank variable scores by their magnitude
+#' so negative effects are also ranked. Using False will force negative effects to be
+#' ranked last. 
+#' @return features ranking with features name.
+#' @export
+EpistasisKatz <- function(A = NULL, alpha = NULL, beta = NULL, magnitude.sort=T) {
+  lam.dom <- eigen(A)$values[1]
+  if (is.null(alpha)){
+    alpha <- .8/lam.dom # 80% of max threshold
+  }
+  if (is.null(beta)){
+    beta <- diag(A)
+  }
+  n <- nrow(A)
+  I <- diag(1, n); 
+  A.nodiag <- A - diag(A)
+  KRank <- solve(I - alpha * A.nodiag,beta)  
+  geneNames <- colnames(A)
+  rankTable <- data.frame(gene = geneNames, KR = KRank)
+  if (magnitude.sort){  # large magnitudes (>0 and <0) will be at the top 
+    rankTable[order(abs(rankTable$KR), decreasing = TRUE), ]
+  }else{  # negative scores will be at the bottom
+    rankTable[order(rankTable$KR, decreasing = TRUE), ]
+  }
 }
