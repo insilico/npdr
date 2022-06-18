@@ -18,6 +18,26 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 }
 
 # =========================================================================#
+#' knnSURF.balanced
+#'
+#' Theoretical value for the number of expected neighbors for SURF or multiSURF 
+#' (fixed or adaptive radius) neighborhoods, but adjusted for imbalanced data. 
+#' We use our theoretical formula with twice the size of the minority class 
+#' as the input sample size.
+#' @param class.vec vector of class labels to determine the minimum class size. 
+#' @param sd.frac fraction of the standard deviation from the mean of all pairwise distances, dead-band. The default value used by the SURF and multiSURF algorithms is 1/2.
+#' @return knn Theoretical number of neighbors.
+#' @examples
+#' k.surf.bal <- knnSURF.balanced(class.vec, .5)
+#' @export
+  knnSURF.balanced <- function(class.vec, sd.frac = .5) {
+  min.class.size <- min(as.numeric(table(class.vec)))
+  # theoretical SURF knn formula but using twice the minority class size
+  knn <- npdr::knnSURF(2*min.class.size - 1, 0.5)
+  return(knn)
+}
+
+# =========================================================================#
 #' uniReg
 #'
 #' Univariate logistic or linear regression for a dataset.
