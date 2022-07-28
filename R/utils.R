@@ -31,7 +31,13 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 #' k.surf.bal <- knnSURF.balanced(class.vec, .5)
 #' @export
   knnSURF.balanced <- function(class.vec, sd.frac = .5) {
-  min.class.size <- min(as.numeric(table(class.vec)))
+    class_table <- as.numeric(table(class.vec))
+    table_len <- length(class_table)
+    if (table_len > 2){    # if the class variable is numeric or 
+       min.class.size <- length(class.vec)
+    } else{
+      min.class.size <- min(class_table)   
+    }
   # theoretical SURF knn formula but using twice the minority class size
   knn <- npdr::knnSURF(2*min.class.size - 1, 0.5)
   return(knn)
