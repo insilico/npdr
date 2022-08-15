@@ -95,6 +95,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param glmnet.alpha penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2)
 #' @param glmnet.lower lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default
 #' @param use.glmnet logical, whether glmnet is employed
+#' @param glmnet.lam lambda for penalized feature selection. Options: \code{"lambda.1se"} (default),  \code{"lambda.min"} or numeric.
 #' @param rm.attr.from.dist attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c()
 #' @param neighbor.sampling "none" or \code{"unique"} if you want to use only unique neighbor pairs (used in nearestNeighbors)
 #' @param separate.hitmiss.nbds for case/control data, find neighbors for same (hit) and opposite (miss) classes separately (TRUE) or find nearest neighborhoods before assigning hit/miss groups (FALSE). Uses nearestNeighborsSeparateHitMiss function
@@ -154,6 +155,7 @@ npdr <- function(outcome, dataset,
                  covars = "none", covar.diff.type = "match-mismatch",
                  padj.method = "bonferroni", verbose = FALSE,
                  use.glmnet = FALSE, glmnet.alpha = 1, glmnet.lower = 0,
+                 glmnet.lam = NULL,
                  rm.attr.from.dist = c(), neighbor.sampling = "none",
                  separate.hitmiss.nbds = FALSE,
                  corr.attr.names = NULL,
@@ -547,7 +549,14 @@ npdr <- function(outcome, dataset,
           lower.limits = glmnet.lower, type.measure = "mse"
         )
       }
-      npdrNET.coeffs <- as.matrix(predict(npdrNET.model, type = "coefficients"))
+      if (verbose) {
+        cat("npdr-glmnet cv lambda values:\n")
+        cat("lambda.min: ", npdrNET.model$lambda.min,"\n")
+        cat("lambda.1se: ", npdrNET$lambda.1se, "\n")
+      }
+      npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                          type = "coefficients",
+                                          s=glmnet.lam))
       row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
       npdr.stats.df <- data.frame(scores = glmnet.sorted)

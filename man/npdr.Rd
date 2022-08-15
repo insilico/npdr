@@ -20,6 +20,7 @@ npdr(
   use.glmnet = FALSE,
   glmnet.alpha = 1,
   glmnet.lower = 0,
+  glmnet.lam = NULL,
   rm.attr.from.dist = c(),
   neighbor.sampling = "none",
   separate.hitmiss.nbds = FALSE,
@@ -64,6 +65,8 @@ The multiSURF default is msurf.sd.frac=0.5: mean - sd/2. Used by nearestNeighbor
 \item{glmnet.alpha}{penalty mixture for npdrNET: default alpha=1 (lasso, L1) alpha=0 (ridge, L2)}
 
 \item{glmnet.lower}{lower limit for coefficients for npdrNET: lower.limits=0 npdrNET default}
+
+\item{glmnet.lam}{lambda for penalized feature selection. Options: \code{"lambda.1se"} (default),  \code{"lambda.min"} or numeric.}
 
 \item{rm.attr.from.dist}{attributes for removal (possible confounders) from the distance matrix calculation. Argument for nearestNeighbors. None by default c()}
 
