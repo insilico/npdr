@@ -552,7 +552,7 @@ npdr <- function(outcome, dataset,
       if (verbose) {
         cat("npdr-glmnet cv lambda values:\n")
         cat("lambda.min: ", npdrNET.model$lambda.min,"\n")
-        cat("lambda.1se: ", npdrNET$lambda.1se, "\n")
+        cat("lambda.1se: ", npdrNET.model$lambda.1se, "\n")
       }
       npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
                                           type = "coefficients",
