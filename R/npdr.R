@@ -557,6 +557,10 @@ npdr <- function(outcome, dataset,
       npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
                                           type = "coefficients",
                                           s=glmnet.lam))
+      cat("0\n")
+      cat(dim(npdrNET.coeffs),"\n")
+      cat("1\n")
+      cat(length(colnames(attr.mat)),"\n")
       row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
       cat("1\n")
