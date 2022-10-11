@@ -566,8 +566,6 @@ npdr <- function(outcome, dataset,
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
       cat("1\n")
       cat(rownames(glmnet.sorted),"\n")
-      cat("2\n")
-      cat(rownames(npdr.stats.df),"\n")
       npdr.stats.df <- data.frame(scores = glmnet.sorted)
       cat("3\n")
       cat(rownames(npdr.stats.df),"\n")
