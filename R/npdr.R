@@ -559,7 +559,13 @@ npdr <- function(outcome, dataset,
                                           s=glmnet.lam))
       row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
+      cat("1\n")
+      cat(rownames(glmnet.sorted),"\n")
+      cat("2\n")
+      cat(rownames(npdr.stats.df),"\n")
       npdr.stats.df <- data.frame(scores = glmnet.sorted)
+      cat("3\n")
+      cat(rownames(npdr.stats.df),"\n")
     } else { # glmnet.alpha == "cluster", so don't do regression and return the attribute diff vectors
       # might not need the phenotype diff for clustering, but add anyway.
       if (regression.type == "binomial") {
