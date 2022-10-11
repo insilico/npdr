@@ -557,18 +557,12 @@ npdr <- function(outcome, dataset,
       npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
                                           type = "coefficients",
                                           s=glmnet.lam))
-      cat("0\n")
-      cat(dim(npdrNET.coeffs),"\n")
-      cat("1\n")
-      cat(length(corr.attr.names),"\n")
       #row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
+      # attr.mat is ROI pair names, but the correlation metric gives importance of ROIs
+      # which should be contained in corr.attr.names
       row.names(npdrNET.coeffs) <- c("intercept", corr.attr.names) # add variable names to results
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
-      cat("1\n")
-      cat(rownames(glmnet.sorted),"\n")
       npdr.stats.df <- data.frame(scores = glmnet.sorted)
-      cat("3\n")
-      cat(rownames(npdr.stats.df),"\n")
     } else { # glmnet.alpha == "cluster", so don't do regression and return the attribute diff vectors
       # might not need the phenotype diff for clustering, but add anyway.
       if (regression.type == "binomial") {
