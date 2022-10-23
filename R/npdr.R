@@ -557,10 +557,13 @@ npdr <- function(outcome, dataset,
       npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
                                           type = "coefficients",
                                           s=glmnet.lam))
-      #row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names to results
-      # attr.mat is ROI pair names, but the correlation metric gives importance of ROIs
-      # which should be contained in corr.attr.names
-      row.names(npdrNET.coeffs) <- c("intercept", corr.attr.names) # add variable names to results
+      if (attr.diff.type=="correlation-data"){
+        # attr.mat is ROI pair names, but the correlation metric gives importance of ROIs
+        # which should be contained in corr.attr.names
+        row.names(npdrNET.coeffs) <- c("intercept", corr.attr.names) # add variable names
+      } else{
+        row.names(npdrNET.coeffs) <- c("intercept", colnames(attr.mat)) # add variable names
+      }
       glmnet.sorted <- as.matrix(npdrNET.coeffs[order(abs(npdrNET.coeffs), decreasing = T), ], ncol = 1) # sort
       npdr.stats.df <- data.frame(scores = glmnet.sorted)
     } else { # glmnet.alpha == "cluster", so don't do regression and return the attribute diff vectors
