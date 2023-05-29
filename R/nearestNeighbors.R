@@ -203,9 +203,10 @@ nearestNeighbors <- function(attr.mat,
     }
 
     if (dopar.nn) {
-      avai.cors <- parallel::detectCores() - 2
-      cl <- parallel::makeCluster(avai.cors)
-      doParallel::registerDoParallel(cl)
+      avai.cors <- parallel::detectCores() # - 2
+      #cl <- parallel::makeCluster(avai.cors)
+      #doParallel::registerDoParallel(cl)
+      doParallel::registerDoParallel(cores=avai.cors)
       Ri_NN.idxmat <- foreach::foreach(
         Ri.int = seq.int(num.samp), .combine = "rbind", .packages = c("dplyr")
       ) %dopar% {

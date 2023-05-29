@@ -351,9 +351,10 @@ npdr <- function(outcome, dataset,
       check_installed("parallel", reason = "for `makeCluster()`, `detectCores()`, and `stopCluster()`")
       `%dopar%` <- foreach::`%dopar%`
       
-      avai.cors <- parallel::detectCores() - 2
-      cl <- parallel::makeCluster(avai.cors)
-      doParallel::registerDoParallel(cl)
+      avai.cors <- parallel::detectCores() # - 2
+      #cl <- parallel::makeCluster(avai.cors)
+      #doParallel::registerDoParallel(cl)
+      doParallel::registerDoParallel(cores=avai.cors)
 
       npdr.stats.attr.mat <- foreach::foreach(
         attr.idx = seq.int(num.attr), .combine = "rbind", .packages = c("dplyr")
