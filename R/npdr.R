@@ -561,9 +561,10 @@ npdr <- function(outcome, dataset,
                                   lambda=glmnet.lam,
                                   lower.limits = glmnet.lower, type.measure = "class"
           )
-          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
-                                              type = "coefficients",
-                                              s=glmnet.lam))
+          npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
+          #npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+          #                                    type = "coefficients",
+          #                                    s=glmnet.lam))
         }
       } else { # "gaussian"
         pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
