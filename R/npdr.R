@@ -558,7 +558,7 @@ npdr <- function(outcome, dataset,
         } else{ # numeric value
           npdrNET.model <- glmnet::glmnet(attr.diff.mat, pheno.diff.vec,
                                   alpha = glmnet.alpha, family = "binomial",
-                                  lambda=glmnet.lam,
+                                  lambda=glmnet.lam, thresh = 1e-14,
                                   lower.limits = glmnet.lower, type.measure = "class"
           )
           npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
