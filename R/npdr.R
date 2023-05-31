@@ -155,7 +155,7 @@ npdr <- function(outcome, dataset,
                  covars = "none", covar.diff.type = "match-mismatch",
                  padj.method = "bonferroni", verbose = FALSE,
                  use.glmnet = FALSE, glmnet.alpha = 1, glmnet.lower = 0,
-                 glmnet.lam = NULL,
+                 glmnet.lam = "lambda.1se",
                  rm.attr.from.dist = c(), neighbor.sampling = "none",
                  separate.hitmiss.nbds = FALSE,
                  corr.attr.names = NULL,
@@ -386,7 +386,7 @@ npdr <- function(outcome, dataset,
         }
         return(diffRegression(design.matrix.df, regression.type = regression.type, fast.reg = fast.reg, dof = dof))
       } # end of foreach loop, regression done in parallel
-      parallel::stopCluster(cl)
+      #parallel::stopCluster(cl)
     } else { # non parallel version
       for (attr.idx in seq(1, num.attr)) {
         if (attr.diff.type == "correlation-data") { # corrdata
@@ -537,11 +537,33 @@ npdr <- function(outcome, dataset,
       if (regression.type == "binomial") {
         pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "match-mismatch")
         pheno.diff.vec <- as.factor(pheno.diff.vec)
-        # Run glmnet on the diff attribute columns
-        npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
-          alpha = glmnet.alpha, family = "binomial",
-          lower.limits = glmnet.lower, type.measure = "class"
-        )
+        if (glmnet.lam=="lambda.min"){
+          # Run glmnet on the diff attribute columns
+          npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                             alpha = glmnet.alpha, family = "binomial",
+                                             lower.limits = glmnet.lower, type.measure = "class"
+          )
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=npdrNET.model$lambda.min))
+        }else if(glmnet.lam=="lambda.1se"){
+          # Run glmnet on the diff attribute columns
+          npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                             alpha = glmnet.alpha, family = "binomial",
+                                             lower.limits = glmnet.lower, type.measure = "class"
+          )
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=npdrNET.model$lambda.1se))
+        } else{ # numeric value
+          npdrNET.model <- glmnet::glmnet(attr.diff.mat, pheno.diff.vec,
+                                             alpha = glmnet.alpha, family = "binomial",
+                                  lower.limits = glmnet.lower, type.measure = "class"
+          )
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=glmnet.lam))
+        }
       } else { # "gaussian"
         pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
         # Run glmnet on the diff attribute columns
@@ -555,9 +577,6 @@ npdr <- function(outcome, dataset,
         cat("lambda.min: ", npdrNET.model$lambda.min,"\n")
         cat("lambda.1se: ", npdrNET.model$lambda.1se, "\n")
       }
-      npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
-                                          type = "coefficients",
-                                          s=glmnet.lam))
       if (attr.diff.type=="correlation-data"){
         # attr.mat is ROI pair names, but the correlation metric gives importance of ROIs
         # which should be contained in corr.attr.names

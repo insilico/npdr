@@ -1,7 +1,7 @@
 Nearest-neighbor Projected-Distance Regression (NPDR)
 ================
 
-## tldr
+Trang T. Le, Bryan A. Dawkins, B. A. McKinney. “Nearest-neighbor Projected-Distance Regression (NPDR) for detecting network interactions with adjustments for multiple tests and confounding,” Bioinformatics, Volume 36, Issue 9, May 2020, Pages 2770–2777 [free](https://doi.org/10.1093/bioinformatics/btaa024).
 
 NPDR is a nearest-neighbor feature selection algorithm that fits a
 generalized linear model for *projected distances* of a given attribute
