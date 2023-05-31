@@ -216,7 +216,7 @@ nearestNeighbors <- function(attr.mat,
         return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
       ## [1] 1.000000 1.414214 1.732051
-      parallel::stopCluster(cl)
+      #parallel::stopCluster(cl)
     } else {
       Ri.nearestPairs.list <- vector("list", num.samp)
       for (Ri in colnames(dist.mat)) { # for each sample Ri
@@ -257,7 +257,7 @@ nearestNeighbors <- function(attr.mat,
 
         return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
       }
-      parallel::stopCluster(cl)
+      #parallel::stopCluster(cl)
     } else {
       # put each Ri's nbd in a list then rbind them at the end with bind_rows()
       Ri.nearestPairs.list <- vector("list", num.samp) # initialize list
@@ -403,7 +403,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
         }
       }
       ## [1] 1.000000 1.414214 1.732051
-      parallel::stopCluster(cl)
+      #parallel::stopCluster(cl)
     } else { # begin non-parallel version
       Ri.nearestPairs.list <- vector("list", num.samp)
       for (Ri in colnames(dist.mat)) { # for each sample Ri
@@ -518,7 +518,7 @@ nearestNeighborsSeparateHitMiss <- function(attr.mat, pheno.vec,
           return(data.frame(Ri_idx = Ri.int, NN_idx = Ri.nearest.idx))
         }
       }
-      parallel::stopCluster(cl)
+     #parallel::stopCluster(cl)
     } else {
       # put each Ri's nbd in a list then rbind them at the end with bind_rows()
       Ri.nearestPairs.list <- vector("list", num.samp) # initialize list
