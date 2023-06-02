@@ -549,30 +549,60 @@ npdr <- function(outcome, dataset,
         }else if(glmnet.lam=="lambda.1se"){
           # Run glmnet on the diff attribute columns
           npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
-                                             alpha = glmnet.alpha, family = "binomial",
-                                             lower.limits = glmnet.lower, type.measure = "class"
+                                  alpha = glmnet.alpha, family = "binomial",
+                                  lower.limits = glmnet.lower, type.measure = "class"
           )
           npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
                                               type = "coefficients",
                                               s=npdrNET.model$lambda.1se))
-        } else{ # numeric value
+        } else{ # numeric lambda value
           npdrNET.model <- glmnet::glmnet(attr.diff.mat, pheno.diff.vec,
                                   alpha = glmnet.alpha, family = "binomial",
                                   lambda=glmnet.lam, thresh = 1e-14,
-                                  lower.limits = glmnet.lower, type.measure = "class"
+                                  lower.limits = -Inf, type.measure = "class"
           )
-          npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
-          #npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
-          #                                    type = "coefficients",
-          #                                    s=glmnet.lam))
+          #npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=glmnet.lam, exact=T))
         }
       } else { # "gaussian"
-        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
+        pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, 
+                                   diff.type = "numeric-abs")
         # Run glmnet on the diff attribute columns
         npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
           alpha = glmnet.alpha, family = "gaussian",
           lower.limits = glmnet.lower, type.measure = "mse"
         )
+        if (glmnet.lam=="lambda.min"){
+          # Run glmnet on the diff attribute columns
+          npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                alpha = glmnet.alpha, family = "gaussian",
+                                lower.limits = glmnet.lower, type.measure = "mse"
+          )
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=npdrNET.model$lambda.min))
+        }else if(glmnet.lam=="lambda.1se"){
+          # Run glmnet on the diff attribute columns
+          npdrNET.model <- glmnet::cv.glmnet(attr.diff.mat, pheno.diff.vec,
+                                  alpha = glmnet.alpha, family = "gaussian",
+                                  lower.limits = glmnet.lower, type.measure = "mse"
+          )
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=npdrNET.model$lambda.1se))
+        } else{ # numeric lambda value
+          npdrNET.model <- glmnet::glmnet(attr.diff.mat, pheno.diff.vec,
+                                  alpha = glmnet.alpha, family = "gaussian",
+                                  lambda=glmnet.lam, thresh = 1e-14,
+                                  lower.limits = glmnet.lower, type.measure = "mse"
+          )
+          #npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
+          npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
+                                              type = "coefficients",
+                                              s=glmnet.lam, exact=T))
+        }
       }
       if (verbose) {
         cat("npdr-glmnet cv lambda values:\n")
