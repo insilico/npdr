@@ -559,7 +559,7 @@ npdr <- function(outcome, dataset,
           npdrNET.model <- glmnet::glmnet(attr.diff.mat, pheno.diff.vec,
                                   alpha = glmnet.alpha, family = "binomial",
                                   lambda=glmnet.lam, thresh = 1e-14,
-                                  lower.limits = -Inf, type.measure = "class"
+                                  lower.limits = glmnet.lower, type.measure = "class"
           )
           #npdrNET.coeffs <- as.matrix(coef(npdrNET.model))
           npdrNET.coeffs <- as.matrix(predict(npdrNET.model, 
