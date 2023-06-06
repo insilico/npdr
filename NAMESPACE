@@ -2,6 +2,7 @@
 
 export(EpistasisKatz)
 export(EpistasisRank)
+export(auPRC)
 export(createMainEffects)
 export(createSimulation2)
 export(createfMRIsimulation)

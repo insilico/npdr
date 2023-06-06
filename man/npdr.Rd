@@ -20,7 +20,7 @@ npdr(
   use.glmnet = FALSE,
   glmnet.alpha = 1,
   glmnet.lower = 0,
-  glmnet.lam = NULL,
+  glmnet.lam = "lambda.1se",
   rm.attr.from.dist = c(),
   neighbor.sampling = "none",
   separate.hitmiss.nbds = FALSE,
