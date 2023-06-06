@@ -7,13 +7,14 @@
 #'
 #' @param functional character vector of functional/true attribute names.
 #' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
-#' @return list with elements TP, FP, FN, TPR, FPR, precision, recall and summary message (string).
+#' @param num_all_vars total number of variables, needed for TN calculation for MCC
+#' @return list with elements TP, FP, FN, TPR, FPR, precision, recall, F1, MCC, and summary message (string).
 #' @examples
 #' functional <- c("var1", "var2", "var3")
 #' detected <- c("var1", "var2", "var4")
 #' detectionStats(functional, detected)
 #' @export
-detectionStats <- function(functional, positives) {
+detectionStats <- function(functional, positives, num_all_vars) {
   TP <- sum(positives %in% functional)
   FP <- sum(!(positives %in% functional))
   FN <- length(functional) - TP
@@ -22,6 +23,7 @@ detectionStats <- function(functional, positives) {
   num.positives <- length(positives)
   TPR <- TP / num.positives # rate, aka power or sensitivity
   FPR <- FP / num.positives # rate
+  TN <- num_all_vars - (FP + FN + TP)
   # F1 score
   # Calculation based on binary classification, 
   # like case/control or functional/non-functional feature.
@@ -34,8 +36,11 @@ detectionStats <- function(functional, positives) {
     "Given ", length(positives), " selected (positive) attributes.\n",
     "True Positives: ", TP, " true out of ", length(positives), " positives. TP rate = ", TPR, ".\n",
     "False Positives: ", FP, " false out of ", length(positives), " positives. FP rate = ", FPR, ".\n",
+    "True Negatives: ", TN, ".\n",
     "Precision: ", precision, ".\n",
     "Recall: ", recall, ".\n",
+    "F1: ", F1, ".\n",
+    "MCC: ", MCC, ".\n",
     sep = ""
   )
   return(list(
