@@ -4,7 +4,8 @@
 #'
 #' Given a vector functional (true) attribute names and a vector of positive
 #' association attribute names, returns detection statistics like recall and precision.
-#'
+#' Note you must include the number of variables if you want to compute TN and MCC.
+#' 
 #' @param functional character vector of functional/true attribute names.
 #' @param positives character vector of attribute names of positive associations (null hypothesis rejected or some threshold).
 #' @param num_all_vars total number of variables, needed for TN calculation for MCC
@@ -14,7 +15,7 @@
 #' detected <- c("var1", "var2", "var4")
 #' detectionStats(functional, detected)
 #' @export
-detectionStats <- function(functional, positives, num_all_vars) {
+detectionStats <- function(functional, positives, num_all_vars=NULL) {
   TP <- sum(positives %in% functional)
   FP <- sum(!(positives %in% functional))
   FN <- length(functional) - TP
@@ -23,13 +24,18 @@ detectionStats <- function(functional, positives, num_all_vars) {
   num.positives <- length(positives)
   TPR <- TP / num.positives # rate, aka power or sensitivity
   FPR <- FP / num.positives # rate
-  TN <- num_all_vars - (FP + FN + TP)
   # F1 score
   # Calculation based on binary classification, 
   # like case/control or functional/non-functional feature.
   F1 <- 2 * ((precision * recall)/(precision + recall))
   # Matthews Correlation Coefficient (MCC)
-  MCC <- (TP * TN - FP * FN)/sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  if (!is.null(num_all_vars)){
+    TN <- num_all_vars - (FP + FN + TP)
+    MCC <- (TP * TN - FP * FN)/sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  } else{
+    TN <- NA
+    MCC <- NA
+  }
   # summary message
   report <- paste(
     "Given ", length(functional), " functional (true) attributes.\n",
@@ -50,7 +56,6 @@ detectionStats <- function(functional, positives, num_all_vars) {
     report = report
   ))
 }
-
 
 # =========================================================================#
 #' detected

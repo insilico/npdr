@@ -4,7 +4,7 @@
 \alias{detectionStats}
 \title{detectionStats}
 \usage{
-detectionStats(functional, positives, num_all_vars)
+detectionStats(functional, positives, num_all_vars = NULL)
 }
 \arguments{
 \item{functional}{character vector of functional/true attribute names.}
@@ -19,6 +19,7 @@ list with elements TP, FP, FN, TPR, FPR, precision, recall, F1, MCC, and summary
 \description{
 Given a vector functional (true) attribute names and a vector of positive
 association attribute names, returns detection statistics like recall and precision.
+Note you must include the number of variables if you want to compute TN and MCC.
 }
 \examples{
 functional <- c("var1", "var2", "var3")
