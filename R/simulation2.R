@@ -620,7 +620,7 @@ createMainEffects <- function(n.e = 1000,
 #'   \item{int.vars}{indices of interaction effect variables (for mixed simulations)}
 #' }
 #' @examples
-#'
+#' \dontrun{
 #' # main effects with correlation from Erdos-Renyi network (continuous)
 #'
 #' num.samples <- 100
@@ -672,6 +672,7 @@ createMainEffects <- function(n.e = 1000,
 #'   verbose = TRUE,
 #'   data.type = "discrete"
 #' )
+#' }
 #' @export
 createSimulation2 <- function(num.samples = 100,
                               num.variables = 100,

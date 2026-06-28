@@ -114,7 +114,7 @@ New Parameter:
                      by the previous iteration of createSimulation2().
 }
 \examples{
-
+\dontrun{
 # main effects with correlation from Erdos-Renyi network (continuous)
 
 num.samples <- 100
@@ -166,4 +166,5 @@ dataset <- createSimulation2(
   verbose = TRUE,
   data.type = "discrete"
 )
+}
 }

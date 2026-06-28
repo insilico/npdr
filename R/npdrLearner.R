@@ -29,6 +29,7 @@
 #' @return list containing best hyperparameter (best_param), its highest 
 #' accuracy (best_acc), and a table of fold and parameter accuracies (cv_table)
 #' @examples
+#' \dontrun{
 #' library(flexclust) # need for npdrLearner knn classifier
 #' library(fastICA)   # need if tuning ica tansformation
 #' cv.out <- npdrLearnerCV(x=dats, label="class", 
@@ -41,12 +42,13 @@
 #'         xlab="hyperparameter", ylab="accuracy", 
 #'         main="CV hyperparameter tuning", type="l")
 #' text(cv.out$best_param,cv.out$best_acc,paste("max.loc =",cv.out$best_param))
-#' Or you can tune number of knns 
+#' # Or you can tune number of knns 
 #' cv.out <- npdrLearnerCV(x=dats, label="class", 
 #'                      tune_grid = seq(20,90,5),   # tuning knn
 #'                        dist_metric = "manhattan",
 #'                        tune_type = "knn",
 #'                        num_folds=5, verbose=T)
+#'  }
 #' @export 
 npdrLearnerCV <- function(x, label="class", 
                           tune_grid = seq(10,90,10), #knn

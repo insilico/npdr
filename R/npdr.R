@@ -83,7 +83,7 @@ diffRegression <- function(design.matrix.df, regression.type = "binomial", fast.
 #' @param outcome character name or length-m numeric outcome vector for linear regression, factor for logistic regression
 #' @param dataset m x p matrix of m instances and p attributes, May also include outcome vector but then outcome should be name. Include attr names as colnames.
 #' @param regression.type (\code{"lm"} or \code{"binomial"})
-#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} or \code{"numeric-sqr"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs.
+#' @param attr.diff.type diff type for attributes (\code{"numeric-abs"} (absolute value of difference) or \code{"numeric-sqr"} or \code{"numeric-signed"} for numeric, \code{"allele-sharing"} or \code{"match-mismatch"} for SNP). Phenotype diff uses same numeric diff as attr.diff.type when lm regression. For glm-binomial, phenotype diff is \code{"match-mismatch"} For correlation data (e.g., rs-fMRI), use \code{"correlation-data"}; diffs between two variables (e.g., ROIs) are taken across all their pairs of correlations and the attribute importances are given for the overall variable (e.g,. brain ROI), not individual pairs.
 #' @param nbd.method neighborhood method \code{"multisurf"} or \code{"surf"} (no k) or \code{"relieff"} (specify k). Used by nearestNeighbors().
 #' @param nbd.metric used in npdrDistances for distance matrix between instances, default: \code{"manhattan"} (numeric). Used by nearestNeighbors(). For \code{"precomputed"}, must specify external.dist matrix. 
 #' @param knn number of constant nearest hits/misses for \code{"relieff"} (fixed-k). Used by nearestNeighbors().
@@ -299,7 +299,9 @@ npdr <- function(outcome, dataset,
   Ri.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 1]]
   NN.pheno.vals <- pheno.vec[neighbor.pairs.idx[, 2]]
   if (regression.type == "lm") {
-    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "numeric-abs")
+    # for neighbors regression with numeric values, uses same diff type for the outcome as the predictors
+    # usually numeric-abs or numeric-signed
+    pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = attr.diff.type)
   } else { # regression.type == "binomial"
     # create pheno diff vector for logistic regression (match-mismatch or hit-miss)
     pheno.diff.vec <- npdrDiff(Ri.pheno.vals, NN.pheno.vals, diff.type = "match-mismatch")

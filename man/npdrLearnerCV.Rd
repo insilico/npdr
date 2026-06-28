@@ -48,6 +48,7 @@ calculating nearest neighbors. todo: create function interface that allows
 user to create their own sapply_hyper_fn.
 }
 \examples{
+\dontrun{
 library(flexclust) # need for npdrLearner knn classifier
 library(fastICA)   # need if tuning ica tansformation
 cv.out <- npdrLearnerCV(x=dats, label="class", 
@@ -60,10 +61,11 @@ plot(cv.out$cv_table$hyp,cv.out$cv_table$means,
         xlab="hyperparameter", ylab="accuracy", 
         main="CV hyperparameter tuning", type="l")
 text(cv.out$best_param,cv.out$best_acc,paste("max.loc =",cv.out$best_param))
-Or you can tune number of knns 
+# Or you can tune number of knns 
 cv.out <- npdrLearnerCV(x=dats, label="class", 
                      tune_grid = seq(20,90,5),   # tuning knn
                        dist_metric = "manhattan",
                        tune_type = "knn",
                        num_folds=5, verbose=T)
+ }
 }

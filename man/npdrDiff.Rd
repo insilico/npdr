@@ -7,8 +7,8 @@
 npdrDiff(
   a,
   b,
-  diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "allele-sharing",
-    "match-mismatch", "correlation-data"),
+  diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "numeric-signed",
+    "allele-sharing", "match-mismatch", "correlation-data"),
   norm.fac = 1
 )
 }

@@ -12,12 +12,15 @@
 #'
 #' @return Value or vector of differences between two vectors element-wise.
 #' @export
-npdrDiff <- function(a, b, diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "allele-sharing", "match-mismatch", "correlation-data"), norm.fac = 1) {
-  if (is.null(diff.type)) diff.type <- "numeric-abs"
+npdrDiff <- function(a, b, 
+                     diff.type = c("manhattan", "numeric-abs", "numeric-sqr", "numeric-signed", "allele-sharing", "match-mismatch", "correlation-data"), 
+                     norm.fac = 1) {
+  if (is.null(diff.type)) diff.type <- "numeric-abs" # default to numeric-abs if not specified
 
   diff.type <- match.arg(diff.type)
 
   val <- switch(diff.type,
+    `numeric-signed` = (a - b) / norm.fac, # numeric signed difference
     `numeric-sqr` = abs(a - b)^2 / norm.fac, # numeric squared difference
     `allele-sharing` = abs(a - b) / 2, # snps
     `match-mismatch` = ifelse(a == b, 0, 1), # hit pairs = 0, miss = 1
