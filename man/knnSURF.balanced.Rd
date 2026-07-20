@@ -21,5 +21,6 @@ We use our theoretical formula with twice the size of the minority class
 as the input sample size.
 }
 \examples{
-k.surf.bal <- knnSURF.balanced(class.vec, .5)
+class.vec <- factor(c(rep("control", 30), rep("case", 20)))
+k.surf.bal <- knnSURF.balanced(class.vec, 0.5)
 }

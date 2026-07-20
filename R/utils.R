@@ -28,7 +28,8 @@ knnSURF <- function(m.samples, sd.frac = .5) {
 #' @param sd.frac fraction of the standard deviation from the mean of all pairwise distances, dead-band. The default value used by the SURF and multiSURF algorithms is 1/2.
 #' @return knn Theoretical number of neighbors.
 #' @examples
-#' k.surf.bal <- knnSURF.balanced(class.vec, .5)
+#' class.vec <- factor(c(rep("control", 30), rep("case", 20)))
+#' k.surf.bal <- knnSURF.balanced(class.vec, 0.5)
 #' @export
   knnSURF.balanced <- function(class.vec, sd.frac = .5) {
     class_table <- as.numeric(table(class.vec))
@@ -39,7 +40,7 @@ knnSURF <- function(m.samples, sd.frac = .5) {
       min.class.size <- min(class_table)   
     }
   # theoretical SURF knn formula but using twice the minority class size
-  knn <- npdr::knnSURF(2*min.class.size - 1, 0.5)
+  knn <- npdr::knnSURF(2*min.class.size - 1, sd.frac)
   return(knn)
 }
 

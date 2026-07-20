@@ -12,6 +12,10 @@ Imports:
     dplyr, 
     rlang,
     PRROC
+    caret,
+    glm2,
+    igraph,
+    Rcpp
 Suggests: 
     knitr,
     CORElearn,
