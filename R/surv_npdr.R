@@ -1,5 +1,5 @@
 # ========================================================================= #
-#' npdr_surv
+#' surv_npdr
 #'
 #' Survival NPDR: Nearest-Neighbor Projected-Distance Regression for
 #' right-censored survival outcomes.
@@ -69,22 +69,22 @@
 #' @examples
 #' \dontrun{
 #' # Main-effect detection — signed differences, adaptive neighborhood
-#' res <- npdr_surv(my_data, diff.type = "signed")
+#' res <- surv_npdr(my_data, diff.type = "signed")
 #' head(res)
 #'
 #' # Interaction detection — absolute differences, fixed k = 20
-#' res <- npdr_surv(my_data, diff.type = "absolute",
+#' res <- surv_npdr(my_data, diff.type = "absolute",
 #'                  nbd.method = "relieff", knn = 20)
 #'
 #' # With KM imputation (works for both lm and binomial)
-#' res <- npdr_surv(my_data, diff.type = "signed",
+#' res <- surv_npdr(my_data, diff.type = "signed",
 #'                  km.impute = TRUE, covariates = c("age", "sex"))
 #'
 #' # Binomial with KM imputation
-#' res <- npdr_surv(my_data, regression = "binomial", km.impute = TRUE)
+#' res <- surv_npdr(my_data, regression = "binomial", km.impute = TRUE)
 #'
 #' # Logistic regression with LASSO regularization
-#' res <- npdr_surv(my_data, regression = "binomial",
+#' res <- surv_npdr(my_data, regression = "binomial",
 #'                  regularize = TRUE, alpha = 1)
 #' }
 #'
@@ -92,7 +92,7 @@
 #' @importFrom stats glm binomial lm na.omit p.adjust
 #' @importFrom rlang .data
 #' @export
-npdr_surv <- function(outcome       = c(time_var = "time", status_var = "status"),
+surv_npdr <- function(outcome       = c(time_var = "time", status_var = "status"),
                       dataset,
                       nbd.method    = "multisurf",
                       nbd.metric    = "manhattan",
