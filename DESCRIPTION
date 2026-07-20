@@ -11,7 +11,7 @@ LazyData: true
 Imports: 
     dplyr, 
     rlang,
-    PRROC
+    PRROC,
     caret,
     glm2,
     igraph,
